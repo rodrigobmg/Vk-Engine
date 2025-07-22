@@ -44,6 +44,11 @@ g_upload_buffers_to_destroy : [Gfx_Num_Frames_In_Flight][..]GfxBuffer;
 // The two arrays are separate so we can directly send the whole textures array for transition barriers
 g_texture_uploads : [..]*Texture2D;
 g_texture_upload_buffers : [..]GfxBuffer;
+g_texture_upload_mutex : Mutex;
+
+InitTextureUpload :: () {
+    init(*g_texture_upload_mutex, "Queue Texture Upload");
+}
 
 DestroyAllUploadData :: () {
     ArrayFree(*g_texture_uploads);
@@ -61,9 +66,14 @@ DestroyAllUploadData :: () {
     }
 
     ArrayFree(*g_texture_upload_buffers);
+
+    destroy(*g_texture_upload_mutex);
 }
 
 QueueTextureUpload :: (data : *void, texture : *Texture2D) {
+    lock(*g_texture_upload_mutex);
+    defer unlock(*g_texture_upload_mutex);
+
     buffer_desc : GfxBufferDesc;
     buffer_desc.size = texture.width * texture.height * size_of(u32);
     buffer_desc.usage = .TransferSrc;
@@ -79,6 +89,9 @@ QueueTextureUpload :: (data : *void, texture : *Texture2D) {
 }
 
 CancelTextureUpload :: (texture : *Texture2D) {
+    lock(*g_texture_upload_mutex);
+    defer unlock(*g_texture_upload_mutex);
+
     index := ArrayFindFirst(g_texture_uploads, texture);
     if index >= 0 {
         DestroyGfxBuffer(*g_texture_upload_buffers[index]);

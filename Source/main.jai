@@ -165,6 +165,20 @@ main :: () {
     CreateAllPipelines();
     defer DestroyAllPipelines();
 
+    InitTextureUpload();
+    defer DestroyAllUploadData();
+
+    for * g_frame_data_allocators {
+        InitFrameDataAllocator(it, TPrint("Frame Data %", it_index), Frame_Data_Capacity);
+    }
+
+    defer for * g_frame_data_allocators {
+        DestroyFrameDataAllocator(it);
+    }
+
+    InitBindingSetAllocators();
+    defer DestroyBindingSetAllocators();
+
     InitAssetCache(
         *g_Mesh_asset_cache,
         load_proc=LoadMeshFromMemory,
@@ -191,19 +205,6 @@ main :: () {
 
     LoadDefaultAssets();
     defer UnloadDefaultAssets();
-
-    for * g_frame_data_allocators {
-        InitFrameDataAllocator(it, TPrint("Frame Data %", it_index), Frame_Data_Capacity);
-    }
-
-    defer for * g_frame_data_allocators {
-        DestroyFrameDataAllocator(it);
-    }
-
-    InitBindingSetAllocators();
-    defer DestroyBindingSetAllocators();
-
-    defer DestroyAllUploadData();
 
     camera : Camera;
     world : World;
