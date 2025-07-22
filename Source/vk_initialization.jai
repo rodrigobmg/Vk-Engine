@@ -15,6 +15,31 @@ InitGfxContext :: (window : *SDL_Window) {
 
     ctx.window = window;
 
+    // Setup allocation callbacks
+    #if Debug_Vulkan_Allocations {
+        ctx.allocation_callbacks.pUserData = *context;
+        ctx.allocation_callbacks.pfnAllocation = (data : *void, size : u64, alignment : u64, scope : VkSystemAllocationScope) -> *void #c_call {
+            push_context, defer_pop;
+
+            ptr := Alloc(xx size);
+            memset(ptr, 0, xx size);
+
+            return ptr;
+        };
+        ctx.allocation_callbacks.pfnReallocation = (data : *void, original_ptr : *void, size : u64, alignment : u64, scope : VkSystemAllocationScope) -> *void #c_call {
+            push_context, defer_pop;
+
+            return Realloc(original_ptr, 0, xx size);
+        };
+        ctx.allocation_callbacks.pfnFree = (data : *void, ptr : *void) #c_call {
+            push_context, defer_pop;
+
+            Free(ptr);
+        };
+
+        g_vk_alloc_callbacks = *ctx.allocation_callbacks;
+    }
+
     // Create instance
     app_info : VkApplicationInfo;
     app_info.pApplicationName = "Vk";
@@ -88,13 +113,13 @@ InitGfxContext :: (window : *SDL_Window) {
         LogMessage("Extension '%'", MakeString(it));
     }
 
-    result = vkCreateInstance(*inst_info, null, *ctx.instance);
+    result = vkCreateInstance(*inst_info, g_vk_alloc_callbacks, *ctx.instance);
     Assert(result == .SUCCESS, "vkCreateInstance failed");
 
     // Setup debug messenger
     vkCreateDebugUtilsMessengerEXT := cast(PFN_vkCreateDebugUtilsMessengerEXT, vkGetInstanceProcAddr(ctx.instance, "vkCreateDebugUtilsMessengerEXT"));
     if vkCreateDebugUtilsMessengerEXT {
-        result = vkCreateDebugUtilsMessengerEXT(ctx.instance, *debug_info, null, *ctx.debug_messenger);
+        result = vkCreateDebugUtilsMessengerEXT(ctx.instance, *debug_info, g_vk_alloc_callbacks, *ctx.debug_messenger);
         Assert(result == .SUCCESS, "vkCreateDebugUtilsMessengerEXT failed");
     }
 
@@ -187,7 +212,7 @@ InitGfxContext :: (window : *SDL_Window) {
 
     device_info.pNext = *dynamic_rendering_feature;
 
-    if vkCreateDevice(ctx.physical_device, *device_info, null, *ctx.device) != .SUCCESS {
+    if vkCreateDevice(ctx.physical_device, *device_info, g_vk_alloc_callbacks, *ctx.device) != .SUCCESS {
         LogError("Could not create logical device");
         Basic.exit(1);
     }
@@ -207,7 +232,7 @@ InitGfxContext :: (window : *SDL_Window) {
     for * ctx.frame_in_flight_fences {
         create_info : VkFenceCreateInfo;
         create_info.flags = .SIGNALED_BIT;
-        vkCreateFence(ctx.device, *create_info, null, it);
+        vkCreateFence(ctx.device, *create_info, g_vk_alloc_callbacks, it);
 
         SetDebugName(it.*, TPrint("Fence 'Frame % rendered'", it_index));
     }
@@ -215,7 +240,7 @@ InitGfxContext :: (window : *SDL_Window) {
     ctx.swapchain_semaphores = AllocArray(VkSemaphore, Gfx_Num_Frames_In_Flight);
     for * ctx.swapchain_semaphores {
         create_info : VkSemaphoreCreateInfo;
-        vkCreateSemaphore(ctx.device, *create_info, null, it);
+        vkCreateSemaphore(ctx.device, *create_info, g_vk_alloc_callbacks, it);
 
         SetDebugName(it.*, TPrint("Semaphore 'Frame % swapchain image available'", it_index));
     }
@@ -223,7 +248,7 @@ InitGfxContext :: (window : *SDL_Window) {
     ctx.render_semaphores = AllocArray(VkSemaphore, Gfx_Num_Frames_In_Flight);
     for * ctx.render_semaphores {
         create_info : VkSemaphoreCreateInfo;
-        vkCreateSemaphore(ctx.device, *create_info, null, it);
+        vkCreateSemaphore(ctx.device, *create_info, g_vk_alloc_callbacks, it);
 
         SetDebugName(it.*, TPrint("Semaphore 'Frame % swapchain image presentable'", it_index));
     }
@@ -254,17 +279,17 @@ CleanupGfxContext :: () {
     vkDeviceWaitIdle(ctx.device);
 
     for ctx.frame_in_flight_fences {
-        vkDestroyFence(ctx.device, it, null);
+        vkDestroyFence(ctx.device, it, g_vk_alloc_callbacks);
     }
     Free(ctx.frame_in_flight_fences.data);
 
     for ctx.swapchain_semaphores {
-        vkDestroySemaphore(ctx.device, it, null);
+        vkDestroySemaphore(ctx.device, it, g_vk_alloc_callbacks);
     }
     Free(ctx.swapchain_semaphores.data);
 
     for ctx.render_semaphores {
-        vkDestroySemaphore(ctx.device, it, null);
+        vkDestroySemaphore(ctx.device, it, g_vk_alloc_callbacks);
     }
     Free(ctx.render_semaphores.data);
 
@@ -275,16 +300,20 @@ CleanupGfxContext :: () {
 
     DestroySwapchain();
 
-    vkDestroyDevice(ctx.device, null);
+    vkDestroyDevice(ctx.device, g_vk_alloc_callbacks);
 
-    vkDestroySurfaceKHR(ctx.instance, ctx.surface, null);
+    vkDestroySurfaceKHR(ctx.instance, ctx.surface, g_vk_alloc_callbacks);
+
+    #if Basic.MEMORY_DEBUGGER {
+        Basic.report_memory_leaks();
+    }
 
     vkDestroyDebugUtilsMessengerEXT := cast(PFN_vkDestroyDebugUtilsMessengerEXT, vkGetInstanceProcAddr(ctx.instance, "vkDestroyDebugUtilsMessengerEXT"));
     if vkDestroyDebugUtilsMessengerEXT && ctx.debug_messenger != VK_NULL_HANDLE {
-        vkDestroyDebugUtilsMessengerEXT(ctx.instance, ctx.debug_messenger, null);
+        vkDestroyDebugUtilsMessengerEXT(ctx.instance, ctx.debug_messenger, g_vk_alloc_callbacks);
     }
 
-    vkDestroyInstance(ctx.instance, null);
+    vkDestroyInstance(ctx.instance, g_vk_alloc_callbacks);
 }
 
 GetPhysicalDeviceScore :: (device : VkPhysicalDevice) -> int {
@@ -475,24 +504,6 @@ ChooseSwapchainExtent :: (capabilities : VkSurfaceCapabilitiesKHR) -> VkExtent2D
     return result;
 }
 
-GetSwapchainImages :: () -> []VkImage {
-    LogSectionScope(*Log_Vulkan);
-
-    ctx := *g_gfx_context;
-
-    num_images : u32;
-    vkGetSwapchainImagesKHR(ctx.device, ctx.swapchain, *num_images, null);
-
-    images := AllocArray(VkImage, num_images);
-    vkGetSwapchainImagesKHR(ctx.device, ctx.swapchain, *num_images, images.data);
-
-    for images {
-        SetDebugName(it, TPrint("Image 'Swapchain %'", it_index));
-    }
-
-    return images;
-}
-
 RecreateSwapchain :: () {
     LogSectionScope(*Log_Vulkan);
 
@@ -510,13 +521,13 @@ DestroySwapchain :: () {
     ctx := *g_gfx_context;
 
     for ctx.swapchain_textures {
-        vkDestroyImageView(ctx.device, it.image_view, null);
+        vkDestroyImageView(ctx.device, it.image_view, g_vk_alloc_callbacks);
     }
 
     Free(ctx.swapchain_textures.data);
     ctx.swapchain_textures = .[];
 
-    vkDestroySwapchainKHR(ctx.device, ctx.swapchain, null);
+    vkDestroySwapchainKHR(ctx.device, ctx.swapchain, g_vk_alloc_callbacks);
     ctx.swapchain = VK_NULL_HANDLE;
 
     Free(ctx.swapchain_textures.data);
@@ -566,7 +577,7 @@ CreateSwapchain :: () {
     swapchain_create_info.presentMode = present_mode;
     swapchain_create_info.clipped = VK_TRUE;
 
-    if vkCreateSwapchainKHR(ctx.device, *swapchain_create_info, null, *ctx.swapchain) != .SUCCESS {
+    if vkCreateSwapchainKHR(ctx.device, *swapchain_create_info, g_vk_alloc_callbacks, *ctx.swapchain) != .SUCCESS {
         LogError("Could not create swapchain");
         Basic.exit(1);
     }
@@ -596,7 +607,7 @@ CreateSwapchain :: () {
         create_info.subresourceRange.baseArrayLayer = 0;
         create_info.subresourceRange.layerCount = 1;
 
-        if vkCreateImageView(ctx.device, *create_info, null, *it.image_view) != .SUCCESS {
+        if vkCreateImageView(ctx.device, *create_info, g_vk_alloc_callbacks, *it.image_view) != .SUCCESS {
             Panic("Could not create swapchain image view %", it_index);
         }
 

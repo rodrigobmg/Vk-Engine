@@ -32,6 +32,7 @@ using,only(.["+","-","*","/"]) Basic;
 #load "allocator.jai";
 #load "binding_set_allocator.jai";
 
+Debug_Vulkan_Allocations :: false;
 Vulkan_Break_On_Error :: true;
 
 Append   :: StringBuilderAppend;

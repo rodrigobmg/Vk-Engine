@@ -16,6 +16,9 @@ Log_Vulkan :: Log_Section.{name="Graphics/Vulkan"};
 Gfx_Max_Color_Attachments :: 8;
 Gfx_Num_Frames_In_Flight :: 2;
 
+g_gfx_context : GfxContext;
+g_vk_alloc_callbacks : *VkAllocationCallbacks;
+
 GfxContext :: struct {
     window : *SDL_Window;
     instance : VkInstance;
@@ -37,6 +40,7 @@ GfxContext :: struct {
     frame_in_flight_fences : []VkFence;
     frame_in_flight : int;
     frame_swapchain_image_index : u32;
+    allocation_callbacks : VkAllocationCallbacks;
     allocator : VmaAllocator;
     limits : GfxLimits;
 
@@ -77,8 +81,6 @@ MakeGfxLimits :: (limits : VkPhysicalDeviceLimits) -> GfxLimits {
 
     return result;
 }
-
-g_gfx_context : GfxContext;
 
 GetGfxLimits :: inline () -> GfxLimits {
     return g_gfx_context.limits;
@@ -184,7 +186,7 @@ CreateGfxCommandPool :: (name : string) -> GfxCommandPool {
     pool_info.queueFamilyIndex = ctx.general_purpose_queue_index;
 
     pool : VkCommandPool;
-    if vkCreateCommandPool(ctx.device, *pool_info, null, *pool) != .SUCCESS {
+    if vkCreateCommandPool(ctx.device, *pool_info, g_vk_alloc_callbacks, *pool) != .SUCCESS {
         return .{};
     }
 
@@ -197,7 +199,7 @@ DestroyGfxCommandPool :: (pool : *GfxCommandPool) {
     ArrayFree(*pool.free_cmd_buffers);
     ArrayFree(*pool.used_cmd_buffers);
 
-    vkDestroyCommandPool(g_gfx_context.device, pool.pool, null);
+    vkDestroyCommandPool(g_gfx_context.device, pool.pool, g_vk_alloc_callbacks);
     pool.* = .{};
 }
 
@@ -327,7 +329,7 @@ LoadGfxShader :: (name : string) -> GfxShader {
     create_info.pCode = cast(*u32, code.data);
 
     module : VkShaderModule;
-    if vkCreateShaderModule(g_gfx_context.device, *create_info, null, *module) != .SUCCESS {
+    if vkCreateShaderModule(g_gfx_context.device, *create_info, g_vk_alloc_callbacks, *module) != .SUCCESS {
         LogError("Could not create shader module");
         return .{};
     }
@@ -338,7 +340,7 @@ LoadGfxShader :: (name : string) -> GfxShader {
 }
 
 DestroyGfxShader :: (shader : *GfxShader) {
-    vkDestroyShaderModule(g_gfx_context.device, shader.module, null);
+    vkDestroyShaderModule(g_gfx_context.device, shader.module, g_vk_alloc_callbacks);
     shader.* = .{};
 }
 
@@ -453,7 +455,7 @@ CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> 
     }
 
     layout : VkDescriptorSetLayout;
-    if vkCreateDescriptorSetLayout(g_gfx_context.device, *create_info, null, *layout) != .SUCCESS {
+    if vkCreateDescriptorSetLayout(g_gfx_context.device, *create_info, g_vk_alloc_callbacks, *layout) != .SUCCESS {
         return .{};
     }
 
@@ -465,7 +467,7 @@ CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> 
 DestroyGfxBindingSetLayout :: (layout : *GfxBindingSetLayout) {
     LogSectionScope(*Log_Vulkan);
 
-    vkDestroyDescriptorSetLayout(g_gfx_context.device, layout.layout, null);
+    vkDestroyDescriptorSetLayout(g_gfx_context.device, layout.layout, g_vk_alloc_callbacks);
     layout.* = .{};
 }
 
@@ -489,6 +491,7 @@ IsNull :: inline (pool : *GfxBindingPool) -> bool {
 CreateGfxBindingPool :: (name : string, desc : GfxBindingPoolDesc) -> GfxBindingPool {
     pool_sizes : [..]VkDescriptorPoolSize;
     pool_sizes.allocator = Temp;
+
     if desc.max_uniform_buffers > 0 {
         ArrayPush(*pool_sizes, .{type=.UNIFORM_BUFFER, descriptorCount=desc.max_uniform_buffers});
     }
@@ -511,7 +514,7 @@ CreateGfxBindingPool :: (name : string, desc : GfxBindingPoolDesc) -> GfxBinding
     info.pPoolSizes = pool_sizes.data;
 
     pool : VkDescriptorPool;
-    if vkCreateDescriptorPool(g_gfx_context.device, *info, null, *pool) != .SUCCESS {
+    if vkCreateDescriptorPool(g_gfx_context.device, *info, g_vk_alloc_callbacks, *pool) != .SUCCESS {
         return .{};
     }
 
@@ -521,7 +524,7 @@ CreateGfxBindingPool :: (name : string, desc : GfxBindingPoolDesc) -> GfxBinding
 }
 
 DestroyGfxBindingPool :: (pool : *GfxBindingPool) {
-    vkDestroyDescriptorPool(g_gfx_context.device, pool.pool, null);
+    vkDestroyDescriptorPool(g_gfx_context.device, pool.pool, g_vk_alloc_callbacks);
     pool.* = .{};
 }
 
@@ -1235,7 +1238,7 @@ CreateGfxPipelineLayout :: (name : string, desc : GfxPipelineLayoutDesc) -> GfxP
     }
 
     layout : VkPipelineLayout;
-    if vkCreatePipelineLayout(g_gfx_context.device, *layout_info, null, *layout) != .SUCCESS {
+    if vkCreatePipelineLayout(g_gfx_context.device, *layout_info, g_vk_alloc_callbacks, *layout) != .SUCCESS {
         return .{};
     }
 
@@ -1245,7 +1248,7 @@ CreateGfxPipelineLayout :: (name : string, desc : GfxPipelineLayoutDesc) -> GfxP
 }
 
 DestroyGfxPipelineLayout :: (layout : *GfxPipelineLayout) {
-    vkDestroyPipelineLayout(g_gfx_context.device, layout.layout, null);
+    vkDestroyPipelineLayout(g_gfx_context.device, layout.layout, g_vk_alloc_callbacks);
     layout.* = .{};
 }
 
@@ -1416,7 +1419,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
     pipeline_info.layout = layout.layout;
 
     pipeline : VkPipeline;
-    if vkCreateGraphicsPipelines(g_gfx_context.device, VK_NULL_HANDLE, 1, *pipeline_info, null, *pipeline) != .SUCCESS {
+    if vkCreateGraphicsPipelines(g_gfx_context.device, VK_NULL_HANDLE, 1, *pipeline_info, g_vk_alloc_callbacks, *pipeline) != .SUCCESS {
         DestroyGfxPipelineLayout(*layout);
         return .{};
     }
@@ -1430,7 +1433,7 @@ DestroyGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline) {
     LogSectionScope(*Log_Vulkan);
 
     DestroyGfxPipelineLayout(*pipeline.layout);
-    vkDestroyPipeline(g_gfx_context.device, pipeline.pipeline, null);
+    vkDestroyPipeline(g_gfx_context.device, pipeline.pipeline, g_vk_alloc_callbacks);
     pipeline.* = .{};
 }
 
@@ -1730,7 +1733,7 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
     view_info.subresourceRange.layerCount = image_info.arrayLayers;
 
     image_view : VkImageView;
-    if vkCreateImageView(g_gfx_context.device, *view_info, null, *image_view) != .SUCCESS {
+    if vkCreateImageView(g_gfx_context.device, *view_info, g_vk_alloc_callbacks, *image_view) != .SUCCESS {
         vmaDestroyImage(g_gfx_context.allocator, image, allocation);
         return .{};
     }
@@ -1743,7 +1746,7 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
 DestroyGfxTexture :: (texture : *GfxTexture) {
     LogSectionScope(*Log_Vulkan);
 
-    vkDestroyImageView(g_gfx_context.device, texture.image_view, null);
+    vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     vmaDestroyImage(g_gfx_context.allocator, texture.image, texture.allocation);
     texture.* = .{};
 }
@@ -1846,7 +1849,7 @@ CreateGfxSampler :: (name : string, desc : GfxSamplerDesc) -> GfxSampler {
     create_info.borderColor = MakeVkBorderColor(desc.border_color);
 
     sampler : VkSampler;
-    if vkCreateSampler(g_gfx_context.device, *create_info, null, *sampler) != .SUCCESS {
+    if vkCreateSampler(g_gfx_context.device, *create_info, g_vk_alloc_callbacks, *sampler) != .SUCCESS {
         return .{};
     }
 
@@ -1858,7 +1861,7 @@ CreateGfxSampler :: (name : string, desc : GfxSamplerDesc) -> GfxSampler {
 DestroyGfxSampler :: (sampler : *GfxSampler) {
     LogSectionScope(*Log_Vulkan);
 
-    vkDestroySampler(g_gfx_context.device, sampler.sampler, null);
+    vkDestroySampler(g_gfx_context.device, sampler.sampler, g_vk_alloc_callbacks);
     sampler.* = .{};
 }
 
