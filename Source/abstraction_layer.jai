@@ -31,7 +31,7 @@ GfxContext :: struct {
     swapchain_format : GfxPixelFormat;
     swapchain_extent : VkExtent2D;
     swapchain_textures : []GfxTexture;
-    frame_command_pools : []VkCommandPool;
+    frame_command_pools : []GfxCommandPool;
     swapchain_semaphores : []VkSemaphore;
     render_semaphores : []VkSemaphore;
     frame_in_flight_fences : []VkFence;
@@ -103,8 +103,8 @@ BeginFrame :: () {
 
     vkResetFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight]);
 
-    cmd_pool := ctx.frame_command_pools[ctx.frame_in_flight];
-    vkResetCommandPool(ctx.device, cmd_pool, 0);
+    cmd_pool := *ctx.frame_command_pools[ctx.frame_in_flight];
+    ResetGfxCommandPool(cmd_pool);
 }
 
 SubmitFrame :: (color_texture : *GfxTexture) {
@@ -167,6 +167,50 @@ WaitForGPUIdle :: () {
     vkDeviceWaitIdle(g_gfx_context.device);
 }
 
+GfxCommandPool :: struct {
+    pool : VkCommandPool;
+    free_cmd_buffers : [..]GfxCommandBuffer;
+    used_cmd_buffers : [..]GfxCommandBuffer;
+}
+
+IsNull :: inline (pool : *GfxCommandPool) -> bool {
+    return pool == null || pool.pool == VK_NULL_HANDLE;
+}
+
+CreateGfxCommandPool :: (name : string) -> GfxCommandPool {
+    ctx := *g_gfx_context;
+
+    pool_info : VkCommandPoolCreateInfo;
+    pool_info.queueFamilyIndex = ctx.general_purpose_queue_index;
+
+    pool : VkCommandPool;
+    if vkCreateCommandPool(ctx.device, *pool_info, null, *pool) != .SUCCESS {
+        return .{};
+    }
+
+    SetDebugName(pool, TPrint("Command Pool '%'", name));
+
+    return .{pool=pool};
+}
+
+DestroyGfxCommandPool :: (pool : *GfxCommandPool) {
+    ArrayFree(*pool.free_cmd_buffers);
+    ArrayFree(*pool.used_cmd_buffers);
+
+    vkDestroyCommandPool(g_gfx_context.device, pool.pool, null);
+    pool.* = .{};
+}
+
+ResetGfxCommandPool :: (pool : *GfxCommandPool) {
+    for pool.used_cmd_buffers {
+        ArrayPush(*pool.free_cmd_buffers, it);
+    }
+
+    ArrayClear(*pool.used_cmd_buffers);
+
+    vkResetCommandPool(g_gfx_context.device, pool.pool, 0);
+}
+
 GfxCommandBuffer :: struct {
     cmd_buffer : VkCommandBuffer;
 }
@@ -177,9 +221,24 @@ IsNull :: inline (cmd_buffer : *GfxCommandBuffer) -> bool {
 
 CreateGfxCommandBuffer :: (name : string) -> GfxCommandBuffer {
     ctx := *g_gfx_context;
+    pool := *ctx.frame_command_pools[ctx.frame_in_flight];
+
+    if pool.free_cmd_buffers.count > 0 {
+        cmd_buffer := pool.free_cmd_buffers[pool.free_cmd_buffers.count - 1];
+        ArrayPop(*pool.free_cmd_buffers);
+        ArrayPush(*pool.used_cmd_buffers, cmd_buffer);
+
+        begin_info : VkCommandBufferBeginInfo;
+        begin_info.flags = .ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(cmd_buffer.cmd_buffer, *begin_info);
+
+        SetDebugName(cmd_buffer.cmd_buffer, TPrint("Command Buffer '%'", name));
+
+        return cmd_buffer;
+    }
 
     create_info : VkCommandBufferAllocateInfo;
-    create_info.commandPool = ctx.frame_command_pools[ctx.frame_in_flight];
+    create_info.commandPool = pool.pool;
     create_info.level = .PRIMARY;
     create_info.commandBufferCount = 1;
 
@@ -194,7 +253,11 @@ CreateGfxCommandBuffer :: (name : string) -> GfxCommandBuffer {
 
     SetDebugName(cmd_buffer, TPrint("Command Buffer '%'", name));
 
-    return .{cmd_buffer=cmd_buffer};
+    result := GfxCommandBuffer.{cmd_buffer=cmd_buffer};
+
+    ArrayPush(*pool.used_cmd_buffers, result);
+
+    return result;
 }
 
 SubmitGfxCommandBuffer :: (cmd_buffer : GfxCommandBuffer) {

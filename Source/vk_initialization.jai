@@ -197,16 +197,10 @@ InitGfxContext :: (window : *SDL_Window) {
 
     CreateSwapchain();
 
-    ctx.frame_command_pools = AllocArray(VkCommandPool, Gfx_Num_Frames_In_Flight);
+    ctx.frame_command_pools = AllocArray(GfxCommandPool, Gfx_Num_Frames_In_Flight);
     for * ctx.frame_command_pools {
-        pool_info : VkCommandPoolCreateInfo;
-        pool_info.queueFamilyIndex = ctx.general_purpose_queue_index;
-        if vkCreateCommandPool(ctx.device, *pool_info, null, it) != .SUCCESS {
-            LogError("Could not create command pool");
-            Basic.exit(1);
-        }
-
-        SetDebugName(it.*, TPrint("Command Pool 'Frame %'", it_index));
+        it.* = CreateGfxCommandPool(TPrint("Frame In Flight %", it_index));
+        Assert(!IsNull(it), "Could not create command pool");
     }
 
     ctx.frame_in_flight_fences = AllocArray(VkFence, Gfx_Num_Frames_In_Flight);
@@ -274,8 +268,8 @@ CleanupGfxContext :: () {
     }
     Free(ctx.render_semaphores.data);
 
-    for ctx.frame_command_pools {
-        vkDestroyCommandPool(ctx.device, it, null);
+    for * ctx.frame_command_pools {
+        DestroyGfxCommandPool(it);
     }
     Free(ctx.frame_command_pools.data);
 
