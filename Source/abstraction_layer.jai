@@ -87,11 +87,11 @@ GetGfxLimits :: inline () -> GfxLimits {
 BeginFrame :: () {
     ctx := *g_gfx_context;
 
-    wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Nano_To_Second);
+    wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Second_To_Nano);
     Assert(wait_result == .SUCCESS, "vkWaitForFences failed: %", wait_result);
 
     while true {
-        acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Nano_To_Second, ctx.swapchain_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
+        acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Second_To_Nano, ctx.swapchain_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
 
         if acquire_result == .ERROR_OUT_OF_DATE_KHR || acquire_result == .SUBOPTIMAL_KHR {
             RecreateSwapchain();

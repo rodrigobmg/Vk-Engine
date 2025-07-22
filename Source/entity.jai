@@ -967,6 +967,8 @@ LoadWorldFromDirectory :: (world : *World, directory : string) {
                 continue;
             }
 
+            defer Free(file_contents.data);
+
             entity := SpawnEntity(world, type_id, guid=guid);
 
             result := DeserializeEntity(file_contents, entity);

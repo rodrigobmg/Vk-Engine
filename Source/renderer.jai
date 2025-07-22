@@ -48,6 +48,65 @@ DestroyAllBindingSetLayouts :: () {
     }
 }
 
+g_color_texture : GfxTexture;
+g_depth_texture : GfxTexture;
+
+g_shaders : struct {
+    mesh_vert : GfxShader;
+    mesh_frag : GfxShader;
+}
+
+LoadAllShaders :: () -> bool {
+    g_shaders.mesh_vert = LoadGfxShader("mesh.vert");
+    if IsNull(*g_shaders.mesh_vert) {
+        return false;
+    }
+
+    g_shaders.mesh_frag = LoadGfxShader("mesh.frag");
+    if IsNull(*g_shaders.mesh_frag) {
+        return false;
+    }
+
+    return true;
+}
+
+DestroyAllShaders :: () {
+    DestroyGfxShader(*g_shaders.mesh_vert);
+    DestroyGfxShader(*g_shaders.mesh_frag);
+}
+
+CreateRenderTargets :: () {
+    WaitForGPUIdle();
+
+    if !IsNull(*g_color_texture) {
+        DestroyGfxTexture(*g_color_texture);
+    }
+
+    if !IsNull(*g_depth_texture) {
+        DestroyGfxTexture(*g_depth_texture);
+    }
+
+    w, h : s32;
+    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+
+    texture_desc : GfxTextureDesc;
+    texture_desc.type = .Texture2D;
+    texture_desc.width = xx w;
+    texture_desc.height = xx h;
+
+    texture_desc.pixel_format = .RGBA16Float;
+    texture_desc.usage = .ColorAttachment | .TransferSrc;
+
+    g_color_texture = CreateGfxTexture("Color", texture_desc);
+    Assert(!IsNull(*g_color_texture), "Could not create color texture");
+
+    texture_desc.pixel_format = .Depth32Float;
+    texture_desc.usage = .DepthStencilAttachment;
+
+    g_depth_texture = CreateGfxTexture("Depth", texture_desc);
+    Assert(!IsNull(*g_depth_texture), "Could not create depth texture");
+}
+
 FrameInfo :: struct {
     time : float;
     camera_position : Vec3f;

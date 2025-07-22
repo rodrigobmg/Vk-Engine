@@ -584,7 +584,7 @@ ParseFloat :: (str : string) -> float, ok : bool, remainder : string {
 
 DeserializeAny :: inline (str : string, value : Any) -> DeserializeResult {
     parser : DeserializeParser;
-    InitParser(*parser, str);
+    InitParser(*parser, str ,, Temp);
 
     return DeserializeAny(*parser, value);
 }
@@ -598,7 +598,7 @@ DeserializeAny :: (using parser : *DeserializeParser, value : Any) -> Deserializ
         pointer_to := (cast(*Type_Info_Pointer) type).pointer_to;
         if pointer_to.type == .STRUCT && TypeGetSourcePolymorph(xx pointer_to) == TypeGetSourcePolymorph(type_info(DummyAsset)) {
             asset_name : string;
-            result := DeserializeAny(parser, asset_name);
+            result := DeserializeAny(parser, asset_name ,, Temp);
             if !result.ok {
                 return result;
             }
