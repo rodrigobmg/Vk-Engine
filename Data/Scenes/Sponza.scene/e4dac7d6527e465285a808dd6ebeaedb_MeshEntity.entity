@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xe4dac7d6527e465285a808dd6ebeaedb
+  @name 2: "wood_door"
+  @local_position 3: [19.491859436035156, 0.7786175608634949, -0.03165676072239876]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/wood_door.mesh"
+@material 3: "Materials/wood_01.mat"
+@cast_shadows 4: True

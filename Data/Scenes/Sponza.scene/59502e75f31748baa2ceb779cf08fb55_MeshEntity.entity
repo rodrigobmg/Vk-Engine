@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x59502e75f31748baa2ceb779cf08fb55
+  @name 2: "column_2ndfloor_02.002"
+  @local_position 3: [0.14297209680080414, 6.107756614685059, -3.103250026702881]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
+@mesh 2: "Meshes/column_2ndfloor_02.002.mesh"
+@material 3: "Materials/stone_trims_01.mat"
+@cast_shadows 4: True

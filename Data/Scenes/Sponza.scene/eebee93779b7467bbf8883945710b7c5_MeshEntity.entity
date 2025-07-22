@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xeebee93779b7467bbf8883945710b7c5
+  @name 2: "arch_stones_05.001"
+  @local_position 3: [0.11376464366912842, 4.3738908767700195, 0.016881408169865608]
+  @local_rotation 4: [0.0, -8.742277657347586e-08, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/arch_stones_05.001.mesh"
+@material 3: "Materials/arch_stone_wall_01.mat"
+@cast_shadows 4: True

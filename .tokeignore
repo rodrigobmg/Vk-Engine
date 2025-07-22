@@ -1,0 +1,15 @@
+*.mesh
+*.anim
+*.glb
+*.blend
+*.blend1
+
+Source/Modules/Slang
+Source/Modules/SPIRV-Cross
+Source/Modules/Tracy
+Source/Modules/Vulkan
+Modules/Win32
+Modules/ImGui/source
+Modules/ImGui/imgui_*.jai
+Profiling
+Logs

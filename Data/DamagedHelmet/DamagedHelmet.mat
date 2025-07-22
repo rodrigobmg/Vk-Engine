@@ -1,0 +1,8 @@
+@type 1: Opaque
+@base_color_tint 2: [1,1,1]
+@base_color 3: "DamagedHelmet/DamagedHelmet_BaseColor.jpg"
+@normal_map 4: "DamagedHelmet/DamagedHelmet_Normal.jpg"
+@metallic_roughness_map 7: "DamagedHelmet/DamagedHelmet_MetallicRoughness.jpg"
+@emissive_tint 8: [1,1,1]
+@emissive 9: "DamagedHelmet/DamagedHelmet_Emissive.jpg"
+@emissive_strength 10: 10

@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xe1e1818d35294bbaabce159a1ccefe58
+  @name 2: "stonewalls_2ndfloor_02"
+  @local_position 3: [0.13906310498714447, 7.855088710784912, -0.11463012546300888]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
+@mesh 2: "Meshes/stonewalls_2ndfloor_02.mesh"
+@material 3: "Materials/brickwall_01.001.mat"
+@cast_shadows 4: True

@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x562580895f534305a21e843b0755e805
+  @name 2: "walls_floor_03"
+  @local_position 3: [1.4462536573410034, 13.452463150024414, -0.0494467169046402]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdd87b82947e146a18897730bc500d2f7
+@mesh 2: "Meshes/walls_floor_03.mesh"
+@material 3: "Materials/brickwall_02.001.mat"
+@cast_shadows 4: True

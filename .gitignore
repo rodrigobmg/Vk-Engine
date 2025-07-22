@@ -1,0 +1,16 @@
+*.log
+__pycache__/
+*.blend1
+.build/
+*.obj
+*.o
+*.pdb
+*.exe
+*.rdi
+*.code-workspace
+.vscode/
+imgui.ini
+*.dSYM
+.DS_Store
+*.xcodeproj
+/Logs

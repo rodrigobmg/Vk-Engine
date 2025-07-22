@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xcb7b8b8b87084b9ca5e984f4b08458b9
+  @name 2: "floor_1stfloor_01.001"
+  @local_position 3: [4.055417537689209, -0.4251940846443176, 0.04547119140625]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/floor_1stfloor_01.001.mesh"
+@material 3: "Materials/arch_stone_wall_01.001.mat"
+@cast_shadows 4: True

@@ -1,0 +1,6 @@
+@type 1: Opaque
+@base_color_tint 2: [0.800000011920929, 0.800000011920929, 0.800000011920929]
+@metallic 5: 0.0
+@roughness 6: 0.0
+@emissive_tint 8: [1, 1, 1]
+@emissive_strength 10: 0

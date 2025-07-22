@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xe656af51bc5e4f9a99382b16aa9a75da
+  @name 2: "orn_windows_07.001"
+  @local_position 3: [0.12733794748783112, 14.929462432861328, 2.9162285327911377]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdd87b82947e146a18897730bc500d2f7
+@mesh 2: "Meshes/orn_windows_07.001.mesh"
+@material 3: "Materials/arch_stone_wall_01.001.mat"
+@cast_shadows 4: True

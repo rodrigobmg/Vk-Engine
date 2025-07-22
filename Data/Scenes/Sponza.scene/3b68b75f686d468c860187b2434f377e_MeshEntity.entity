@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x3b68b75f686d468c860187b2434f377e
+  @name 2: "roof_floor_03_06.002"
+  @local_position 3: [-11.96572494506836, 16.88477897644043, -0.018022460862994194]
+  @local_rotation 4: [0.0, -8.742277657347586e-08, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdd87b82947e146a18897730bc500d2f7
+@mesh 2: "Meshes/roof_floor_03_06.002.mesh"
+@material 3: "Materials/metal_door.mat"
+@cast_shadows 4: True

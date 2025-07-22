@@ -1,0 +1,122 @@
+Texture2D :: struct {
+    // This needs to be the first member, because we want to cast *Texture2D to *GfxTexture
+    texture : GfxTexture;
+    using,only(width, height) texture.desc;
+} @Asset
+
+LoadTexture2DFromMemory :: (texture : *Texture2D, data : []u8, name : string) -> bool {
+    #import "stb_image";
+
+    w, h : s32;
+    image_data := stbi_load_from_memory(data.data, xx data.count, *w, *h, null, 4);
+    defer stbi_image_free(image_data);
+    if !image_data {
+        return false;
+    }
+
+    desc : GfxTextureDesc;
+    desc.type = .Texture2D;
+    desc.pixel_format = .RGBA8UNorm;
+    desc.usage = .Sampled | .TransferDst | .TransferSrc;
+    desc.width = xx w;
+    desc.height = xx h;
+    desc.num_mipmap_levels = GetNumMipmapLevelsForTextureSize(desc.width, desc.height);
+
+    texture.texture = CreateGfxTexture(name, desc);
+    if IsNull(*texture.texture) {
+        return false;
+    }
+
+    QueueTextureUpload(image_data, texture);
+
+    return true;
+}
+
+DestroyTexture2D :: (texture : *Texture2D) {
+    CancelTextureUpload(texture);
+    DestroyGfxTexture(*texture.texture);
+}
+
+// Contains buffers for each frame in flight that were copied
+// All buffers from frame N are destroyed at frame N + Gfx_Num_Frames_In_Flight
+g_upload_buffers_to_destroy : [Gfx_Num_Frames_In_Flight][..]GfxBuffer;
+
+// The two arrays are separate so we can directly send the whole textures array for transition barriers
+g_texture_uploads : [..]*Texture2D;
+g_texture_upload_buffers : [..]GfxBuffer;
+
+DestroyAllUploadData :: () {
+    ArrayFree(*g_texture_uploads);
+
+    for * buffers : g_upload_buffers_to_destroy {
+        for * buffers.* {
+            DestroyGfxBuffer(it);
+        }
+
+        ArrayFree(buffers);
+    }
+
+    for * g_texture_upload_buffers {
+        DestroyGfxBuffer(it);
+    }
+
+    ArrayFree(*g_texture_upload_buffers);
+}
+
+QueueTextureUpload :: (data : *void, texture : *Texture2D) {
+    buffer_desc : GfxBufferDesc;
+    buffer_desc.size = texture.width * texture.height * size_of(u32);
+    buffer_desc.usage = .TransferSrc;
+    buffer_desc.memory_usage = .Upload;
+
+    buffer := CreateGfxBuffer("Upload", buffer_desc);
+    Assert(!IsNull(*buffer), "Could not create upload buffer");
+
+    vmaCopyMemoryToAllocation(g_gfx_context.allocator, data, buffer.allocation, 0, buffer_desc.size);
+
+    ArrayPush(*g_texture_upload_buffers, buffer);
+    ArrayPush(*g_texture_uploads, texture);
+}
+
+CancelTextureUpload :: (texture : *Texture2D) {
+    index := ArrayFindFirst(g_texture_uploads, texture);
+    if index >= 0 {
+        DestroyGfxBuffer(*g_texture_upload_buffers[index]);
+
+        ArrayRemove(*g_texture_uploads, index);
+        ArrayRemove(*g_texture_upload_buffers, index);
+    }
+}
+
+PerformPendingTextureUploadsAndGenerateMipmaps :: (pass : *GfxCopyPass) {
+    AddTextureBarriers(pass.cmd_buffer, .Undefined, .TransferDst, .{data=xx g_texture_uploads.data, count=g_texture_uploads.count});
+
+    for i : 0..g_texture_uploads.count - 1 {
+        buffer := *g_texture_upload_buffers[i];
+        texture := g_texture_uploads[i];
+        CopyBufferToTexture(pass, buffer, *texture.texture);
+    }
+
+    for g_texture_uploads {
+        GenerateMipmaps(pass, *it.texture, .TransferDst, .ShaderReadOnly);
+    }
+
+    ArrayClear(*g_texture_uploads);
+    Swap(*g_texture_upload_buffers, *g_upload_buffers_to_destroy[g_gfx_context.frame_in_flight]);
+}
+
+PerformPendingUploads :: (cmd_buffer : *GfxCommandBuffer) {
+    // Destroy upload buffers that were created at the last same frame in flight, we're sure that
+    // upload was done because the fence was waited upon
+    for * g_upload_buffers_to_destroy[g_gfx_context.frame_in_flight] {
+        DestroyGfxBuffer(it);
+    }
+
+    ArrayClear(*g_upload_buffers_to_destroy[g_gfx_context.frame_in_flight]);
+
+    pass := BeginGfxCopyPass(cmd_buffer, "Upload Assets");
+    {
+        PerformPendingTextureUploadsAndGenerateMipmaps(*pass);
+    }
+    EndGfxCopyPass(*pass);
+}

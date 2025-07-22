@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xf260aecc19934808ba0bfe6ce4b0c218
+  @name 2: "exterior.001"
+  @local_position 3: [1.877864956855774, 8.259137153625488, -0.4965130388736725]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/exterior.001.mesh"
+@material 3: "Materials/arch_stone_wall_01.mat"
+@cast_shadows 4: True

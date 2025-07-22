@@ -1,0 +1,9 @@
+@type 1: Opaque
+@base_color_tint 2: [0.800000011920929, 0.800000011920929, 0.800000011920929]
+@base_color 3: "Textures/stone_trims_01_BaseColor.png"
+@normal_map 4: "Textures/stone_trims_01_Normal.png"
+@metallic 5: 0.0
+@roughness 6: 0.5
+@metallic_roughness_map 7: "Textures/stone_trims_01_Roughnessstone_trims_01_Metalness.png"
+@emissive_tint 8: [1, 1, 1]
+@emissive_strength 10: 0

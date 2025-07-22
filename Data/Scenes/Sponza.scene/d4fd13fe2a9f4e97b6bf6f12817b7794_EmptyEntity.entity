@@ -1,0 +1,7 @@
+1:
+  @guid 1: 0xd4fd13fe2a9f4e97b6bf6f12817b7794
+  @name 2: "Sponza_Root"
+  @local_position 3: [0.0, 0.0, 0.0]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0x00000000000000000000000000000000

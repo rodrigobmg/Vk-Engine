@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xed85028da40c452faf9e92a8dd6d59e5
+  @name 2: "column_2ndfloor_03.003"
+  @local_position 3: [4.158140659332275, 6.10853910446167, -3.1034035682678223]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
+@mesh 2: "Meshes/column_2ndfloor_03.003.mesh"
+@material 3: "Materials/column_brickwall_01.mat"
+@cast_shadows 4: True

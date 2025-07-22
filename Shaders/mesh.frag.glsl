@@ -1,0 +1,61 @@
+#version 460
+
+#include "common.glsl"
+#include "pbr.glsl"
+
+DECLARE_PER_FRAME_PARAMS();
+DECLARE_PER_DRAW_CALL_MESH_PARAMS();
+
+layout(location=0) in float3 in_camera_position;
+layout(location=1) in flat uint in_instance_index;
+layout(location=2) in float3 in_position;
+layout(location=3) in float3 in_normal;
+layout(location=4) in float3 in_tangent;
+layout(location=5) in float3 in_bitangent;
+layout(location=6) in float2 in_tex_coords;
+
+layout(location=0) out float4 out_color;
+
+void main() {
+    MeshInstance mesh = u_mesh_instances[in_instance_index];
+
+    const float3 light_position = float3(-2, -2, -2);
+
+    float3x3 TBN = float3x3(in_tangent, in_bitangent, in_normal);
+    float3 N = texture(u_normal_map_texture, in_tex_coords).xyz;
+    N = N * 2 - float3(1);
+    N = normalize(TBN * N);
+
+    float3 V = normalize(in_camera_position - in_position);
+
+    float3 base_color = texture(u_base_color_texture, in_tex_coords).rgb;
+    base_color = sRGBToLinear(base_color);
+    base_color *= mesh.material.base_color_tint;
+
+    float3 emissive = texture(u_emissive_texture, in_tex_coords).rgb;
+    emissive = sRGBToLinear(emissive);
+    emissive *= sRGBToLinear(mesh.material.emissive_tint) * mesh.material.emissive_strength;
+
+    float2 metallic_roughness = texture(u_metallic_roughness_map_texture, in_tex_coords).xy;
+    float metallic = metallic_roughness.x;
+    float roughness = metallic_roughness.y;
+    roughness = lerp(0.1, 0.9, clamp(roughness, 0.0, 1.0));
+
+    float3 L = normalize(-light_position);
+
+    float3 Lo = float3(0);
+
+    float intensity = 1;
+    float3 light_Lo = CalculateBRDF(base_color, metallic, roughness, N, N, L, float3(intensity));
+
+    Lo += light_Lo;
+
+    float3 ambient = base_color * 0.01;
+    float3 color = ambient + Lo + emissive;
+
+    color = LinearTosRGB(color);
+    color = ApplyToneMapping(color);
+
+    out_color.rgb = color;
+    out_color.a = 1;
+}

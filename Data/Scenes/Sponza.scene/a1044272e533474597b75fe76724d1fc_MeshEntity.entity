@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xa1044272e533474597b75fe76724d1fc
+  @name 2: "lamps_1stfloor_02"
+  @local_position 3: [-5.922083377838135, 4.823324203491211, 4.794541835784912]
+  @local_rotation 4: [0.0, -0.08715575933456421, 0.0, 0.9961947202682495]
+  @local_scale 5: [0.9999998807907104, 1.0, 0.9999998807907104]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/lamps_1stfloor_02.mesh"
+@material 3: "Materials/light_bulb.mat"
+@cast_shadows 4: True

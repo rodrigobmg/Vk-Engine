@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xb3ee829cd36f45cab17598ed4982d0fb
+  @name 2: "columns_1stfloor_03.001"
+  @local_position 3: [0.144184872508049, -0.011829833500087261, 0.03620154410600662]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/columns_1stfloor_03.001.mesh"
+@material 3: "Materials/column_1stfloor.mat"
+@cast_shadows 4: True

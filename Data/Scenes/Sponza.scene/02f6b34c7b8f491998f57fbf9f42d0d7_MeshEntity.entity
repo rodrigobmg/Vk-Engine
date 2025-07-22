@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x02f6b34c7b8f491998f57fbf9f42d0d7
+  @name 2: "ceiling_1stfloor_02"
+  @local_position 3: [15.272645950317383, 3.9124488830566406, 2.0942840576171875]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/ceiling_1stfloor_02.mesh"
+@material 3: "Materials/ceiling_plaster_02.mat"
+@cast_shadows 4: True

@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x10f711b5b3964b1d98c2e5a4f82b6583
+  @name 2: "column_2ndfloor_10"
+  @local_position 3: [2.1651017665863037, 6.100160598754883, 3.0848207473754883]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
+@mesh 2: "Meshes/column_2ndfloor_10.mesh"
+@material 3: "Materials/column_head_2ndfloor_02.mat"
+@cast_shadows 4: True

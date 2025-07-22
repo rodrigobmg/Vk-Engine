@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x2c662d825c314da69412bad1b5f55f98
+  @name 2: "lamps_2ndfloor_04.001"
+  @local_position 3: [10.066171646118164, 10.383440971374512, 4.72451639175415]
+  @local_rotation 4: [0.0, 0.2588190734386444, 0.0, 0.9659258127212524]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
+@mesh 2: "Meshes/lamps_2ndfloor_04.001.mesh"
+@material 3: "Materials/metal_door.mat"
+@cast_shadows 4: True

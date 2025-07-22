@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0x3f7bf43c664e4218b929f16e77dca3d0
+  @name 2: "ornament_doors_09"
+  @local_position 3: [-2.048527240753174, 1.8174022436141968, 6.098107814788818]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
+@mesh 2: "Meshes/ornament_doors_09.mesh"
+@material 3: "Materials/glass.mat"
+@cast_shadows 4: True

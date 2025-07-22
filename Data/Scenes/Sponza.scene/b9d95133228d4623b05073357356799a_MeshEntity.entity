@@ -1,0 +1,10 @@
+1:
+  @guid 1: 0xb9d95133228d4623b05073357356799a
+  @name 2: "ornament_door_2ndfloor_02.001"
+  @local_position 3: [-1.8412055969238281, 5.450930595397949, 7.468501567840576]
+  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
+  @local_scale 5: [1.0, 1.0, 1.0]
+  @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
+@mesh 2: "Meshes/ornament_door_2ndfloor_02.001.mesh"
+@material 3: "Materials/window_frame_01.mat"
+@cast_shadows 4: True
