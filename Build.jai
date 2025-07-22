@@ -103,8 +103,8 @@ HandleCompilerMessage :: (msg : *Message) {
 
             HandleDeclarationForEntity(decl);
             HandleDeclarationForAsset(decl);
-            HandleDeclarationForShaderCodegen(decl);
             HandleDeclarationForRenderer(decl);
+            HandleDeclarationForShaderCodegen(decl);
         }
 
         if g_execute_tests {

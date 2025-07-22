@@ -8,7 +8,7 @@ g_generated_renderer_code : bool;
 HandleDeclarationForRenderer :: (decl : *Code_Declaration) {
     has_shader_binding_set_note := false;
     for note : decl.notes {
-        if note.text == "ShaderBindingSet" {
+        if note.text == "BindingSet" {
             has_shader_binding_set_note = true;
             break;
         }
@@ -16,28 +16,27 @@ HandleDeclarationForRenderer :: (decl : *Code_Declaration) {
 
     if decl.expression && has_shader_binding_set_note {
         if decl.expression.kind == .STRUCT {
-            ArrayPush(*g_shader_binding_set_types, xx cast(*Code_Struct, decl.expression).defined_type);
-            LogMessage("%", decl.name);
+            ArrayPushUnique(*g_shader_binding_set_types, xx cast(*Code_Struct, decl.expression).defined_type);
         }
     }
 }
 
 GenerateRendererCode :: (workspace : Workspace) {
-    // if g_generated_renderer_code {
-    //     return;
-    // }
+    if g_generated_renderer_code {
+        return;
+    }
 
-    // defer g_generated_renderer_code = true;
+    defer g_generated_renderer_code = true;
 
-    // builder : StringBuilder;
+    builder : StringBuilder;
 
-    // Appendln(*builder, "Shader_Binding_Set_Types :: Type.[");
-    // for g_shader_binding_set_types {
-    //     Appendln(*builder, "    %,", it.name);
-    // }
-    // Appendln(*builder, "];");
+    Appendln(*builder, "Shader_Binding_Set_Types :: Type.[");
+    for g_shader_binding_set_types {
+        Appendln(*builder, "    %,", it.name);
+    }
+    Appendln(*builder, "];");
 
-    // add_build_string(StringBuilderBuild(*builder), workspace);
+    add_build_string(StringBuilderBuild(*builder), workspace);
 
-    // LogMessage("Generated renderer code");
+    LogMessage("Generated renderer code");
 }

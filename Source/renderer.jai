@@ -1,12 +1,5 @@
 #placeholder Shader_Binding_Set_Types;
 
-// For some reason compilation is blocked if we try to generate this at compile time
-Shader_Binding_Set_Types :: Type.[
-    EmptyBindingSet,
-    FrameBindingSet,
-    MeshBindingSet,
-];
-
 IsInShaderBindingSetTypesArray :: (type : Type) -> bool {
     return ArrayFindFirst(Shader_Binding_Set_Types, type) != -1;
 }
@@ -107,13 +100,6 @@ CreateRenderTargets :: () {
     Assert(!IsNull(*g_depth_texture), "Could not create depth texture");
 }
 
-FrameInfo :: struct {
-    time : float;
-    camera_position : Vec3f;
-    camera_view : Mat4f;
-    camera_projection : Mat4f;
-} @ShaderType
-
 MeshEntity :: struct {
     #as using _ : Entity; @Serialize(1)
 
@@ -146,6 +132,13 @@ FrameBindingSet :: struct {
     // irradiance_map : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
     // environment_maps : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
 } @BindingSet
+
+FrameInfo :: struct {
+    time : float;
+    camera_position : Vec3f;
+    camera_view : Mat4f;
+    camera_projection : Mat4f;
+} @ShaderType
 
 FrameRenderContext :: struct {
     world : *World;
