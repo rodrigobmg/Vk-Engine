@@ -249,8 +249,9 @@ main :: () {
             HandleInputEvent(event);
         }
 
-        HandleShaderHotReloading();
         UnloadAllUnreferencedAssets();
+        HandleShaderHotReloading();
+        ProcessDataDirectoryChanges();
 
         UpdateCamera(*camera);
 
