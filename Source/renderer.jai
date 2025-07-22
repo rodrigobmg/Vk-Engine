@@ -44,30 +44,6 @@ DestroyAllBindingSetLayouts :: () {
 g_color_texture : GfxTexture;
 g_depth_texture : GfxTexture;
 
-g_shaders : struct {
-    mesh_vert : GfxShader;
-    mesh_frag : GfxShader;
-}
-
-LoadAllShaders :: () -> bool {
-    g_shaders.mesh_vert = LoadGfxShader("mesh.vert");
-    if IsNull(*g_shaders.mesh_vert) {
-        return false;
-    }
-
-    g_shaders.mesh_frag = LoadGfxShader("mesh.frag");
-    if IsNull(*g_shaders.mesh_frag) {
-        return false;
-    }
-
-    return true;
-}
-
-DestroyAllShaders :: () {
-    DestroyGfxShader(*g_shaders.mesh_vert);
-    DestroyGfxShader(*g_shaders.mesh_frag);
-}
-
 CreateRenderTargets :: () {
     WaitForGPUIdle();
 
@@ -213,8 +189,8 @@ g_forward_pass_pipeline : GfxGraphicsPipeline;
 
 CreateForwardPassPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = *g_shaders.mesh_vert;
-    desc.fragment_shader = *g_shaders.mesh_frag;
+    desc.vertex_shader = GetVertexShader("mesh");
+    desc.fragment_shader = GetFragmentShader("mesh");
     desc.color_formats[0] = g_color_texture.desc.pixel_format;
     desc.depth_format = g_depth_texture.desc.pixel_format;
     desc.depth_state = .{test_enabled=true, write_enabled=true};
@@ -229,9 +205,15 @@ CreateForwardPassPipeline :: () {
 
     g_forward_pass_pipeline = CreateGfxGraphicsPipeline("Forward Pass", desc);
     Assert(!IsNull(*g_forward_pass_pipeline), "Could not create forward pass pipeline");
+
+    DestroyPipelineOnShaderReload(*g_forward_pass_pipeline);
 }
 
 ForwardPass :: (using ctx : *FrameRenderContext, mesh_buffer : *MeshBuffer) {
+    if IsNull(*g_forward_pass_pipeline) {
+        CreateForwardPassPipeline();
+    }
+
     w, h : s32;
     SDL_GetWindowSizeInPixels(g_window, *w, *h);
 

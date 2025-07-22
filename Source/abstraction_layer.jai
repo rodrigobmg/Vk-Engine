@@ -213,8 +213,6 @@ IsNull :: inline (shader : *GfxShader) -> bool {
 }
 
 LoadGfxShader :: (name : string) -> GfxShader {
-    LogSectionScope(*Log_Vulkan);
-
     stage := ifx StringEndsWith(name, ".vert")
         then "vert"
         else ifx StringEndsWith(name, ".frag")
@@ -272,8 +270,6 @@ LoadGfxShader :: (name : string) -> GfxShader {
     }
 
     SetDebugName(module, TPrint("Shader '%'", name));
-
-    LogMessage("Loaded shader '%'", name);
 
     return .{module=module};
 }
@@ -1212,6 +1208,7 @@ GfxGraphicsPipelineDesc :: struct {
 GfxGraphicsPipeline :: struct {
     layout : GfxPipelineLayout;
     pipeline : VkPipeline;
+    desc : GfxGraphicsPipelineDesc;
 }
 
 IsNull :: inline (pipeline : *GfxGraphicsPipeline) -> bool {
@@ -1363,7 +1360,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
 
     SetDebugName(pipeline, TPrint("Pipeline '%'", name));
 
-    return .{layout=layout, pipeline=pipeline};
+    return .{layout=layout, pipeline=pipeline, desc=desc};
 }
 
 DestroyGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline) {

@@ -25,6 +25,7 @@ using,only(.["+","-","*","/"]) Basic;
 #load "serialize_deserialize.jai";
 #load "asset.jai";
 #load "entity.jai";
+#load "shader.jai";
 #load "renderer.jai";
 #load "material.jai";
 #load "mesh_buffer.jai";
@@ -246,6 +247,7 @@ main :: () {
             HandleInputEvent(event);
         }
 
+        HandleShaderHotReloading();
         UnloadAllUnreferencedAssets();
 
         UpdateCamera(*camera);
