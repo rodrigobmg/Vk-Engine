@@ -1239,7 +1239,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
 
     vertex_input_state : VkPipelineVertexInputStateCreateInfo;
     vertex_input_state.vertexBindingDescriptionCount = xx desc.vertex_input.buffer_bindings.count;
-    vertex_input_state.pVertexBindingDescriptions = Alloc(VkVertexInputBindingDescription, desc.vertex_input.buffer_bindings.count, initialize=true);
+    vertex_input_state.pVertexBindingDescriptions = Alloc(VkVertexInputBindingDescription, desc.vertex_input.buffer_bindings.count, initialize=true ,, Temp);
     for desc.vertex_input.buffer_bindings {
         vertex_input_state.pVertexBindingDescriptions[it_index].binding = it.binding;
         vertex_input_state.pVertexBindingDescriptions[it_index].stride = it.stride;
@@ -1247,7 +1247,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
     }
 
     vertex_input_state.vertexAttributeDescriptionCount = xx desc.vertex_input.attributes.count;
-    vertex_input_state.pVertexAttributeDescriptions = Alloc(VkVertexInputAttributeDescription, desc.vertex_input.attributes.count, initialize=true);
+    vertex_input_state.pVertexAttributeDescriptions = Alloc(VkVertexInputAttributeDescription, desc.vertex_input.attributes.count, initialize=true ,, Temp);
     for desc.vertex_input.attributes {
         vertex_input_state.pVertexAttributeDescriptions[it_index].location = it.location;
         vertex_input_state.pVertexAttributeDescriptions[it_index].binding = it.binding;

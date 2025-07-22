@@ -102,6 +102,13 @@ DestroyAllShaders :: () {
         if !IsNull(*it.fragment_shader) {
             DestroyGfxShader(*it.fragment_shader);
         }
+
+        for it.dependencies {
+            Free(it.data);
+        }
+
+        ArrayFree(*it.dependencies);
+        ArrayFree(*it.reload_callbacks);
     }
 }
 
