@@ -3,8 +3,7 @@
 // This algorithm detects edges by looking at the luminance value of the neighboring
 // pixels, and blurring along the direction of the edge
 
-float RGBA2Luma(float4 rgba)
-{
+float RGBA2Luma(float4 rgba) {
     return LinearRGBToLuminance(rgba.rgb);
 }
 
@@ -13,8 +12,7 @@ float RGBA2Luma(float4 rgba)
 #define FXAA_Iterations 12
 #define FXAA_Subpixel_Quality 0.75
 
-float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size)
-{
+float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
     const float FXAA_Quality[] = float[](1, 1, 1, 1, 1, 1.5, 2, 2, 2, 2, 4, 8);
 
     float4 color_center = texture(tex, tex_coords);
@@ -31,8 +29,9 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size)
 
     float luma_range = luma_max - luma_min;
 
-    if (luma_range < max(FXAA_Edge_Threshold_Min, luma_max * FXAA_Edge_Threshold_Max))
+    if (luma_range < max(FXAA_Edge_Threshold_Min, luma_max * FXAA_Edge_Threshold_Max)) {
         return color_center;
+    }
 
     float luma_up_right = RGBA2Luma(texture(tex, tex_coords + float2(texel_size.x, texel_size.y)));
     float luma_up_left = RGBA2Luma(texture(tex, tex_coords + float2(-texel_size.x, texel_size.y)));
@@ -66,21 +65,19 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size)
 
     float luma_local_average = 0;
 
-    if (is_1_steepest)
-    {
+    if (is_1_steepest) {
         step_length = -step_length;
         luma_local_average = 0.5 * (luma1 + luma_center);
-    }
-    else
-    {
+    } else {
         luma_local_average = 0.5 * (luma2 + luma_center);
     }
 
     float2 current_uv = tex_coords;
-    if (is_horizontal)
+    if (is_horizontal) {
         current_uv.y += step_length * 0.5;
-    else
+    } else {
         current_uv.x += step_length * 0.5;
+    }
 
     float2 offset = is_horizontal ? float2(texel_size.x, 0) : float2(0, texel_size.y);
     float2 uv1 = current_uv - offset;
@@ -95,23 +92,21 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size)
     bool reached2 = abs(luma_end2) >= gradient_scaled;
     bool reached_both = reached1 && reached2;
 
-    if (!reached1)
+    if (!reached1) {
         uv1 -= offset;
-    if (!reached2)
+    }
+    if (!reached2) {
         uv2 += offset;
+    }
 
-    if (!reached_both)
-    {
-        for (int i = 2; i < FXAA_Iterations; i += 1)
-        {
-            if (!reached1)
-            {
+    if (!reached_both) {
+        for (int i = 2; i < FXAA_Iterations; i += 1) {
+            if (!reached1) {
                 luma_end1 = RGBA2Luma(texture(tex, uv1));
                 luma_end1 = luma_end1 - luma_local_average;
             }
 
-            if (!reached2)
-            {
+            if (!reached2) {
                 luma_end2 = RGBA2Luma(texture(tex, uv2));
                 luma_end2 = luma_end2 - luma_local_average;
             }
@@ -120,13 +115,16 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size)
             reached2 = abs(luma_end2) >= gradient_scaled;
             reached_both = reached1 && reached2;
 
-            if (!reached1)
+            if (!reached1) {
                 uv1 -= offset * FXAA_Quality[i];
-            if (!reached2)
+            }
+            if (!reached2) {
                 uv2 += offset * FXAA_Quality[i];
+            }
 
-            if (reached_both)
+            if (reached_both) {
                 break;
+            }
         }
     }
 
@@ -156,10 +154,11 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size)
     final_offset = max(final_offset, sub_pixel_offset_final);
 
     float2 final_uv = tex_coords;
-    if (is_horizontal)
+    if (is_horizontal) {
         final_uv.y += final_offset * step_length;
-    else
+    } else {
         final_uv.x += final_offset * step_length;
+    }
 
     return texture(tex, final_uv);
 }
