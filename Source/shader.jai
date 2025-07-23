@@ -13,7 +13,8 @@ g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
     .{name="screen_effect"},
     .{name="post_processing"},
-    .{name="mesh"},
+    .{name="mesh_geometry"},
+    .{name="opaque_surface"},
 ];
 
 ShaderReloadCallback :: struct {

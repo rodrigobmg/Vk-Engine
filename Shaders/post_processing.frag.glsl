@@ -19,4 +19,3 @@ void main() {
 
     out_color = float4(color, 1);
 }
-

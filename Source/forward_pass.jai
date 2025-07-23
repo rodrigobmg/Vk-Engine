@@ -2,8 +2,8 @@ g_forward_pass_pipeline : GfxGraphicsPipeline;
 
 CreateForwardPassPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("mesh");
-    desc.fragment_shader = GetFragmentShader("mesh");
+    desc.vertex_shader = GetVertexShader("mesh_geometry");
+    desc.fragment_shader = GetFragmentShader("opaque_surface");
     desc.color_formats[0] = g_color_texture.desc.pixel_format;
     desc.depth_format = g_depth_texture.desc.pixel_format;
     desc.depth_state = .{test_enabled=true, write_enabled=true};
