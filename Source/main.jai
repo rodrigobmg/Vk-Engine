@@ -19,18 +19,11 @@ using,only(.["+","-","*","/"]) Basic;
 #load "vk_initialization.jai";
 #load "abstraction_layer.jai";
 #load "glsl_packing.jai";
-#load "mesh.jai";
-#load "texture2d.jai";
 #load "input.jai";
 #load "serialize_deserialize.jai";
 #load "asset.jai";
 #load "entity.jai";
-#load "shader.jai";
 #load "renderer.jai";
-#load "material.jai";
-#load "mesh_buffer.jai";
-#load "allocator.jai";
-#load "binding_set_allocator.jai";
 
 Debug_Vulkan_Allocations :: false;
 Vulkan_Break_On_Error :: true;
@@ -114,6 +107,11 @@ UpdateCamera :: (using camera : *Camera) {
     projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, 0.1, 1000);
 }
 
+g_default_base_color : *Asset(Texture2D);
+g_default_normal_map : *Asset(Texture2D);
+g_default_metallic_roughness_map : *Asset(Texture2D);
+g_default_emissive : *Asset(Texture2D);
+
 LoadDefaultAssets :: () {
     g_default_base_color = LoadAsset(Texture2D, "Default_BaseColor.png");
     g_default_normal_map = LoadAsset(Texture2D, "Default_Normal.png");
@@ -156,8 +154,7 @@ main :: () {
         Basic.exit(1);
     }
 
-    defer DestroyGfxTexture(*g_color_texture);
-    defer DestroyGfxTexture(*g_depth_texture);
+    defer DestroyRenderTargets();
     CreateRenderTargets();
 
     CreateAllBindingSetLayouts();
@@ -220,6 +217,10 @@ main :: () {
     damaged_helmet.local_rotation = QuatfFromAxisAngle(.{0,1,0}, Pi * 0.5);
     UpdateWorldTransform(*world, damaged_helmet);
 
+    sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");
+    sun.local_rotation = QuatfLookAt(.{-1, -1, -1}, .{0,1,0});
+    UpdateWorldTransform(*world, sun);
+
     defer WaitForGPUIdle(); // Before destroying anything, we need to ensure all work is done
 
     quit := false;
@@ -263,11 +264,7 @@ main :: () {
             RecreateSwapchain();
         }
 
-        BeginFrame();
-
         RenderFrame(*world, *camera);
-
-        SubmitFrame(*g_color_texture);
     }
 }
 

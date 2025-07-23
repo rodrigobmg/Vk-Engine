@@ -38,7 +38,10 @@
     layout(set=0, binding=0, std140) uniform FrameData { \
         FrameInfo u_frame_info; \
     }; \
-    layout(set=0, binding=1, std430) readonly buffer PointLights { \
+    layout(set=0, binding=1, std430) readonly buffer DirectionalLights { \
+        DirectionalLight u_directional_lights[]; \
+    }; \
+    layout(set=0, binding=2, std430) readonly buffer PointLights { \
         PointLight u_point_lights[]; \
     }
 #endif
@@ -110,6 +113,10 @@ float3 sRGBToLinear(float3 color) {
 
 float InverseLerp(float a, float b, float t) {
     return (t - a) / (b - a);
+}
+
+float LinearRGBToLuminance(float3 rgb) {
+    return dot(clamp(rgb, 0, 1), float3(0.2126729, 0.7151522, 0.0721750));
 }
 
 #endif

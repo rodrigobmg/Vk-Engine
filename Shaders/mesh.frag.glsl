@@ -19,8 +19,6 @@ layout(location=0) out float4 out_color;
 void main() {
     MeshInstance mesh = u_mesh_instances[in_instance_index];
 
-    const float3 light_position = float3(-2, -2, -2);
-
     float3x3 TBN = float3x3(in_tangent, in_bitangent, in_normal);
     float3 N = texture(u_normal_map_texture, in_tex_coords).xyz;
     N = N * 2 - float3(1);
@@ -41,8 +39,13 @@ void main() {
     float roughness = metallic_roughness.y;
     roughness = lerp(0.1, 0.9, roughness);
 
-
     float3 Lo = float3(0);
+
+    for (int i = 0; i < u_frame_info.num_directional_lights; i += 1) {
+        DirectionalLight light = u_directional_lights[i];
+        float3 L = -light.direction;
+        Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light.color * light.intensity);
+    }
 
     for (int i = 0; i < u_frame_info.num_point_lights; i += 1) {
         PointLight light = u_point_lights[i];
@@ -54,16 +57,11 @@ void main() {
         L /= distance;
 
         float intensity = light.intensity / distance_sqrd;
-        float3 light_Lo = CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * intensity);
-
-        Lo += light_Lo;
+        Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * intensity);
     }
 
     float3 ambient = base_color * 0.01;
     float3 color = ambient + Lo + emissive;
-
-    color = LinearTosRGB(color);
-    color = ApplyToneMapping(color);
 
     out_color.rgb = color;
     out_color.a = 1;

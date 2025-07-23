@@ -3,8 +3,16 @@
 #ifndef SHADER_TYPES_GENERATED_GLSL
 #define SHADER_TYPES_GENERATED_GLSL
 
+struct DirectionalLight {
+    float3 direction;
+    float3 color;
+    float intensity;
+};
+
 struct FrameInfo {
     float time;
+    float2 window_pixel_size;
+    uint num_directional_lights;
     uint num_point_lights;
     float3 camera_position;
     float4x4 camera_view;
