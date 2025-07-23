@@ -419,11 +419,25 @@ MakeVkDescriptorType :: inline (type : GfxBindingType) -> VkDescriptorType {
     }
 }
 
+GfxBindingFlags :: enum_flags u8 {
+    AllowNull;
+}
+
+MakeVkDescriptorBindingFlags :: inline (flags : GfxBindingFlags) -> VkDescriptorBindingFlags {
+    result : VkDescriptorBindingFlags;
+    if flags & .AllowNull {
+        result |= .PARTIALLY_BOUND_BIT;
+    }
+
+    return result;
+}
+
 GfxBindingDesc :: struct {
     binding : u32;
     type : GfxBindingType;
     stage_flags : GfxShaderStageFlags;
     array_length : u32 = 1;
+    flags : GfxBindingFlags;
 }
 
 GfxBindingSetLayoutDesc :: struct {
@@ -446,12 +460,20 @@ CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> 
     create_info.bindingCount = xx desc.bindings.count;
     create_info.pBindings = Alloc(VkDescriptorSetLayoutBinding, desc.bindings.count, initialize=true ,, Temp);
 
+    binding_flags : VkDescriptorSetLayoutBindingFlagsCreateInfo;
+    binding_flags.bindingCount = xx desc.bindings.count;
+    binding_flags.pBindingFlags = Alloc(VkDescriptorBindingFlags, desc.bindings.count, initialize=true ,, Temp);
+
+    create_info.pNext = *binding_flags;
+
     for desc.bindings {
         binding := *create_info.pBindings[it_index];
         binding.binding = it.binding;
         binding.descriptorType = MakeVkDescriptorType(it.type);
         binding.descriptorCount = it.array_length;
         binding.stageFlags = MakeVkShaderStageFlags(it.stage_flags);
+
+        binding_flags.pBindingFlags[it_index] = MakeVkDescriptorBindingFlags(it.flags);
     }
 
     layout : VkDescriptorSetLayout;
@@ -632,7 +654,41 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
 
         buffer_info_index := 0;
         image_info_index := 0;
+        num_non_null := 0;
         for info.members {
+            allow_null := ArrayFindFirst(it.notes, "AllowNull") != -1;
+            if allow_null {
+                continue; // We'll handle this one at the end to allow trimming the array if it's null
+            }
+
+            binding, has_binding_note := GetNoteIndex(it.notes, "Binding");
+            type := GetGfxBindingType(it.type);
+            Append(*builder, "    .{dstSet=set.set, dstBinding=%, descriptorType=.%, descriptorCount=1, ", binding, MakeVkDescriptorType(type));
+
+            if type == {
+            case .UniformBuffer; #through;
+            case .StorageBuffer;
+                Append(*builder, "pBufferInfo=*buffer_infos[%],", buffer_info_index);
+                buffer_info_index += 1;
+
+            case .Texture; #through;
+            case .Sampler; #through;
+            case .CombinedTextureSampler;
+                Append(*builder, "pImageInfo=*image_infos[%],", image_info_index);
+                image_info_index += 1;
+            }
+
+            Appendln(*builder, "},");
+
+            num_non_null += 1;
+        }
+
+        for info.members {
+            allow_null := ArrayFindFirst(it.notes, "AllowNull") != -1;
+            if !allow_null {
+                continue;
+            }
+
             binding, has_binding_note := GetNoteIndex(it.notes, "Binding");
             type := GetGfxBindingType(it.type);
             Append(*builder, "    .{dstSet=set.set, dstBinding=%, descriptorType=.%, descriptorCount=1, ", binding, MakeVkDescriptorType(type));
@@ -655,10 +711,42 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
 
         Appendln(*builder, "];");
 
+        Appendln(*builder, "num_writes := %;", num_non_null);
+        for info.members {
+            allow_null := ArrayFindFirst(it.notes, "AllowNull") != -1;
+            if !allow_null {
+                continue;
+            }
+
+            type := GetGfxBindingType(it.type);
+            if type == {
+            case .UniformBuffer; #through;
+            case .StorageBuffer;
+                Appendln(*builder, "if !IsNull(value.%1.buffer) && value.%1.size > 0 {", it.name);
+                Appendln(*builder, "    num_writes += 1;");
+                Appendln(*builder, "}");
+
+            case .Texture;
+                Appendln(*builder, "if !IsNull(value.%1) {", it.name);
+                Appendln(*builder, "    num_writes += 1;");
+                Appendln(*builder, "}");
+
+            case .Sampler;
+                Appendln(*builder, "if !IsNull(value.%1) {", it.name);
+                Appendln(*builder, "    num_writes += 1;");
+                Appendln(*builder, "}");
+
+            case .CombinedTextureSampler;
+                Appendln(*builder, "if !IsNull(value.%1.texture) && !IsNull(value.%1.sampler) {", it.name);
+                Appendln(*builder, "    num_writes += 1;");
+                Appendln(*builder, "}");
+            }
+        }
+
         return StringBuilderBuild(*builder);
     }
 
-    vkUpdateDescriptorSets(g_gfx_context.device, xx writes.count, writes.data, 0, null);
+    vkUpdateDescriptorSets(g_gfx_context.device, xx num_writes, writes.data, 0, null);
 }
 
 // To help reduce error prone boilerplate code for layout creation and param set allocation, we provide
@@ -726,6 +814,7 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
             array_length : u32 = 1;
             type : GfxBindingType;
             stage_flags : GfxShaderStageFlags;
+            flags : GfxBindingFlags;
 
             if it.type.type == .ARRAY {
                 array_length = xx cast(*Type_Info_Array, it.type).array_count;
@@ -736,7 +825,9 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
 
             found_binding := false;
             for note : it.notes {
-                if note == "VertexStage" {
+                if note == "AllowNull" {
+                    flags |= .AllowNull;
+                } if note == "VertexStage" {
                     stage_flags |= .Vertex;
                 } else if note == "FragmentStage" {
                     stage_flags |= .Fragment;
@@ -760,7 +851,7 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
                 compiler_report(TPrint("Missing @VertexStage or @FragmentStage note on member %", it.name), loc=struct_location);
             }
 
-            Appendln(*builder, "    .{binding=%, array_length=%, type=.%, stage_flags=%},", binding, array_length, type, cast(u8, stage_flags));
+            Appendln(*builder, "    .{binding=%, array_length=%, type=.%, stage_flags=%, flags=%},", binding, array_length, type, cast(u8, stage_flags), cast(u8, flags));
         }
 
         Appendln(*builder, "];");

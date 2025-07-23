@@ -209,8 +209,11 @@ InitGfxContext :: (window : *SDL_Window) {
 
     dynamic_rendering_feature : VkPhysicalDeviceDynamicRenderingFeatures;
     dynamic_rendering_feature.dynamicRendering = VK_TRUE;
-
     device_info.pNext = *dynamic_rendering_feature;
+
+    descriptor_indexing_features : VkPhysicalDeviceDescriptorIndexingFeatures;
+    descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
+    dynamic_rendering_feature.pNext = *descriptor_indexing_features;
 
     if vkCreateDevice(ctx.physical_device, *device_info, g_vk_alloc_callbacks, *ctx.device) != .SUCCESS {
         LogError("Could not create logical device");
