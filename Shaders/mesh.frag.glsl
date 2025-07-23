@@ -39,16 +39,25 @@ void main() {
     float2 metallic_roughness = texture(u_metallic_roughness_map_texture, in_tex_coords).zy;
     float metallic = metallic_roughness.x;
     float roughness = metallic_roughness.y;
-    roughness = lerp(0.1, 0.9, clamp(roughness, 0.0, 1.0));
+    roughness = lerp(0.1, 0.9, roughness);
 
-    float3 L = normalize(-light_position);
 
     float3 Lo = float3(0);
 
-    float intensity = 1;
-    float3 light_Lo = CalculateBRDF(base_color, metallic, roughness, N, N, L, float3(intensity));
+    for (int i = 0; i < u_frame_info.num_point_lights; i += 1) {
+        PointLight light = u_point_lights[i];
+        float3 light_color = sRGBToLinear(light.color);
 
-    Lo += light_Lo;
+        float3 L = light.position - in_position;
+        float distance_sqrd = dot(L, L);
+        float distance = sqrt(distance_sqrd);
+        L /= distance;
+
+        float intensity = light.intensity / distance_sqrd;
+        float3 light_Lo = CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * intensity);
+
+        Lo += light_Lo;
+    }
 
     float3 ambient = base_color * 0.01;
     float3 color = ambient + Lo + emissive;

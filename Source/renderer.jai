@@ -105,15 +105,21 @@ EmptyBindingSet :: struct {
 
 FrameBindingSet :: struct {
     frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
-    // irradiance_map : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
-    // environment_maps : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
+    point_lights : GfxBindingStorageBuffer; @Binding(1) @FragmentStage @AllowNull
 } @BindingSet
 
 FrameInfo :: struct {
     time : float;
+    num_point_lights : u32;
     camera_position : Vec3f;
     camera_view : Mat4f;
     camera_projection : Mat4f;
+} @ShaderType
+
+PointLight :: struct {
+    position : Vec3f;
+    color : Vec3f;
+    intensity : float;
 } @ShaderType
 
 FrameRenderContext :: struct {
@@ -123,9 +129,6 @@ FrameRenderContext :: struct {
 }
 
 g_mesh_buffer : MeshBuffer;
-g_irradiance_map : GfxTexture;
-g_environment_maps : GfxTexture;
-g_environment_map_sampler : GfxSampler;
 
 RenderFrame :: (world : *World, camera : *Camera) {
     ResetFrameDataAllocator();
@@ -154,8 +157,21 @@ RenderFrame :: (world : *World, camera : *Camera) {
     ctx : FrameRenderContext;
     ctx.world = world;
 
+    num_point_lights : u64 = xx world.PointLightEntity_storage.count;
+    point_lights_size := GLSLStd430Size(PointLight) * num_point_lights;
+    point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
+    for world.PointLightEntity_storage {
+        point_light := PointLight.{
+            position=TranslationVector(it.world_transform),
+            color=it.color,
+            intensity=it.intensity,
+        };
+        point_lights_ptr += PackToGLSLStd(point_light, point_lights_ptr, .Std430);
+    }
+
     frame_info := FrameInfo.{
         time=xx Basic.to_float64_seconds(Basic.current_time_monotonic()),
+        num_point_lights=xx num_point_lights,
         camera_position=camera.position,
         camera_view=camera.view,
         camera_projection=camera.projection,
@@ -164,8 +180,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     frame_binding_set := FrameBindingSet.{
         frame_info=.{buffer=FrameDataBuffer(), offset=xx frame_info_offset, size=xx frame_info_size},
-        // irradiance_map=.{texture=*g_irradiance_map, sampler=*g_environment_map_sampler},
-        // environment_maps=.{texture=*g_environment_maps, sampler=*g_environment_map_sampler},
+        point_lights=.{buffer=FrameDataBuffer(), offset=xx point_lights_offset, size=xx point_lights_size},
     };
     ctx.frame_binding_set = CreateGfxBindingSet(GlobalBindingSetAllocator(), frame_binding_set);
 

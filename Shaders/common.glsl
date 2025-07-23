@@ -37,7 +37,10 @@
 #define DECLARE_PER_FRAME_PARAMS() \
     layout(set=0, binding=0, std140) uniform FrameData { \
         FrameInfo u_frame_info; \
-    };
+    }; \
+    layout(set=0, binding=1, std430) readonly buffer PointLights { \
+        PointLight u_point_lights[]; \
+    }
 #endif
 
 #ifdef SHADER_STAGE_VERTEX

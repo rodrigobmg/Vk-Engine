@@ -5,6 +5,7 @@
 
 struct FrameInfo {
     float time;
+    uint num_point_lights;
     float3 camera_position;
     float4x4 camera_view;
     float4x4 camera_projection;
@@ -25,6 +26,12 @@ struct MeshInstance {
     float4x4 transform;
     float3x3 normal_transform;
     MaterialPerInstance material;
+};
+
+struct PointLight {
+    float3 position;
+    float3 color;
+    float intensity;
 };
 
 #endif
