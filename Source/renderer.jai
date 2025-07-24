@@ -290,11 +290,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
     SubmitFrame(*g_final_texture);
 }
 
-// Pipeline layout used to bind binding sets outside of any render pass at the beginning of the frame
-g_dummy_frame_pipeline_layout : GfxPipelineLayout;
-
 g_brdf_lut : GfxTexture;
 g_brdf_lut_sampler : GfxSampler;
+g_brdf_lut_pipeline : GfxGraphicsPipeline;
 
 BRDF_LUT_Resolution : u32 : 512;
 
@@ -323,8 +321,8 @@ RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
     pipeline_desc.fragment_shader = GetFragmentShader("brdf_lut");
     pipeline_desc.color_formats[0] = g_brdf_lut.desc.pixel_format;
 
-    pipeline := CreateGfxGraphicsPipeline("BRDF LUT", pipeline_desc);
-    Assert(!IsNull(*pipeline), "Could not create BRDF LUT pipeline");
+    g_brdf_lut_pipeline = CreateGfxGraphicsPipeline("BRDF LUT", pipeline_desc);
+    Assert(!IsNull(*g_brdf_lut_pipeline), "Could not create BRDF LUT pipeline");
 
     AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *g_brdf_lut);
 
@@ -333,7 +331,7 @@ RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
 
     pass := BeginGfxRenderPass(cmd_buffer, "BRDF LUT", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *pipeline);
+        BindGraphicsPipeline(*pass, *g_brdf_lut_pipeline);
         SetViewport(*pass, .{width=xx BRDF_LUT_Resolution, height=xx BRDF_LUT_Resolution});
         SetScissor(*pass, .{w=xx BRDF_LUT_Resolution, h=xx BRDF_LUT_Resolution});
 
@@ -343,6 +341,9 @@ RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
 
     AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_brdf_lut);
 }
+
+// Pipeline layout used to bind binding sets outside of any render pass at the beginning of the frame
+g_dummy_frame_pipeline_layout : GfxPipelineLayout;
 
 g_material_texture_sampler : GfxSampler;
 
@@ -372,8 +373,6 @@ CreateAllPipelines :: () {
 }
 
 DestroyAllPipelines :: () {
-    DestroyGfxPipelineLayout(*g_dummy_frame_pipeline_layout);
-
     DestroyGfxGraphicsPipeline(*g_forward_pipeline);
 
     DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
@@ -381,7 +380,13 @@ DestroyAllPipelines :: () {
 
     DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
 
+    DestroyGfxTexture(*g_brdf_lut);
+    DestroyGfxSampler(*g_brdf_lut_sampler);
+    DestroyGfxGraphicsPipeline(*g_brdf_lut_pipeline);
+
     DestroyGfxSampler(*g_material_texture_sampler);
+
+    DestroyGfxPipelineLayout(*g_dummy_frame_pipeline_layout);
 }
 
 Plane :: struct {
