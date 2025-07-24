@@ -207,13 +207,14 @@ InitGfxContext :: (window : *SDL_Window) {
     device_info.enabledLayerCount = xx layers.count;
     device_info.ppEnabledLayerNames = layers.data;
 
-    dynamic_rendering_feature : VkPhysicalDeviceDynamicRenderingFeatures;
-    dynamic_rendering_feature.dynamicRendering = VK_TRUE;
-    device_info.pNext = *dynamic_rendering_feature;
+    vulkan12_features : VkPhysicalDeviceVulkan12Features;
+    vulkan12_features.shaderOutputLayer = VK_TRUE;
+    vulkan12_features.descriptorBindingPartiallyBound = VK_TRUE;
+    device_info.pNext = *vulkan12_features;
 
-    descriptor_indexing_features : VkPhysicalDeviceDescriptorIndexingFeatures;
-    descriptor_indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
-    dynamic_rendering_feature.pNext = *descriptor_indexing_features;
+    vulkan13_features : VkPhysicalDeviceVulkan13Features;
+    vulkan13_features.dynamicRendering = VK_TRUE;
+    vulkan12_features.pNext = *vulkan13_features;
 
     if vkCreateDevice(ctx.physical_device, *device_info, g_vk_alloc_callbacks, *ctx.device) != .SUCCESS {
         LogError("Could not create logical device");

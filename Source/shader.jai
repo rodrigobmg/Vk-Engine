@@ -14,6 +14,7 @@ g_shaders := LoadedShader.[
     .{name="screen_effect"},
     .{name="post_processing"},
     .{name="mesh_geometry"},
+    .{name="shadow_map_mesh_geometry"},
     .{name="opaque_surface"},
 ];
 
@@ -38,6 +39,14 @@ AddShaderReloadCallback :: (shader : *LoadedShader, callback : ShaderReloadCallb
     }
 
     ArrayPush(*shader.reload_callbacks, callback);
+}
+
+AddShaderReloadCallback :: (shader : *GfxShader, callback : ShaderReloadCallback) {
+    for * g_shaders {
+        if *it.vertex_shader == shader || *it.fragment_shader == shader {
+            AddShaderReloadCallback(it, callback);
+        }
+    }
 }
 
 GetVertexShader :: (name : string) -> *GfxShader {
@@ -199,26 +208,18 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     return true;
 }
 
-DestroyPipelineOnShaderReload :: (pipeline : *GfxGraphicsPipeline) {
+CreateGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline, name : string, desc : GfxGraphicsPipelineDesc) -> bool {
+    pipeline.* = CreateGfxGraphicsPipeline(name, desc);
+    if IsNull(pipeline) {
+        return false;
+    }
+
     callback : ShaderReloadCallback;
     callback.proc = (shader, pipeline) => { WaitForGPUIdle(); DestroyGfxGraphicsPipeline(pipeline); };
     callback.data = pipeline;
 
-    if pipeline.desc.vertex_shader {
-        for * g_shaders {
-            if *it.vertex_shader == pipeline.desc.vertex_shader {
-                AddShaderReloadCallback(it, callback);
-                break;
-            }
-        }
-    }
+    AddShaderReloadCallback(desc.vertex_shader, callback);
+    AddShaderReloadCallback(desc.fragment_shader, callback);
 
-    if pipeline.desc.fragment_shader {
-        for * g_shaders {
-            if *it.fragment_shader == pipeline.desc.fragment_shader {
-                AddShaderReloadCallback(it, callback);
-                break;
-            }
-        }
-    }
+    return true;
 }

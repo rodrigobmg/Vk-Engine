@@ -14,9 +14,6 @@ struct FrameInfo {
     float2 window_pixel_size;
     uint num_directional_lights;
     uint num_point_lights;
-    float3 camera_position;
-    float4x4 camera_view;
-    float4x4 camera_projection;
 };
 
 #define MaterialType int
@@ -40,6 +37,17 @@ struct PointLight {
     float3 position;
     float3 color;
     float intensity;
+};
+
+struct Viewpoint {
+    float3 position;
+    float3 direction;
+    float3 right;
+    float3 up;
+    float4x4 transform;
+    float4x4 view;
+    float4x4 projection;
+    float4x4 view_projection;
 };
 
 #endif

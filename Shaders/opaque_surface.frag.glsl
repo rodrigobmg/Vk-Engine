@@ -1,12 +1,11 @@
-#version 460
-
 #include "common.glsl"
 #include "pbr.glsl"
 
 DECLARE_PER_FRAME_PARAMS();
+DECLARE_FORWARD_PASS_PARAMS();
 DECLARE_PER_DRAW_CALL_MESH_PARAMS();
 
-layout(location=0) in float3 in_camera_position;
+layout(location=0) in float3 in_viewpoint_position;
 layout(location=1) in flat uint in_instance_index;
 layout(location=2) in float3 in_position;
 layout(location=3) in float3 in_normal;
@@ -24,7 +23,7 @@ void main() {
     N = N * 2 - float3(1);
     N = normalize(TBN * N);
 
-    float3 V = normalize(in_camera_position - in_position);
+    float3 V = normalize(in_viewpoint_position - in_position);
 
     float3 base_color = texture(u_base_color_texture, in_tex_coords).rgb;
     base_color = sRGBToLinear(base_color);

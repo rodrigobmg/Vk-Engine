@@ -297,6 +297,7 @@ LoadGfxShader :: (name : string) -> GfxShader {
     output_filename := TPrint("Shaders/%.spv", name);
     result, stdout, stderr := run_command(
         "glslc",
+        "-std=460",
         "--target-env=vulkan1.3",
         TPrint("-fshader-stage=%", stage),
         TPrint("-D%", stage_define),

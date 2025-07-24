@@ -14,6 +14,8 @@ Mesh :: struct {
 
     vertex_buffer : GfxBuffer;
     index_buffer : GfxBuffer;
+
+    static_bounds : AABB;
 } @Asset
 
 MeshFileFlags :: enum_flags u32 {
@@ -94,6 +96,8 @@ LoadMeshFromMemory :: (mesh : *Mesh, data : []u8, name : string) -> bool {
         CalculateTangents(mesh);
     }
 
+    CalculateStaticBounds(mesh);
+
     if vertex_count > 0 {
         desc : GfxBufferDesc;
         desc.size = vertex_count * size_of(StaticVertex);
@@ -133,6 +137,18 @@ DestroyMesh :: (using mesh : *Mesh) {
     DestroyGfxBuffer(*vertex_buffer);
     DestroyGfxBuffer(*index_buffer);
     mesh.* = .{};
+}
+
+CalculateStaticBounds :: (using mesh : *Mesh) {
+    min := Vec3f.{ F32_Inf,  F32_Inf,  F32_Inf};
+    max := Vec3f.{-F32_Inf, -F32_Inf, -F32_Inf};
+    for vertices {
+        min = Min(min, it.position);
+        max = Max(max, it.position);
+    }
+
+    static_bounds.center = (max + min) * 0.5;
+    static_bounds.half_extents = (max - min) * 0.5;
 }
 
 CalculateTangents :: (using mesh : *Mesh) {

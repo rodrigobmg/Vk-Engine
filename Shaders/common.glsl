@@ -43,7 +43,22 @@
     }; \
     layout(set=0, binding=2, std430) readonly buffer PointLights { \
         PointLight u_point_lights[]; \
+
+#define Max_Viewpoints 4
+
+#ifdef SHADER_STAGE_VERTEX
+#define DECLARE_FORWARD_PASS_PARAMS() \
+    layout(set=1, binding=0) uniform Viewpoints { \
+        Viewpoint u_viewpoints[Max_Viewpoints]; \
     }
+#endif
+
+#ifdef SHADER_STAGE_FRAGMENT
+#define DECLARE_FORWARD_PASS_PARAMS() \
+    layout(set=1, binding=0) uniform Viewpoints { \
+        Viewpoint u_viewpoints[Max_Viewpoints]; \
+    }; \
+    layout(set=1, binding=1) uniform sampler2DArrayShadow u_shadow_map
 #endif
 
 #ifdef SHADER_STAGE_VERTEX

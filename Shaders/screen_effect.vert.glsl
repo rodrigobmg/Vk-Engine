@@ -1,5 +1,3 @@
-#version 460
-
 #include "common.glsl"
 
 const float2 Positions[] = float2[](

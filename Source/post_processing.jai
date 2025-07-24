@@ -2,10 +2,10 @@ PostProcessingBindingSet :: struct {
     color_texture : GfxBindingCombinedTextureSampler; @Binding(0) @FragmentStage
 } @BindingSet
 
-g_post_processing_pass_pipeline : GfxGraphicsPipeline;
+g_post_processing_pipeline : GfxGraphicsPipeline;
 g_post_processing_sampler : GfxSampler;
 
-CreatePostProcessingPassPipeline :: () {
+CreatePostProcessingPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("screen_effect");
     desc.fragment_shader = GetFragmentShader("post_processing");
@@ -16,10 +16,8 @@ CreatePostProcessingPassPipeline :: () {
         g_binding_set_layouts.PostProcessingBindingSet,
     ];
 
-    g_post_processing_pass_pipeline = CreateGfxGraphicsPipeline("Post Processing", desc);
-    Assert(!IsNull(*g_post_processing_pass_pipeline), "Could not create post processing pipeline");
-
-    DestroyPipelineOnShaderReload(*g_post_processing_pass_pipeline);
+    ok := CreateGfxGraphicsPipeline(*g_post_processing_pipeline, "Post Processing", desc);
+    Assert(ok, "Could not create post processing pipeline");
 }
 
 PostProcessingPass :: (using ctx : *FrameRenderContext) {
@@ -30,8 +28,8 @@ PostProcessingPass :: (using ctx : *FrameRenderContext) {
         g_post_processing_sampler = CreateGfxSampler("Post Processing", desc);
     }
 
-    if IsNull(*g_post_processing_pass_pipeline) {
-        CreatePostProcessingPassPipeline();
+    if IsNull(*g_post_processing_pipeline) {
+        CreatePostProcessingPipeline();
     }
 
     bindings := PostProcessingBindingSet.{
@@ -47,7 +45,7 @@ PostProcessingPass :: (using ctx : *FrameRenderContext) {
 
     pass := BeginGfxRenderPass(cmd_buffer, "Post Processing", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_post_processing_pass_pipeline);
+        BindGraphicsPipeline(*pass, *g_post_processing_pipeline);
         SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 

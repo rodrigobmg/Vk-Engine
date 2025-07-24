@@ -45,7 +45,9 @@ Camera :: struct {
     target_yaw, target_pitch : float;
     yaw, pitch : float;
     rotation : Quatf;
-    fov_in_degrees : float = 80;
+    fov_in_degrees := 80.0;
+    z_near := 0.1;
+    z_far := 1000.0;
     transform : Mat4f;
     view : Mat4f;
     projection : Mat4f;
@@ -104,7 +106,7 @@ UpdateCamera :: (using camera : *Camera) {
     SDL_GetWindowSizeInPixels(g_window, *w, *h);
 
     aspect := w / cast(float, h);
-    projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, 0.1, 1000);
+    projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_near, z_far);
 }
 
 g_default_base_color : *Asset(Texture2D);

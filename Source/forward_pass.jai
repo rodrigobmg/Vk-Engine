@@ -1,6 +1,11 @@
-g_forward_pass_pipeline : GfxGraphicsPipeline;
+ForwardPassBindingSet :: struct {
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
+    shadow_map : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage @AllowNull
+} @BindingSet
 
-CreateForwardPassPipeline :: () {
+g_forward_pipeline : GfxGraphicsPipeline;
+
+CreateForwardPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("mesh_geometry");
     desc.fragment_shader = GetFragmentShader("opaque_surface");
@@ -12,23 +17,39 @@ CreateForwardPassPipeline :: () {
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.EmptyBindingSet,
+        g_binding_set_layouts.ForwardPassBindingSet,
         g_binding_set_layouts.MeshBindingSet,
     ];
 
-    g_forward_pass_pipeline = CreateGfxGraphicsPipeline("Forward Pass", desc);
-    Assert(!IsNull(*g_forward_pass_pipeline), "Could not create forward pass pipeline");
-
-    DestroyPipelineOnShaderReload(*g_forward_pass_pipeline);
+    ok := CreateGfxGraphicsPipeline(*g_forward_pipeline, "Forward", desc);
+    Assert(ok, "Could not create forward pass pipeline");
 }
 
-ForwardPass :: (using ctx : *FrameRenderContext, mesh_buffer : *MeshBuffer) {
-    if IsNull(*g_forward_pass_pipeline) {
-        CreateForwardPassPipeline();
+ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer : *MeshBuffer) {
+    if IsNull(*g_forward_pipeline) {
+        CreateForwardPipeline();
     }
 
     w, h : s32;
     SDL_GetWindowSizeInPixels(g_window, *w, *h);
+
+    viewpoints : [Max_Viewpoints]Viewpoint;
+    viewpoints[0] = .{
+        position=camera.position,
+        right=RightVector(camera.rotation),
+        up=UpVector(camera.rotation),
+        direction=ForwardVector(camera.rotation),
+        transform=camera.transform,
+        view=camera.view,
+        projection=camera.projection,
+        view_projection=camera.projection * camera.view,
+    };
+    viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
+
+    pass_bindings := ForwardPassBindingSet.{
+        viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
+    };
+    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
 
     pass_desc : GfxRenderPassDesc;
     AddColorAttachment(*pass_desc, *g_color_texture);
@@ -38,9 +59,11 @@ ForwardPass :: (using ctx : *FrameRenderContext, mesh_buffer : *MeshBuffer) {
 
     pass := BeginGfxRenderPass(cmd_buffer, "Forward Pass", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_forward_pass_pipeline);
+        BindGraphicsPipeline(*pass, *g_forward_pipeline);
         SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
+
+        BindGraphicsBindingSet(*pass, 1, *binding_set);
 
         for mesh_buffer.draw_calls {
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
@@ -52,4 +75,3 @@ ForwardPass :: (using ctx : *FrameRenderContext, mesh_buffer : *MeshBuffer) {
     }
     EndGfxRenderPass(*pass);
 }
-
