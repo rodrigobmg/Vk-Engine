@@ -83,4 +83,74 @@ float3 CalculateBRDF(
     return light_Lo;
 }
 
+float3 CalculateAmbientBRDF(
+    float3 albedo, float metallic, float roughness,
+    float3 N, float3 V,
+    float3 irradiance, float3 environment_color,
+    sampler2D brdf_lut
+) {
+    float NdotV = max(dot(N, V), 0.0);
+    // Irradiance comes from all directions, hence L == N:
+    // L = N
+    // H = V + L = V + N
+    float HdotV = max(dot(V + N, V), 0.0);
+    float3 F0 = float3(0.04);
+    F0 = lerp(F0, albedo, metallic);
+
+    float3 F = FresnelSchlickWithRoughness(HdotV, F0, roughness);
+
+    float3 diffuse = irradiance * albedo;
+
+    float2 environment_brdf_coords = float2(NdotV, roughness);
+    #ifndef TEXTURE_ORIGIN_BOTTOM_LEFT
+        environment_brdf_coords.y = 1 - environment_brdf_coords.y;
+    #endif
+
+    float2 environment_brdf = texture(brdf_lut, environment_brdf_coords).rg;
+    float3 specular = environment_color * (F * environment_brdf.x + environment_brdf.y);
+
+    float3 kS = F;
+    float3 kD = float3(1) - kS;
+    kD *= 1.0 - metallic;
+
+    return kD * diffuse + specular;
+}
+
+float RadicalInverseVdC(uint bits) {
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+float2 Hammersley(uint i, uint N) {
+    return float2(float(i) / float(N), RadicalInverseVdC(i));
+}
+
+float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
+    float a = roughness * roughness;
+
+    float phi = 2.0 * Pi * Xi.x;
+    float cost = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
+    float sint = sqrt(1.0 - cost * cost);
+
+    // From spherical coordinates to cartesian coordinates
+    float3 H;
+    H.x = cos(phi) * sint;
+    H.y = sin(phi) * sint;
+    H.z = cost;
+
+    // From tangent-space vector to world-space sample vector
+    float3 up        = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+    float3 tangent   = normalize(cross(up, N));
+    float3 bitangent = cross(N, tangent);
+
+    float3 sample_vector = tangent * H.x + bitangent * H.y + N * H.z;
+
+    return normalize(sample_vector);
+}
+
 #endif

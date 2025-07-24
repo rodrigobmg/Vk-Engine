@@ -59,7 +59,9 @@ void main() {
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * intensity);
     }
 
-    float3 ambient = base_color * 0.01;
+    float3 irradiance = float3(0);
+    float3 environment = float3(0);
+    float3 ambient = CalculateAmbientBRDF(base_color, metallic, roughness, N, V, irradiance, environment, u_brdf_lut);
     float3 color = ambient + Lo + emissive;
 
     out_color.rgb = color;

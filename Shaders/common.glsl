@@ -43,6 +43,9 @@
     }; \
     layout(set=0, binding=2, std430) readonly buffer PointLights { \
         PointLight u_point_lights[]; \
+    }; \
+    layout(set=0, binding=3) uniform sampler2D u_brdf_lut
+#endif
 
 #define Max_Viewpoints 4
 

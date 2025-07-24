@@ -137,6 +137,7 @@ FrameBindingSet :: struct {
     frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
     directional_lights : GfxBindingStorageBuffer; @Binding(1) @FragmentStage @AllowNull
     point_lights : GfxBindingStorageBuffer; @Binding(2) @FragmentStage @AllowNull
+    brdf_lut : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
 } @BindingSet
 
 FrameInfo :: struct {
@@ -223,6 +224,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     cmd_buffer := CreateGfxCommandBuffer("Main");
     ctx.cmd_buffer = *cmd_buffer;
 
+    if IsNull(*g_brdf_lut) {
+        RenderBRDFLUT(ctx.cmd_buffer);
+    }
+
     num_directional_lights : u64 = xx world.DirectionalLightEntity_storage.count;
     directional_lights_size := GLSLStd430Size(DirectionalLight) * num_directional_lights;
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
@@ -259,6 +264,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         frame_info=.{buffer=FrameDataBuffer(), offset=xx frame_info_offset, size=xx frame_info_size},
         directional_lights=.{buffer=FrameDataBuffer(), offset=xx directional_lights_offset, size=xx directional_lights_size},
         point_lights=.{buffer=FrameDataBuffer(), offset=xx point_lights_offset, size=xx point_lights_size},
+        brdf_lut=.{texture=*g_brdf_lut, sampler=*g_brdf_lut_sampler},
     };
 
     ctx.frame_binding_set = CreateGfxBindingSet(GlobalBindingSetAllocator(), frame_binding_set);
@@ -287,18 +293,71 @@ RenderFrame :: (world : *World, camera : *Camera) {
 // Pipeline layout used to bind binding sets outside of any render pass at the beginning of the frame
 g_dummy_frame_pipeline_layout : GfxPipelineLayout;
 
-g_material_texture_sampler : GfxSampler;
+g_brdf_lut : GfxTexture;
+g_brdf_lut_sampler : GfxSampler;
 
-CreateAllPipelines :: () {
+BRDF_LUT_Resolution : u32 : 512;
+
+RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
+    texture_desc : GfxTextureDesc;
+    texture_desc.type = .Texture2D;
+    texture_desc.pixel_format = .RGBA16Float;
+    texture_desc.width = BRDF_LUT_Resolution;
+    texture_desc.height = BRDF_LUT_Resolution;
+    texture_desc.usage = .ColorAttachment | .Sampled;
+
+    g_brdf_lut = CreateGfxTexture("BRDF LUT", texture_desc);
+    Assert(!IsNull(*g_brdf_lut), "Could not create BRDF LUT texture");
+
     sampler_desc : GfxSamplerDesc;
     sampler_desc.min_filter = .Linear;
     sampler_desc.mag_filter = .Linear;
-    sampler_desc.mipmap_filter = .Linear;
-    sampler_desc.u_address_mode = .Repeat;
-    sampler_desc.v_address_mode = .Repeat;
+    sampler_desc.u_address_mode = .ClampToEdge;
+    sampler_desc.v_address_mode = .ClampToEdge;
 
-    g_material_texture_sampler = CreateGfxSampler("Material Texture", sampler_desc);
-    Assert(!IsNull(*g_material_texture_sampler), "Could not create material texture sampler");
+    g_brdf_lut_sampler = CreateGfxSampler("BRDF LUT", sampler_desc);
+    Assert(!IsNull(*g_brdf_lut_sampler), "Could not create BRDF LUT sampler");
+
+    pipeline_desc : GfxGraphicsPipelineDesc;
+    pipeline_desc.vertex_shader = GetVertexShader("screen_effect");
+    pipeline_desc.fragment_shader = GetFragmentShader("brdf_lut");
+    pipeline_desc.color_formats[0] = g_brdf_lut.desc.pixel_format;
+
+    pipeline := CreateGfxGraphicsPipeline("BRDF LUT", pipeline_desc);
+    Assert(!IsNull(*pipeline), "Could not create BRDF LUT pipeline");
+
+    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *g_brdf_lut);
+
+    pass_desc : GfxRenderPassDesc;
+    AddColorAttachment(*pass_desc, *g_brdf_lut);
+
+    pass := BeginGfxRenderPass(cmd_buffer, "BRDF LUT", pass_desc);
+    {
+        BindGraphicsPipeline(*pass, *pipeline);
+        SetViewport(*pass, .{width=xx BRDF_LUT_Resolution, height=xx BRDF_LUT_Resolution});
+        SetScissor(*pass, .{w=xx BRDF_LUT_Resolution, h=xx BRDF_LUT_Resolution});
+
+        Draw(*pass, vertex_count=6, instance_count=1);
+    }
+    EndGfxRenderPass(*pass);
+
+    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_brdf_lut);
+}
+
+g_material_texture_sampler : GfxSampler;
+
+CreateAllPipelines :: () {
+    {
+        sampler_desc : GfxSamplerDesc;
+        sampler_desc.min_filter = .Linear;
+        sampler_desc.mag_filter = .Linear;
+        sampler_desc.mipmap_filter = .Linear;
+        sampler_desc.u_address_mode = .Repeat;
+        sampler_desc.v_address_mode = .Repeat;
+
+        g_material_texture_sampler = CreateGfxSampler("Material Texture", sampler_desc);
+        Assert(!IsNull(*g_material_texture_sampler), "Could not create material texture sampler");
+    }
 
     frame_layout_desc : GfxPipelineLayoutDesc;
     frame_layout_desc.binding_sets = .[
