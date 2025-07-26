@@ -52,8 +52,8 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     pass_bindings := ForwardPassBindingSet.{
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
-        irradiance_map=.{texture=*world.skybox.irradiance_map, sampler=*g_skybox_sampler},
-        environment_map=.{texture=*world.skybox.environment_map, sampler=*g_skybox_sampler},
+        irradiance_map=.{texture=ifx world.skybox then *world.skybox.irradiance_map, sampler=*g_skybox_sampler},
+        environment_map=.{texture=ifx world.skybox then *world.skybox.environment_map, sampler=*g_skybox_sampler},
     };
 
     shadow_map_index := 0;

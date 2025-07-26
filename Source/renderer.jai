@@ -374,7 +374,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
-    SkyboxPass(*ctx, camera, world.skybox.base_texture);
+    SkyboxPass(*ctx, camera, ifx world.skybox then world.skybox.base_texture);
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_color_texture);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
