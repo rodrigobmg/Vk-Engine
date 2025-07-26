@@ -23,7 +23,7 @@ void main() {
     float total_weight = 0;
     float3 prefiltered_color = float3(0);
 
-    const uint Num_Samples = 512;
+    const uint Num_Samples = 1024;
     for(uint i = 0; i < Num_Samples; i += 1) {
         float2 Xi = Hammersley(i, Num_Samples);
         float3 H  = ImportanceSampleGGX(Xi, N, roughness);
