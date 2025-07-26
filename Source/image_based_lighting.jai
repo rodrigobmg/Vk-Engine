@@ -150,14 +150,6 @@ GenerateEnvironmentMaps :: (cmd_buffer : *GfxCommandBuffer) {
         w := it.environment_map.desc.width;
         h := it.environment_map.desc.height;
         for level : 0..Num_Environment_Map_Levels - 1 {
-            source_texture := ifx level == 0
-                then *it.base_texture.texture
-                else *it.environment_levels[level - 1];
-            bindings := EnvironmentMapBindingSet.{
-                texture=.{texture=source_texture, sampler=*g_skybox_sampler},
-            };
-            binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
-
             pass_desc : GfxRenderPassDesc;
             AddColorAttachment(*pass_desc, *it.environment_levels[level], load_op=.DontCare);
 
@@ -166,8 +158,6 @@ GenerateEnvironmentMaps :: (cmd_buffer : *GfxCommandBuffer) {
                 BindGraphicsPipeline(*pass, *g_environment_map_pipeline);
                 SetViewport(*pass, .{width=xx w, height=xx h});
                 SetScissor(*pass, .{w=xx w, h=xx h});
-
-                BindGraphicsBindingSet(*pass, 1, *binding_set);
 
                 Draw(*pass, vertex_count=6, instance_count=1, base_instance=xx level);
             }

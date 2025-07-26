@@ -13,6 +13,8 @@ void main() {
     float2 spherical = UVToSpherical(in_position);
 
     float3 N = SphericalToCartesian(spherical.x, spherical.y);
+    // We assume V = R = N. This is part of the approximation and why the
+    // result will not look 100% to the real life
     float3 R = N;
     float3 V = R;
 
@@ -31,11 +33,22 @@ void main() {
         float NdotL = max(dot(N, L), 0.0);
 
         if (NdotL > 0) {
+            // Sample from the environment's mip level based on roughness/PDF
+            // This technique removes noise from high frequency details and produces much better results
+            float D = DistributionThrowbridgeReitz(N, H, roughness);
+            float NdotH = max(dot(N, H), 0.0);
+            float HdotV = max(dot(H, V), 0.0);
+            float PDF = D * NdotH / (4 * HdotV) + 0.0001;
+
+            const float Resolution = 1024;
+            float sa_texel = 4 * Pi / (6 * Resolution * Resolution);
+            float sa_sample = 1 / (float(Num_Samples) * PDF + 0.0001);
+
+            float mip_level = roughness == 0 ? 0 : 0.5 * log2(sa_sample / sa_texel);
+
             float2 uv = CartesianToSphericalUV(L);
 
-            float3 color = textureLod(u_texture, uv, 0).rgb;
-
-            prefiltered_color += color * NdotL;
+            prefiltered_color += textureLod(u_texture, uv, mip_level).rgb * NdotL;
             total_weight      += NdotL;
         }
     }
