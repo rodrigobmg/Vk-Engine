@@ -135,6 +135,10 @@ DestroyUsedTextureUploadBuffers :: () {
 TextureUploadPass :: (cmd_buffer : *GfxCommandBuffer) {
     DestroyUsedTextureUploadBuffers();
 
+    if g_texture_uploads.count <= 0 {
+        return;
+    }
+
     pass := BeginGfxCopyPass(cmd_buffer, "Upload Textures");
     {
         UploadTexturesAndGenerateMipmaps(*pass);
