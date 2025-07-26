@@ -12,7 +12,7 @@ CreateSkyboxPipeline :: () {
         desc.min_filter = .Linear;
         desc.mag_filter = .Linear;
         desc.u_address_mode = .Repeat;
-        desc.v_address_mode = .MirrorRepeat;
+        desc.v_address_mode = .ClampToEdge;
 
         g_skybox_sampler = CreateGfxSampler("Skybox", desc);
         Assert(!IsNull(*g_skybox_sampler), "Could not create skybox sampler");

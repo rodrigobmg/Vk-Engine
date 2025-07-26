@@ -26,7 +26,7 @@ void main() {
     float2 uv = CartesianToSphericalUV(ray_direction);
     uv.y = 1 - uv.y;
 
-    float3 color = texture(u_skybox, uv).rgb;
+    float3 color = textureLod(u_skybox, uv, 0).rgb;
     color = sRGBToLinear(color);
 
     out_color = float4(color, 1);
