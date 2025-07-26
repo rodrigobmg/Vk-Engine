@@ -1,3 +1,5 @@
+Irradiance_Map_Resolution :: 256;
+Environment_Map_Resolution :: 1024;
 Num_Environment_Map_Levels :: 6;
 
 EnvironmentMap :: struct {
@@ -13,20 +15,22 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
         return false;
     }
 
+    aspect_ratio := map.base_texture.height / cast(float, map.base_texture.width);
+
     desc : GfxTextureDesc;
     desc.type = .Texture2D;
     desc.pixel_format = .RGBA8UNorm;
     desc.usage = .Sampled | .ColorAttachment;
-    desc.width = map.base_texture.width / 4;
-    desc.height = map.base_texture.height / 4;
+    desc.width = Irradiance_Map_Resolution;
+    desc.height = cast(u32, Irradiance_Map_Resolution * aspect_ratio);
 
     map.irradiance_map = CreateGfxTexture(TPrint("% irradiance", name), desc);
     if IsNull(*map.irradiance_map) {
         return false;
     }
 
-    desc.width = map.base_texture.width / 2;
-    desc.height = map.base_texture.height / 2;
+    desc.width = Environment_Map_Resolution;
+    desc.height = cast(u32, Environment_Map_Resolution * aspect_ratio);
     desc.num_mipmap_levels = Num_Environment_Map_Levels;
 
     map.environment_map = CreateGfxTexture(TPrint("% environment", name), desc);
@@ -111,6 +115,10 @@ CreateEnvironmentMapPipeline :: () {
 
 GenerateEnvironmentMaps :: (cmd_buffer : *GfxCommandBuffer) {
     defer ArrayClear(*g_environment_maps_to_generate);
+
+    if g_environment_maps_to_generate.count <= 0 {
+        return;
+    }
 
     BeginGfxDebugMarker(cmd_buffer, "Generate Environment Maps");
     defer EndGfxDebugMarker(cmd_buffer);
