@@ -277,7 +277,8 @@ IsNull :: inline (shader : *GfxShader) -> bool {
     return shader == null || shader.module == VK_NULL_HANDLE;
 }
 
-LoadGfxShader :: (name : string) -> GfxShader {
+// @Todo: integrate libshaderc instead of launching a child process
+LoadGfxShader :: (name : string, dependencies : *[..]string = null) -> GfxShader {
     stage := ifx StringEndsWith(name, ".vert")
         then "vert"
         else ifx StringEndsWith(name, ".frag")
@@ -314,6 +315,37 @@ LoadGfxShader :: (name : string) -> GfxShader {
     if result.exit_code != 0 {
         LogError("Could not compile shader '%':\n%", filename, stderr);
         return .{};
+    }
+
+    if dependencies {
+        _, dependencies_str := run_command(
+            "glslc",
+            "-std=460",
+            "--target-env=vulkan1.3",
+            TPrint("-fshader-stage=%", stage),
+            TPrint("-D%", stage_define),
+            "-M",
+            filename,
+            capture_and_return_output=true
+        );
+
+        colon_index := find_index_from_left(dependencies_str, ":");
+        if colon_index >= 0 {
+            dependencies_str = StringAdvance(dependencies_str, colon_index + 1);
+        }
+
+        splits := split(dependencies_str, " ");
+        for splits {
+            if it.count <= 0 {
+                continue;
+            }
+
+            dep := trim(it);
+            dep = get_absolute_path(dep ,, Temp);
+            path_overwrite_separators(dep, #char "/");
+
+            ArrayPush(dependencies, StringClone(dep));
+        }
     }
 
     code, ok := read_entire_file(output_filename);

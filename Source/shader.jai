@@ -183,8 +183,7 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     defer if !IsNull(*fragment_shader) then DestroyGfxShader(*fragment_shader);
 
     if has_vertex_shader {
-        vertex_shader = LoadGfxShader(TPrint("%.vert", shader.name));
-        ArrayPush(*dependencies, StringClone(vertex_filename));
+        vertex_shader = LoadGfxShader(TPrint("%.vert", shader.name), *dependencies);
 
         if IsNull(*vertex_shader) {
             return false;
@@ -192,8 +191,7 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     }
 
     if has_fragment_shader {
-        fragment_shader = LoadGfxShader(TPrint("%.frag", shader.name));
-        ArrayPush(*dependencies, StringClone(fragment_filename));
+        fragment_shader = LoadGfxShader(TPrint("%.frag", shader.name), *dependencies);
 
         if IsNull(*fragment_shader) {
             return false;
