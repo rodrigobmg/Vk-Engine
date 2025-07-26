@@ -62,6 +62,7 @@ void main() {
     }
 
     float2 environment_uv = CartesianToSphericalUV(N);
+    environment_uv.y = 1 - environment_uv.y;
     float3 irradiance = textureLod(u_irradiance_map, environment_uv, 0).rgb;
     float3 environment = textureLod(u_environment_map, environment_uv, roughness * Num_Environment_Map_Levels).rgb;
     float3 ambient = CalculateAmbientBRDF(base_color, metallic, roughness, N, V, irradiance, environment, u_brdf_lut);
