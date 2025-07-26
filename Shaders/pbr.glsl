@@ -105,10 +105,10 @@ float3 CalculateAmbientBRDF(
 
     float2 environment_brdf_coords = float2(NdotV, roughness);
     #ifndef TEXTURE_ORIGIN_BOTTOM_LEFT
-        environment_brdf_coords.y = 1 - environment_brdf_coords.y;
+        // environment_brdf_coords.y = 1 - environment_brdf_coords.y;
     #endif
 
-    float2 environment_brdf = texture(brdf_lut, environment_brdf_coords).rg;
+    float2 environment_brdf = texture(brdf_lut, environment_brdf_coords).rg; // Should be green for smooth surfaces
     float3 specular = environment_color * (F * environment_brdf.x + environment_brdf.y);
 
     float3 kS = F;
