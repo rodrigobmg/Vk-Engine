@@ -31,7 +31,7 @@ void main() {
         float NdotL = max(dot(N, L), 0.0);
         float2 uv = CartesianToSphericalUV(L);
 
-        float3 color = texture(u_texture, uv).rgb;
+        float3 color = textureLod(u_texture, uv, 0).rgb;
         color = sRGBToLinear(color);
 
         prefiltered_color += color * NdotL;

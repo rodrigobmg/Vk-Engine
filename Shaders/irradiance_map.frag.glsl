@@ -25,7 +25,7 @@ void main() {
             float3 sample_vector = right * tangent_sample.x + up * tangent_sample.y + ray_direction * tangent_sample.z;
             float2 uv = CartesianToSphericalUV(sample_vector);
 
-            float3 radiance = texture(u_texture, uv).rgb;
+            float3 radiance = textureLod(u_texture, uv, 0).rgb;
             radiance = sRGBToLinear(radiance);
             radiance *= cos(theta) * sin(theta);
 
