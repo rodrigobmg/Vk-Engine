@@ -7,16 +7,36 @@ Texture2D :: struct {
 LoadTexture2DFromMemory :: (texture : *Texture2D, data : []u8, name : string) -> bool {
     #import "stb_image";
 
+    is_hdr := stbi_is_hdr_from_memory(data.data, xx data.count);
+    // @Hack: we need to choose the color space between SRGB and linear for LDR images because we want
+    // to treat HDR and LDR images the same way in the shaders. HDR images are in linear space, and we have
+    // no performant way of gamma correcting, hence why we choose to use SRGB pixel formats for LDR images.
+    // The problem is not all images are actually in sRGB space, normal maps et metallic/roughness/AO are in
+    // linear space, and we cannot use SRGB for them or everything breaks. Hence, we enforce a naming
+    // convention for images that are SRGB (it's better for the naming convention to enforce specifying SRGB
+    // instead of specifying linear, because it's easier to see when a color texture is not in the correct space
+    // than to know why your normals or lighting look weird). A better solution would probably be to use another
+    // file format, or add a metadata file.
+    basename := path_basename(name);
+    is_srgb := StringEndsWith(basename, "_BaseColor") || StringEndsWith(basename, "_Emissive") || StringEndsWith(basename, "_Color");
+
     w, h : s32;
-    image_data := stbi_load_from_memory(data.data, xx data.count, *w, *h, null, 4);
+    image_data : *void;
     defer stbi_image_free(image_data);
+
+    if is_hdr {
+        image_data = stbi_loadf_from_memory(data.data, xx data.count, *w, *h, null, 4);
+    } else {
+        image_data = stbi_load_from_memory(data.data, xx data.count, *w, *h, null, 4);
+    }
+
     if !image_data {
         return false;
     }
 
     desc : GfxTextureDesc;
     desc.type = .Texture2D;
-    desc.pixel_format = .RGBA8UNorm;
+    desc.pixel_format = ifx is_hdr then .RGBA32Float else ifx is_srgb then .RGBA8SRGB else .RGBA8UNorm;
     desc.usage = .Sampled | .TransferDst | .TransferSrc;
     desc.width = xx w;
     desc.height = xx h;

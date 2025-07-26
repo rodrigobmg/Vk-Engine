@@ -913,6 +913,7 @@ GfxPixelFormat :: enum u8 {
     R8SNorm;
     R8UInt;
     R8SInt;
+    RGBA8SRGB;
     RGBA8UNorm;
     RGBA8SNorm;
     RGBA8UInt;
@@ -938,6 +939,7 @@ GetPixelSize :: inline (pixel_format : GfxPixelFormat) -> u32 {
     case .R8SNorm; return 1;
     case .R8UInt; return 1;
     case .R8SInt; return 1;
+    case .RGBA8SRGB; return 4;
     case .RGBA8UNorm; return 4;
     case .RGBA8SNorm; return 4;
     case .RGBA8UInt; return 4;
@@ -965,6 +967,7 @@ MakeVkFormat :: inline (pixel_format : GfxPixelFormat) -> VkFormat {
     case .R8SNorm; return .R8_SNORM;
     case .R8UInt; return .R8_UINT;
     case .R8SInt; return .R8_SINT;
+    case .RGBA8SRGB; return .R8G8B8A8_SRGB;
     case .RGBA8UNorm; return .R8G8B8A8_UNORM;
     case .RGBA8SNorm; return .R8G8B8A8_SNORM;
     case .RGBA8UInt; return .R8G8B8A8_UINT;
@@ -991,6 +994,7 @@ MakeGfxPixelFormat :: inline (format : VkFormat) -> GfxPixelFormat {
     case .R8_SNORM; return .R8SNorm;
     case .R8_UINT; return .R8UInt;
     case .R8_SINT; return .R8SInt;
+    case .R8G8B8A8_SRGB; return .RGBA8SRGB;
     case .R8G8B8A8_UNORM; return .RGBA8UNorm;
     case .R8G8B8A8_SNORM; return .RGBA8SNorm;
     case .R8G8B8A8_UINT; return .RGBA8UInt;

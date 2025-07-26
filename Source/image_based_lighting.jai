@@ -19,7 +19,7 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
 
     desc : GfxTextureDesc;
     desc.type = .Texture2D;
-    desc.pixel_format = .RGBA8UNorm;
+    desc.pixel_format = .RGBA16Float;
     desc.usage = .Sampled | .ColorAttachment;
     desc.width = Irradiance_Map_Resolution;
     desc.height = cast(u32, Irradiance_Map_Resolution * aspect_ratio);
@@ -32,6 +32,7 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
     desc.width = Environment_Map_Resolution;
     desc.height = cast(u32, Environment_Map_Resolution * aspect_ratio);
     desc.num_mipmap_levels = Num_Environment_Map_Levels;
+    desc.usage = .Sampled | .ColorAttachment | .TransferSrc | .TransferDst;
 
     map.environment_map = CreateGfxTexture(TPrint("% environment", name), desc);
     if IsNull(*map.environment_map) {
@@ -87,7 +88,7 @@ CreateIrradianceMapPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("screen_effect");
     desc.fragment_shader = GetFragmentShader("irradiance_map");
-    AddColorAttachment(*desc, .RGBA8UNorm);
+    AddColorAttachment(*desc, .RGBA16Float);
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
@@ -102,7 +103,7 @@ CreateEnvironmentMapPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("environment_map");
     desc.fragment_shader = GetFragmentShader("environment_map");
-    AddColorAttachment(*desc, .RGBA8UNorm);
+    AddColorAttachment(*desc, .RGBA16Float);
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,

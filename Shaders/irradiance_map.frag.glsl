@@ -26,7 +26,6 @@ void main() {
             float2 uv = CartesianToSphericalUV(sample_vector);
 
             float3 radiance = textureLod(u_texture, uv, 0).rgb;
-            radiance = sRGBToLinear(radiance);
             radiance *= cos(theta) * sin(theta);
 
             irradiance += radiance;
