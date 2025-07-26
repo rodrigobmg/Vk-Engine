@@ -1,12 +1,12 @@
 #load "mesh.jai";
 #load "texture2d.jai";
-#load "environment_map.jai";
 #load "shader.jai";
 #load "material.jai";
 #load "mesh_buffer.jai";
 #load "allocator.jai";
 #load "binding_set_allocator.jai";
 
+#load "image_based_lighting.jai";
 #load "forward_pass.jai";
 #load "post_processing.jai";
 #load "shadow_map.jai";
