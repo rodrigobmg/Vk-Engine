@@ -78,7 +78,7 @@ void main() {
     #ifndef TEXTURE_ORIGIN_BOTTOM_LEFT
         environment_uv.y = 1 - environment_uv.y;
     #endif
-    float3 environment = textureLod(u_environment_map, environment_uv, roughness * Num_Environment_Map_Levels).rgb;
+    float3 environment = textureLod(u_environment_map, environment_uv, roughness * (Num_Environment_Map_Levels - 1)).rgb;
 
     float3 ambient = CalculateAmbientBRDF(base_color, metallic, roughness, N, V, irradiance, environment, u_brdf_lut);
     float3 color = ambient + Lo + emissive;
