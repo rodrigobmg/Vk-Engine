@@ -318,7 +318,7 @@ LoadGfxShader :: (name : string, dependencies : *[..]string = null) -> GfxShader
     }
 
     if dependencies {
-        _, dependencies_str := run_command(
+        _, stdout, stderr := run_command(
             "glslc",
             "-std=460",
             "--target-env=vulkan1.3",
@@ -328,13 +328,16 @@ LoadGfxShader :: (name : string, dependencies : *[..]string = null) -> GfxShader
             filename,
             capture_and_return_output=true
         );
+        defer Free(stdout.data);
+        defer Free(stderr.data);
 
+        dependencies_str := stdout;
         colon_index := find_index_from_left(dependencies_str, ":");
         if colon_index >= 0 {
             dependencies_str = StringAdvance(dependencies_str, colon_index + 1);
         }
 
-        splits := split(dependencies_str, " ");
+        splits := split(dependencies_str, " " ,, Temp);
         for splits {
             if it.count <= 0 {
                 continue;
