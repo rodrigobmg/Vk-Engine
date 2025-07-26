@@ -50,6 +50,8 @@ World :: struct {
     );
 
     entities_killed_this_frame : [..]EntityIndex;
+
+    skybox : *Asset(EnvironmentMap);
 }
 
 Entity :: struct {
@@ -786,6 +788,8 @@ DestroyWorld :: (using world : *World) {
         Free(name.data ,, world.entities_by_name.allocator);
         ArrayFree(*children);
     }
+
+    RemoveRef(skybox);
 
     #insert -> string {
         builder : StringBuilder;

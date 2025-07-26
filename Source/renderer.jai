@@ -1,5 +1,6 @@
 #load "mesh.jai";
 #load "texture2d.jai";
+#load "environment_map.jai";
 #load "shader.jai";
 #load "material.jai";
 #load "mesh_buffer.jai";
@@ -9,6 +10,7 @@
 #load "forward_pass.jai";
 #load "post_processing.jai";
 #load "shadow_map.jai";
+#load "skybox.jai";
 
 InitRenderer :: () {
     if !LoadAllShaders() {
@@ -39,7 +41,7 @@ CleanupRenderer :: () {
 
     DestroyAllPipelines();
 
-    DestroyAllUploadData();
+    CleanupTextureUpload();
 
     DestroyGlobalShadowMapObjects();
 
@@ -50,6 +52,8 @@ CleanupRenderer :: () {
     DestroyBindingSetAllocators();
 
     DestroyAllShaders();
+
+    DestroyGfxSampler(*g_skybox_sampler);
 }
 
 #placeholder Shader_Binding_Set_Types;
@@ -188,7 +192,6 @@ FrameBindingSet :: struct {
     point_lights : GfxBindingStorageBuffer; @Binding(2) @FragmentStage @AllowNull
     brdf_lut : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
     shadow_map_noise : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
-    shadow_maps : [Max_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(5) @FragmentStage @AllowNull
 } @BindingSet
 
 ShadowMapParams :: struct {
@@ -233,6 +236,8 @@ Viewpoint :: struct {
     view : Mat4f;
     projection : Mat4f;
     view_projection : Mat4f;
+    viewport_size : Vec2f;
+    fov : float;
 } @ShaderType
 
 FrameRenderContext :: struct {
@@ -353,25 +358,11 @@ RenderFrame :: (world : *World, camera : *Camera) {
         shadow_map_noise=.{texture=*g_shadow_map_noise_texture, sampler=*g_shadow_map_noise_sampler},
     };
 
-    shadow_map_index := 0;
-    for * world.DirectionalLightEntity_storage {
-        defer shadow_map_index += 1;
-
-        if shadow_map_index >= Max_Shadow_Maps {
-            break;
-        }
-
-        if !it.cast_shadows {
-            continue;
-        }
-
-        frame_binding_set.shadow_maps[shadow_map_index] = .{texture=*it.shadow_map.depth_texture, sampler=*g_shadow_map_sampler};
-    }
-
     ctx.frame_binding_set = CreateGfxBindingSet(GlobalBindingSetAllocator(), frame_binding_set);
     BindGraphicsBindingSet(*cmd_buffer, *g_dummy_frame_pipeline_layout, 0, *ctx.frame_binding_set);
 
-    PerformPendingUploads(*cmd_buffer);
+    TextureUploadPass(*cmd_buffer);
+    GenerateEnvironmentMaps(*cmd_buffer);
 
     for * world.DirectionalLightEntity_storage {
         if it.cast_shadows {
@@ -383,6 +374,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
+    SkyboxPass(*ctx, camera, world.skybox.base_texture);
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_color_texture);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
@@ -476,9 +468,17 @@ CreateAllPipelines :: () {
     CreateForwardPipeline();
     CreatePostProcessingPipeline();
     CreateShadowMapPipeline();
+    CreateSkyboxPipeline();
+    CreateIrradianceMapPipeline();
+    CreateEnvironmentMapPipeline();
 }
 
 DestroyAllPipelines :: () {
+    DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
+    DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
+
+    DestroyGfxGraphicsPipeline(*g_skybox_pipeline);
+
     DestroyGfxGraphicsPipeline(*g_forward_pipeline);
 
     DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);

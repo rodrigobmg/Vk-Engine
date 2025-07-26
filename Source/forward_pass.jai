@@ -1,5 +1,8 @@
 ForwardPassBindingSet :: struct {
     viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
+    shadow_maps : [Max_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage @AllowNull
+    irradiance_map : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage @AllowNull
+    environment_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage @AllowNull
 } @BindingSet
 
 g_forward_pipeline : GfxGraphicsPipeline;
@@ -35,25 +38,44 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
     viewpoints : [Max_Viewpoints]Viewpoint;
     viewpoints[0] = .{
         position=camera.position,
-        right=RightVector(camera.rotation),
-        up=UpVector(camera.rotation),
-        direction=ForwardVector(camera.rotation),
+        right=RightVector(camera.transform),
+        up=UpVector(camera.transform),
+        direction=ForwardVector(camera.transform),
         transform=camera.transform,
         view=camera.view,
         projection=camera.projection,
         view_projection=camera.projection * camera.view,
+        fov=ToRads(camera.fov_in_degrees),
+        viewport_size=.{xx w, xx h},
     };
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
 
     pass_bindings := ForwardPassBindingSet.{
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
+        irradiance_map=.{texture=*world.skybox.irradiance_map, sampler=*g_skybox_sampler},
+        environment_map=.{texture=*world.skybox.environment_map, sampler=*g_skybox_sampler},
     };
+
+    shadow_map_index := 0;
+    for * world.DirectionalLightEntity_storage {
+        defer shadow_map_index += 1;
+
+        if shadow_map_index >= Max_Shadow_Maps {
+            break;
+        }
+
+        if !it.cast_shadows {
+            continue;
+        }
+
+        pass_bindings.shadow_maps[shadow_map_index] = .{texture=*it.shadow_map.depth_texture, sampler=*g_shadow_map_sampler};
+    }
 
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
 
     pass_desc : GfxRenderPassDesc;
     AddColorAttachment(*pass_desc, *g_color_texture);
-    AddDepthAttachment(*pass_desc, *g_depth_texture, store_op=.DontCare);
+    AddDepthAttachment(*pass_desc, *g_depth_texture);
     ClearColor(*pass_desc, 0, Vec4f.{0,0,0,1});
     ClearDepth(*pass_desc, 1);
 

@@ -37,6 +37,8 @@ DestroyTexture2D :: (texture : *Texture2D) {
     DestroyGfxTexture(*texture.texture);
 }
 
+#scope_file
+
 // Contains buffers for each frame in flight that were copied
 // All buffers from frame N are destroyed at frame N + Gfx_Num_Frames_In_Flight
 g_upload_buffers_to_destroy : [Gfx_Num_Frames_In_Flight][..]GfxBuffer;
@@ -46,11 +48,13 @@ g_texture_uploads : [..]*Texture2D;
 g_texture_upload_buffers : [..]GfxBuffer;
 g_texture_upload_mutex : Mutex;
 
+#scope_export
+
 InitTextureUpload :: () {
-    init(*g_texture_upload_mutex, "Queue Texture Upload");
+    init(*g_texture_upload_mutex, "Queue Texture2D Upload");
 }
 
-DestroyAllUploadData :: () {
+CleanupTextureUpload :: () {
     ArrayFree(*g_texture_uploads);
 
     for * buffers : g_upload_buffers_to_destroy {
@@ -79,7 +83,7 @@ QueueTextureUpload :: (data : *void, texture : *Texture2D) {
     buffer_desc.usage = .TransferSrc;
     buffer_desc.memory_usage = .Upload;
 
-    buffer := CreateGfxBuffer("Upload", buffer_desc);
+    buffer := CreateGfxBuffer("Texture2D Upload", buffer_desc);
     Assert(!IsNull(*buffer), "Could not create upload buffer");
 
     vmaCopyMemoryToAllocation(g_gfx_context.allocator, data, buffer.allocation, 0, buffer_desc.size);
@@ -101,7 +105,7 @@ CancelTextureUpload :: (texture : *Texture2D) {
     }
 }
 
-PerformPendingTextureUploadsAndGenerateMipmaps :: (pass : *GfxCopyPass) {
+UploadTexturesAndGenerateMipmaps :: (pass : *GfxCopyPass) {
     AddTextureBarriers(pass.cmd_buffer, .Undefined, .TransferDst, .{data=xx g_texture_uploads.data, count=g_texture_uploads.count});
 
     for i : 0..g_texture_uploads.count - 1 {
@@ -118,7 +122,7 @@ PerformPendingTextureUploadsAndGenerateMipmaps :: (pass : *GfxCopyPass) {
     Swap(*g_texture_upload_buffers, *g_upload_buffers_to_destroy[g_gfx_context.frame_in_flight]);
 }
 
-PerformPendingUploads :: (cmd_buffer : *GfxCommandBuffer) {
+DestroyUsedTextureUploadBuffers :: () {
     // Destroy upload buffers that were created at the last same frame in flight, we're sure that
     // upload was done because the fence was waited upon
     for * g_upload_buffers_to_destroy[g_gfx_context.frame_in_flight] {
@@ -126,10 +130,14 @@ PerformPendingUploads :: (cmd_buffer : *GfxCommandBuffer) {
     }
 
     ArrayClear(*g_upload_buffers_to_destroy[g_gfx_context.frame_in_flight]);
+}
 
-    pass := BeginGfxCopyPass(cmd_buffer, "Upload Assets");
+TextureUploadPass :: (cmd_buffer : *GfxCommandBuffer) {
+    DestroyUsedTextureUploadBuffers();
+
+    pass := BeginGfxCopyPass(cmd_buffer, "Upload Textures");
     {
-        PerformPendingTextureUploadsAndGenerateMipmaps(*pass);
+        UploadTexturesAndGenerateMipmaps(*pass);
     }
     EndGfxCopyPass(*pass);
 }

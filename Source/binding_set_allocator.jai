@@ -12,11 +12,11 @@ MakeGfxBindingPoolDesc :: (layout : *GfxBindingSetLayout, max_binding_sets : u32
 
     for layout.desc.bindings {
         if #complete it.type == {
-        case .UniformBuffer; desc.max_uniform_buffers += it.array_length;
-        case .StorageBuffer; desc.max_storage_buffers += it.array_length;
-        case .Texture; desc.max_textures += it.array_length;
-        case .Sampler; desc.max_samplers += it.array_length;
-        case .CombinedTextureSampler; desc.max_combined_texture_samplers += it.array_length;
+        case .UniformBuffer; desc.max_uniform_buffers += it.num_array_layers;
+        case .StorageBuffer; desc.max_storage_buffers += it.num_array_layers;
+        case .Texture; desc.max_textures += it.num_array_layers;
+        case .Sampler; desc.max_samplers += it.num_array_layers;
+        case .CombinedTextureSampler; desc.max_combined_texture_samplers += it.num_array_layers;
         }
     }
 

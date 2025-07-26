@@ -89,11 +89,11 @@ GetGfxLimits :: inline () -> GfxLimits {
 BeginFrame :: () {
     ctx := *g_gfx_context;
 
-    wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Second_To_Nano);
+    wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Frame_Max_Wait);
     Assert(wait_result == .SUCCESS, "vkWaitForFences failed: %", wait_result);
 
     while true {
-        acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Second_To_Nano, ctx.swapchain_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
+        acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Frame_Max_Wait, ctx.swapchain_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
 
         if acquire_result == .ERROR_OUT_OF_DATE_KHR || acquire_result == .SUBOPTIMAL_KHR {
             RecreateSwapchain();
@@ -437,7 +437,7 @@ GfxBindingDesc :: struct {
     binding : u32;
     type : GfxBindingType;
     stage_flags : GfxShaderStageFlags;
-    array_length : u32 = 1;
+    num_array_layers : u32 = 1;
     flags : GfxBindingFlags;
 }
 
@@ -471,7 +471,7 @@ CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> 
         binding := *create_info.pBindings[it_index];
         binding.binding = it.binding;
         binding.descriptorType = MakeVkDescriptorType(it.type);
-        binding.descriptorCount = it.array_length;
+        binding.descriptorCount = it.num_array_layers;
         binding.stageFlags = MakeVkShaderStageFlags(it.stage_flags);
 
         binding_flags.pBindingFlags[it_index] = MakeVkDescriptorBindingFlags(it.flags);
@@ -820,13 +820,13 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
 
         for info.members {
             binding : u32;
-            array_length : u32 = 1;
+            num_array_layers : u32 = 1;
             type : GfxBindingType;
             stage_flags : GfxShaderStageFlags;
             flags : GfxBindingFlags;
 
             if it.type.type == .ARRAY {
-                array_length = xx cast(*Type_Info_Array, it.type).array_count;
+                num_array_layers = xx cast(*Type_Info_Array, it.type).array_count;
                 type = GetGfxBindingType(cast(*Type_Info_Array, it.type).element_type);
             } else {
                 type = GetGfxBindingType(it.type);
@@ -860,7 +860,7 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
                 compiler_report(TPrint("Missing @VertexStage or @FragmentStage note on member %", it.name), loc=struct_location);
             }
 
-            Appendln(*builder, "    .{binding=%, array_length=%, type=.%, stage_flags=%, flags=%},", binding, array_length, type, cast(u8, stage_flags), cast(u8, flags));
+            Appendln(*builder, "    .{binding=%, num_array_layers=%, type=.%, stage_flags=%, flags=%},", binding, num_array_layers, type, cast(u8, stage_flags), cast(u8, flags));
         }
 
         Appendln(*builder, "];");
@@ -1659,17 +1659,17 @@ GfxTextureDesc :: struct {
     width : u32 = 1;
     height : u32 = 1;
     depth : u32 = 1;
-    array_length : u32 = 1;
-    num_samples : u32 = 1;
+    num_array_layers : u32 = 1;
     num_mipmap_levels : u32 = 1;
+    num_samples : u32 = 1;
 }
 
 GetNumMipmapLevelsForTextureSize :: (width : u32, height : u32) -> u32 {
     return cast(u32, Floor(Log2(xx Max(width, height)))) + 1;
 }
 
-GetTextureMemoryRequirementsForLevel0 :: (desc : GfxTextureDesc) -> u64 {
-    size := desc.width * desc.height * desc.depth * desc.array_length * GetPixelSize(desc.pixel_format);
+GetTextureMemoryRequirementsForLevel0 :: (desc : GfxTextureAndViewDesc) -> u64 {
+    size := desc.width * desc.height * desc.depth * desc.num_array_layers * GetPixelSize(desc.pixel_format);
     if desc.type == .TextureCube || desc.type == .TextureCubeArray {
         size *= 6;
     }
@@ -1677,19 +1677,68 @@ GetTextureMemoryRequirementsForLevel0 :: (desc : GfxTextureDesc) -> u64 {
     return size;
 }
 
+GfxTextureViewDesc :: struct {
+    type : GfxTextureType;
+    pixel_format : GfxPixelFormat;
+    first_array_layer : u32;
+    num_array_layers : u32 = 1;
+    first_mipmap_level : u32;
+    num_mipmap_levels : u32 = 1;
+}
+
+GfxTextureAndViewDesc :: struct {
+    type : GfxTextureType;
+    pixel_format : GfxPixelFormat;
+    usage : GfxTextureUsage;
+    width : u32 = 1;
+    height : u32 = 1;
+    depth : u32 = 1;
+    first_array_layer : u32;
+    num_array_layers : u32 = 1;
+    first_mipmap_level : u32;
+    num_mipmap_levels : u32 = 1;
+    num_samples : u32 = 1;
+}
+
+MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureDesc) -> GfxTextureAndViewDesc {
+    return .{
+        type=desc.type,
+        pixel_format=desc.pixel_format,
+        usage=desc.usage,
+        width=desc.width,
+        height=desc.height,
+        depth=desc.depth,
+        num_array_layers=desc.num_array_layers,
+        num_mipmap_levels=desc.num_mipmap_levels,
+        num_samples=desc.num_samples,
+    };
+}
+
+MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureAndViewDesc, view_desc : GfxTextureViewDesc) -> GfxTextureAndViewDesc {
+    result := desc;
+    result.type = view_desc.type;
+    result.pixel_format = view_desc.pixel_format;
+    result.first_array_layer = view_desc.first_array_layer;
+    result.num_array_layers = view_desc.num_array_layers;
+    result.first_mipmap_level = view_desc.first_mipmap_level;
+    result.num_mipmap_levels = view_desc.num_mipmap_levels;
+
+    return result;
+}
+
 GfxTexture :: struct {
     image : VkImage;
     image_view : VkImageView; // Default view for this texture
     allocation : VmaAllocation;
-    desc : GfxTextureDesc;
+    desc : GfxTextureAndViewDesc;
 }
 
-MakeVkImageSubresourceRange :: (desc : GfxTextureDesc) -> VkImageSubresourceRange {
+MakeVkImageSubresourceRange :: (desc : GfxTextureAndViewDesc) -> VkImageSubresourceRange {
     subresource : VkImageSubresourceRange;
-    subresource.baseMipLevel = 0;
+    subresource.baseMipLevel = desc.first_mipmap_level;
     subresource.levelCount = desc.num_mipmap_levels;
-    subresource.baseArrayLayer = 0;
-    subresource.layerCount = desc.array_length;
+    subresource.baseArrayLayer = desc.first_array_layer;
+    subresource.layerCount = desc.num_array_layers;
 
     if desc.type == .TextureCube || desc.type == .TextureCubeArray {
         subresource.layerCount *= 6;
@@ -1709,11 +1758,11 @@ MakeVkImageSubresourceRange :: (desc : GfxTextureDesc) -> VkImageSubresourceRang
     return subresource;
 }
 
-MakeVkImageSubresourceLayers :: (desc : GfxTextureDesc, mip_level : u32) -> VkImageSubresourceLayers {
+MakeVkImageSubresourceLayers :: (desc : GfxTextureAndViewDesc, mip_level : u32) -> VkImageSubresourceLayers {
     subresource : VkImageSubresourceLayers;
     subresource.mipLevel = mip_level;
-    subresource.baseArrayLayer = 0;
-    subresource.layerCount = desc.array_length;
+    subresource.baseArrayLayer = desc.first_array_layer;
+    subresource.layerCount = desc.num_array_layers;
 
     if desc.type == .TextureCube || desc.type == .TextureCubeArray {
         subresource.layerCount *= 6;
@@ -1769,7 +1818,7 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
     image_info.format = MakeVkFormat(desc.pixel_format);
     image_info.tiling = .OPTIMAL;
 
-    image_info.arrayLayers = desc.array_length;
+    image_info.arrayLayers = desc.num_array_layers;
     image_info.mipLevels = desc.num_mipmap_levels;
     image_info.extent = .{desc.width, desc.height, desc.depth};
 
@@ -1854,7 +1903,7 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
     SetDebugName(image, TPrint("Image '%'", name));
     SetDebugName(image_view, TPrint("Image View '%'", name));
 
-    return .{image=image, image_view=image_view, allocation=allocation, desc=desc};
+    return .{image=image, image_view=image_view, allocation=allocation, desc=MakeGfxTextureAndViewDesc(desc)};
 }
 
 DestroyGfxTexture :: (texture : *GfxTexture) {
@@ -1862,6 +1911,61 @@ DestroyGfxTexture :: (texture : *GfxTexture) {
 
     vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     vmaDestroyImage(g_gfx_context.allocator, texture.image, texture.allocation);
+    texture.* = .{};
+}
+
+CreateGfxTextureView :: (name : string, desc : GfxTextureViewDesc, texture : *GfxTexture) -> GfxTexture {
+    if IsNull(texture) {
+        return .{};
+    }
+
+    view_info : VkImageViewCreateInfo;
+    view_info.image = texture.image;
+    view_info.format = MakeVkFormat(desc.pixel_format);
+
+    if #complete desc.type == {
+    case .Invalid;
+    case .Texture1D;        view_info.viewType = ._1D;
+    case .Texture2D;        view_info.viewType = ._2D;
+    case .Texture2DMS;      view_info.viewType = ._2D;
+    case .Texture3D;        view_info.viewType = ._3D;
+    case .TextureCube;      view_info.viewType = .CUBE;
+    case .Texture1DArray;   view_info.viewType = ._1D_ARRAY;
+    case .Texture2DArray;   view_info.viewType = ._2D_ARRAY;
+    case .Texture2DMSArray; view_info.viewType = ._2D_ARRAY;
+    case .TextureCubeArray; view_info.viewType = .CUBE_ARRAY;
+    }
+
+    if desc.pixel_format == {
+    case .Depth32FloatStencil8;
+        view_info.subresourceRange.aspectMask = .DEPTH_BIT | .STENCIL_BIT;
+    case .Depth32Float;
+        view_info.subresourceRange.aspectMask = .DEPTH_BIT;
+    case .Stencil8;
+        view_info.subresourceRange.aspectMask = .STENCIL_BIT;
+    case;
+        view_info.subresourceRange.aspectMask = .COLOR_BIT;
+    }
+
+    view_info.subresourceRange.baseMipLevel = desc.first_mipmap_level;
+    view_info.subresourceRange.levelCount = desc.num_mipmap_levels;
+    view_info.subresourceRange.baseArrayLayer = desc.first_array_layer;
+    view_info.subresourceRange.layerCount = desc.num_array_layers;
+
+    image_view : VkImageView;
+    if vkCreateImageView(g_gfx_context.device, *view_info, g_vk_alloc_callbacks, *image_view) != .SUCCESS {
+        return .{};
+    }
+
+    SetDebugName(image_view, TPrint("Image View '%'", name));
+
+    return .{image=texture.image, image_view=image_view, allocation=texture.allocation, desc=MakeGfxTextureAndViewDesc(texture.desc, desc)};
+}
+
+DestroyGfxTextureView :: (texture : *GfxTexture) {
+    LogSectionScope(*Log_Vulkan);
+
+    vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     texture.* = .{};
 }
 

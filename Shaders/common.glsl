@@ -47,8 +47,7 @@
         PointLight u_point_lights[]; \
     }; \
     layout(set=0, binding=3) uniform sampler2D u_brdf_lut ; \
-    layout(set=0, binding=4) uniform sampler2DArray u_shadow_map_noise_texture; \
-    layout(set=0, binding=5) uniform sampler2DArrayShadow u_shadow_maps[Max_Shadow_Maps]
+    layout(set=0, binding=4) uniform sampler2DArray u_shadow_map_noise_texture
 #endif
 
 #define Max_Viewpoints 4
@@ -64,7 +63,10 @@
 #define DECLARE_FORWARD_PASS_PARAMS() \
     layout(set=1, binding=0) uniform Viewpoints { \
         Viewpoint u_viewpoints[Max_Viewpoints]; \
-    }
+    }; \
+    layout(set=1, binding=1) uniform sampler2DArrayShadow u_shadow_maps[Max_Shadow_Maps]; \
+    layout(set=1, binding=2) uniform sampler2D u_irradiance_map; \
+    layout(set=1, binding=3) uniform sampler2D u_environment_map
 #endif
 
 #ifdef SHADER_STAGE_VERTEX
@@ -155,6 +157,56 @@ float3 RandomColor(float seed) {
 
 float3 RandomEntityColor(uint4 entity_guid) {
     return RandomColor((entity_guid.x + entity_guid.y + entity_guid.z + entity_guid.w) * 0.0000000001);
+}
+
+// Azimuth: 0 = positive Z
+// Polar: 0 = horizon, Pi/2 = North, -Pi/2 = South
+
+float2 CartesianToSpherical(float3 direction) {
+    float polar = Asin(direction.y);
+    float azimuth = Acos(direction.z / length(direction.xz));
+    // Cannot use sign because it can return 0, and I'm not sure it handles -0.0
+    azimuth *= direction.x < -0.0 ? -1.0 : 1.0;
+
+    return float2(azimuth, polar);
+}
+
+float2 CartesianToSphericalUV(float3 direction) {
+    float polar = Asin(direction.y);
+    float azimuth = Acos(direction.z / length(direction.xz));
+    // Cannot use sign because it can return 0, and I'm not sure it handles -0.0
+    azimuth *= direction.x < -0.0 ? -1.0 : 1.0;
+
+    float u = InverseLerp(-Pi, Pi, azimuth);
+    float v = InverseLerp(-Pi * 0.5, Pi * 0.5, polar);
+
+    return float2(u, v);
+}
+
+float2 UVToSpherical(float2 uv) {
+    float u = uv.x;
+    float v = uv.y;
+
+    float azimuth = lerp(-Pi, Pi, u);
+    float polar = lerp(-Pi * 0.5, Pi * 0.5, v);
+
+    return float2(azimuth, polar);
+}
+
+float2 SphericalToUV(float azimuth, float polar) {
+    float u = InverseLerp(-Pi, Pi, azimuth);
+    float v = InverseLerp(-Pi * 0.5, Pi * 0.5, polar);
+
+    return float2(u, v);
+}
+
+float3 SphericalToCartesian(float azimuth, float polar) {
+    float cosa = cos(azimuth);
+    float sina = sin(azimuth);
+    float cosp = cos(polar);
+    float sinp = sin(polar);
+
+    return float3(sina * cosp, sinp, cosa * cosp);
 }
 
 #endif

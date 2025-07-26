@@ -20,13 +20,13 @@ CreateGlobalShadowMapObjects :: () {
     texture_desc.pixel_format = .RGBA32Float;
     texture_desc.width = Shadow_Map_Noise_Size;
     texture_desc.height = Shadow_Map_Noise_Size;
-    texture_desc.array_length = Num_Shadow_Map_Samples;
+    texture_desc.num_array_layers = Num_Shadow_Map_Samples;
     texture_desc.usage = .TransferDst | .Sampled;
 
     g_shadow_map_noise_texture = CreateGfxTexture("Shadow Map Noise", texture_desc);
     Assert(!IsNull(*g_shadow_map_noise_texture), "Could not create shadow map noise texture");
 
-    noise_pixels := AllocArray(Vec4f, texture_desc.width * texture_desc.height * texture_desc.array_length ,, Temp);
+    noise_pixels := AllocArray(Vec4f, texture_desc.width * texture_desc.height * texture_desc.num_array_layers ,, Temp);
     for * noise_pixels {
         offset := Vec2f.{
             random_get_zero_to_one(),
@@ -92,7 +92,7 @@ InitShadowMap :: (shadow_map : *ShadowMap, resolution : u32) {
     desc.usage = .DepthStencilAttachment | .Sampled;
     desc.width = resolution;
     desc.height = resolution;
-    desc.array_length = Num_Shadow_Map_Cascades;
+    desc.num_array_layers = Num_Shadow_Map_Cascades;
 
     shadow_map.depth_texture = CreateGfxTexture("Shadow Map", desc);
     Assert(!IsNull(*shadow_map.depth_texture), "Could not create shadow map texture");
@@ -119,6 +119,7 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, light_direction : Vec3f, view
     viewpoint.direction = ForwardVector(viewpoint.transform);
     viewpoint.view = Inverse(viewpoint.transform);
     viewpoint.view_projection = viewpoint.projection * viewpoint.view;
+    viewpoint.viewport_size = .{xx shadow_map.resolution, xx shadow_map.resolution};
 
     return viewpoint;
 }

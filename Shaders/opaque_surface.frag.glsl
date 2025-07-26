@@ -37,7 +37,6 @@ void main() {
     float2 metallic_roughness = texture(u_metallic_roughness_map_texture, in_tex_coords).zy;
     float metallic = metallic_roughness.x;
     float roughness = metallic_roughness.y;
-    roughness = lerp(0.1, 0.9, roughness);
 
     float3 Lo = float3(0);
 
@@ -62,8 +61,9 @@ void main() {
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * intensity);
     }
 
-    float3 irradiance = float3(0);
-    float3 environment = float3(0);
+    float2 environment_uv = CartesianToSphericalUV(N);
+    float3 irradiance = textureLod(u_irradiance_map, environment_uv, 0).rgb;
+    float3 environment = textureLod(u_environment_map, environment_uv, roughness * Num_Environment_Map_Levels).rgb;
     float3 ambient = CalculateAmbientBRDF(base_color, metallic, roughness, N, V, irradiance, environment, u_brdf_lut);
     float3 color = ambient + Lo + emissive;
 

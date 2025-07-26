@@ -39,6 +39,7 @@ g_num_cpus : s32;
 g_num_worker_threads : s32;
 
 Second_To_Nano :: 1000000000;
+Frame_Max_Wait :: Second_To_Nano * 100;
 
 Camera :: struct {
     position : Vec3f;
@@ -175,6 +176,13 @@ main :: () {
         unload_proc=DestroyTexture2D,
         write_proc=null
     );
+    InitAssetCache(
+        *g_EnvironmentMap_asset_cache,
+        load_proc=LoadEnvironmentMapFromMemory,
+        post_load_proc=null,
+        unload_proc=DestroyEnvironmentMap,
+        write_proc=null
+    );
 
     defer DestroyAllAssetCaches();
 
@@ -193,6 +201,8 @@ main :: () {
     damaged_helmet.local_position.y = 5;
     damaged_helmet.local_rotation = QuatfFromAxisAngle(.{0,1,0}, Pi * 0.5);
     UpdateWorldTransform(*world, damaged_helmet);
+
+    world.skybox = LoadAsset(EnvironmentMap, "Sky_MoonBurst_Equirect.png");
 
     sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");
     sun.color = .{1,1,1};

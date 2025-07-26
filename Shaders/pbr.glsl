@@ -3,6 +3,8 @@
 
 #include "common.glsl"
 
+#define Num_Environment_Map_Levels 6
+
 // https://graphicscompendium.com/gamedev/15-pbr
 // https://graphicscompendium.com/references/cook-torrance
 // https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf

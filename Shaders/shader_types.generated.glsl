@@ -12,6 +12,8 @@ struct Viewpoint {
     float4x4 view;
     float4x4 projection;
     float4x4 view_projection;
+    float2 viewport_size;
+    float fov;
 };
 
 struct DirectionalLight {

@@ -12,6 +12,10 @@ LoadedShader :: struct {
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
     .{name="screen_effect"},
+    .{name="background_screen_effect"},
+    .{name="irradiance_map"},
+    .{name="environment_map"},
+    .{name="skybox"},
     .{name="brdf_lut"},
     .{name="post_processing"},
     .{name="mesh_geometry"},
