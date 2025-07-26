@@ -1,6 +1,5 @@
 ForwardPassBindingSet :: struct {
     viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
-    shadow_map : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage @AllowNull
 } @BindingSet
 
 g_forward_pipeline : GfxGraphicsPipeline;
@@ -9,7 +8,7 @@ CreateForwardPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("mesh_geometry");
     desc.fragment_shader = GetFragmentShader("opaque_surface");
-    desc.color_formats[0] = g_color_texture.desc.pixel_format;
+    AddColorAttachment(*desc, g_color_texture.desc.pixel_format);
     desc.depth_format = g_depth_texture.desc.pixel_format;
     desc.depth_state = .{test_enabled=true, write_enabled=true};
 
@@ -49,6 +48,7 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
     pass_bindings := ForwardPassBindingSet.{
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
     };
+
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
 
     pass_desc : GfxRenderPassDesc;

@@ -600,36 +600,41 @@ AllocGfxBindingSet :: (pool : *GfxBindingPool, layout : *GfxBindingSetLayout) ->
 
 UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
     #insert -> string {
-        GetNoteIndex :: (notes : []string, note_name : string) -> int, bool {
-            prefix := TPrint("%(", note_name);
-            for notes {
-                if StringStartsWith(it, prefix) && it[it.count - 1] == #char ")" {
-                    int_str := StringAdvance(it, prefix.count);
-                    int_str.count -= 1;
+        AppendBufferInfo :: (builder : *StringBuilder, name : string) {
+            Appendln(builder, "    .{buffer=ifx value.%1.buffer then value.%1.buffer.buffer, offset=value.%1.offset, range=value.%1.size},", name);
+        }
 
-                    value, ok, remainder := Basic.string_to_int(int_str, T=u32);
-                    if !ok || remainder.count > 0 {
-                        LogError("Invalid % note '%'", note_name, it);
-                    }
+        AppendImageInfo :: (builder : *StringBuilder, name : string) {
+            Appendln(builder, "    .{imageView=ifx value.%1 then value.%1.image_view, imageLayout=.READ_ONLY_OPTIMAL},", name);
+        }
 
-                    return value, true;
-                }
-            }
+        AppendSamplerInfo :: (builder : *StringBuilder, name : string) {
+            Appendln(builder, "    .{sampler=ifx value.%1 then value.%1.sampler},", name);
+        }
 
-            return 0, false;
+        AppendCombinedImageSamplerInfo :: (builder : *StringBuilder, name : string) {
+            Appendln(builder, "    .{sampler=ifx value.%1.sampler then value.%1.sampler.sampler, imageView=ifx value.%1.texture then value.%1.texture.image_view, imageLayout=.READ_ONLY_OPTIMAL},", name);
         }
 
         builder : StringBuilder;
         info := type_info(T);
 
+        Appendln(*builder, "// UpdateGfxBindingSet(%)", T);
         Appendln(*builder, "buffer_infos := VkDescriptorBufferInfo.[");
 
+        max_possible_writes := 0;
+
         for info.members {
+            if it.type.type == .ARRAY {
+                continue;
+            }
+
             type := GetGfxBindingType(it.type);
             if type == {
             case .UniformBuffer; #through;
             case .StorageBuffer;
-                Appendln(*builder, "    .{buffer=ifx value.%1.buffer then value.%1.buffer.buffer, offset=value.%1.offset, range=value.%1.size},", it.name);
+                AppendBufferInfo(*builder, it.name);
+                max_possible_writes += 1;
             }
         }
 
@@ -638,116 +643,119 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
         Appendln(*builder, "image_infos := VkDescriptorImageInfo.[");
 
         for info.members {
-            type := GetGfxBindingType(it.type);
-            if type == {
-            case .Texture;
-                Appendln(*builder, "    .{imageView=ifx value.%1 then value.%1.image_view, imageLayout=.READ_ONLY_OPTIMAL},", it.name);
-            case .Sampler;
-                Appendln(*builder, "    .{sampler=ifx value.%1 then value.%1.sampler},", it.name);
-            case .CombinedTextureSampler;
-                Appendln(*builder, "    .{sampler=ifx value.%1.sampler then value.%1.sampler.sampler, imageView=ifx value.%1.texture then value.%1.texture.image_view, imageLayout=.READ_ONLY_OPTIMAL},", it.name);
+            if it.type.type == .ARRAY {
+                count := cast(*Type_Info_Array, it.type).array_count;
+                type := GetGfxBindingType(cast(*Type_Info_Array, it.type).element_type);
+                for i : 0..count - 1 {
+                    if type == {
+                    case .Texture;
+                        AppendImageInfo(*builder, TPrint("%[%]", it.name, i));
+                    case .Sampler;
+                        AppendSamplerInfo(*builder, TPrint("%[%]", it.name, i));
+                    case .CombinedTextureSampler;
+                        AppendCombinedImageSamplerInfo(*builder, TPrint("%[%]", it.name, i));
+                    }
+                }
+
+                max_possible_writes += count;
+            } else {
+                type := GetGfxBindingType(it.type);
+                if type == {
+                case .Texture;
+                    AppendImageInfo(*builder, it.name);
+                case .Sampler;
+                    AppendSamplerInfo(*builder, it.name);
+                case .CombinedTextureSampler;
+                    AppendCombinedImageSamplerInfo(*builder, it.name);
+                }
+
+                max_possible_writes += 1;
             }
         }
 
         Appendln(*builder, "];");
 
-        Appendln(*builder, "writes := VkWriteDescriptorSet.[");
+        AppendWrite :: (builder : *StringBuilder, allow_null : bool, binding : int, type : GfxBindingType, name : string, array_index : int, buffer_info_index : *int, image_info_index : *int) {
+            if allow_null {
+                if type == {
+                case .UniformBuffer; #through;
+                case .StorageBuffer;
+                    Appendln(builder, "if !IsNull(value.%1.buffer) && value.%1.size > 0 {", name);
+
+                case .Texture;
+                    Appendln(builder, "if !IsNull(value.%1) {", name);
+
+                case .Sampler;
+                    Appendln(builder, "if !IsNull(value.%1) {", name);
+
+                case .CombinedTextureSampler;
+                    Appendln(builder, "if !IsNull(value.%1.texture) {", name);
+                }
+            }
+
+            if allow_null {
+                Append(builder, "    ");
+            }
+
+            Appendln(builder, "write = ArrayPush(*writes);");
+
+            if allow_null {
+                Append(builder, "    ");
+            }
+
+            Append(builder,   "write.* = .{dstSet=set.set, dstBinding=%, descriptorType=.%, descriptorCount=1, dstArrayElement=%, ", binding, MakeVkDescriptorType(type), array_index);
+
+            if type == {
+            case .UniformBuffer; #through;
+            case .StorageBuffer;
+                Append(builder, "pBufferInfo=*buffer_infos[%]", buffer_info_index.*);
+                buffer_info_index.* += 1;
+
+            case .Texture; #through;
+            case .Sampler; #through;
+            case .CombinedTextureSampler;
+                Append(builder, "pImageInfo=*image_infos[%]", image_info_index.*);
+                image_info_index.* += 1;
+            }
+
+            Appendln(builder, "};");
+
+            if allow_null {
+                Appendln(builder, "}");
+            }
+        }
 
         buffer_info_index := 0;
         image_info_index := 0;
-        num_non_null := 0;
-        for info.members {
-            allow_null := ArrayFindFirst(it.notes, "AllowNull") != -1;
-            if allow_null {
-                continue; // We'll handle this one at the end to allow trimming the array if it's null
-            }
 
-            binding, has_binding_note := GetNoteIndex(it.notes, "Binding");
-            type := GetGfxBindingType(it.type);
-            Append(*builder, "    .{dstSet=set.set, dstBinding=%, descriptorType=.%, descriptorCount=1, ", binding, MakeVkDescriptorType(type));
-
-            if type == {
-            case .UniformBuffer; #through;
-            case .StorageBuffer;
-                Append(*builder, "pBufferInfo=*buffer_infos[%],", buffer_info_index);
-                buffer_info_index += 1;
-
-            case .Texture; #through;
-            case .Sampler; #through;
-            case .CombinedTextureSampler;
-                Append(*builder, "pImageInfo=*image_infos[%],", image_info_index);
-                image_info_index += 1;
-            }
-
-            Appendln(*builder, "},");
-
-            num_non_null += 1;
-        }
+        Appendln(*builder, "writes_stack_data : [%]VkWriteDescriptorSet = ---;", max_possible_writes);
+        Appendln(*builder, "writes : [..]VkWriteDescriptorSet;");
+        Appendln(*builder, "writes.allocator = Trap;");
+        Appendln(*builder, "writes.data = writes_stack_data.data;");
+        Appendln(*builder, "writes.allocated = writes_stack_data.count;");
+        Appendln(*builder, "write : *VkWriteDescriptorSet;");
 
         for info.members {
-            allow_null := ArrayFindFirst(it.notes, "AllowNull") != -1;
-            if !allow_null {
-                continue;
-            }
+            has_binding_note, binding := GetNote(it.notes, "Binding", int);
+            allow_null := GetNote(it.notes, "AllowNull");
 
-            binding, has_binding_note := GetNoteIndex(it.notes, "Binding");
-            type := GetGfxBindingType(it.type);
-            Append(*builder, "    .{dstSet=set.set, dstBinding=%, descriptorType=.%, descriptorCount=1, ", binding, MakeVkDescriptorType(type));
-
-            if type == {
-            case .UniformBuffer; #through;
-            case .StorageBuffer;
-                Append(*builder, "pBufferInfo=*buffer_infos[%],", buffer_info_index);
-                buffer_info_index += 1;
-
-            case .Texture; #through;
-            case .Sampler; #through;
-            case .CombinedTextureSampler;
-                Append(*builder, "pImageInfo=*image_infos[%],", image_info_index);
-                image_info_index += 1;
-            }
-
-            Appendln(*builder, "},");
-        }
-
-        Appendln(*builder, "];");
-
-        Appendln(*builder, "num_writes := %;", num_non_null);
-        for info.members {
-            allow_null := ArrayFindFirst(it.notes, "AllowNull") != -1;
-            if !allow_null {
-                continue;
-            }
-
-            type := GetGfxBindingType(it.type);
-            if type == {
-            case .UniformBuffer; #through;
-            case .StorageBuffer;
-                Appendln(*builder, "if !IsNull(value.%1.buffer) && value.%1.size > 0 {", it.name);
-                Appendln(*builder, "    num_writes += 1;");
-                Appendln(*builder, "}");
-
-            case .Texture;
-                Appendln(*builder, "if !IsNull(value.%1) {", it.name);
-                Appendln(*builder, "    num_writes += 1;");
-                Appendln(*builder, "}");
-
-            case .Sampler;
-                Appendln(*builder, "if !IsNull(value.%1) {", it.name);
-                Appendln(*builder, "    num_writes += 1;");
-                Appendln(*builder, "}");
-
-            case .CombinedTextureSampler;
-                Appendln(*builder, "if !IsNull(value.%1.texture) && !IsNull(value.%1.sampler) {", it.name);
-                Appendln(*builder, "    num_writes += 1;");
-                Appendln(*builder, "}");
+            if it.type.type == .ARRAY {
+                elem_type := cast(*Type_Info_Array, it.type).element_type;
+                elem_count := cast(*Type_Info_Array, it.type).array_count;
+                type := GetGfxBindingType(elem_type);
+                for i : 0..elem_count - 1 {
+                    AppendWrite(*builder, allow_null, binding, type, TPrint("%[%]", it.name, i), i, *buffer_info_index, *image_info_index);
+                }
+            } else {
+                type := GetGfxBindingType(it.type);
+                AppendWrite(*builder, allow_null, binding, type, it.name, 0, *buffer_info_index, *image_info_index);
             }
         }
 
         return StringBuilderBuild(*builder);
     }
 
-    vkUpdateDescriptorSets(g_gfx_context.device, xx num_writes, writes.data, 0, null);
+    vkUpdateDescriptorSets(g_gfx_context.device, xx writes.count, writes.data, 0, null);
 }
 
 // To help reduce error prone boilerplate code for layout creation and param set allocation, we provide
@@ -886,6 +894,33 @@ GfxPixelFormat :: enum u8 {
     Depth32FloatStencil8;
     Depth32Float;
     Stencil8;
+}
+
+GetPixelSize :: inline (pixel_format : GfxPixelFormat) -> u32 {
+    if #complete pixel_format == {
+    case .Invalid; return 0;
+    case .R8UNorm; return 1;
+    case .R8SNorm; return 1;
+    case .R8UInt; return 1;
+    case .R8SInt; return 1;
+    case .RGBA8UNorm; return 4;
+    case .RGBA8SNorm; return 4;
+    case .RGBA8UInt; return 4;
+    case .RGBA8SInt; return 4;
+    case .BGRA8UNorm; return 4;
+    case .BGRA8SRGB; return 4;
+    case .R32UInt; return 4;
+    case .R32SInt; return 4;
+    case .RGBA16Float; return 8;
+    case .RGBA32UInt; return 16;
+    case .RGBA32SInt; return 16;
+    case .RGBA32Float; return 16;
+    case .Depth32FloatStencil8; return 5;
+    case .Depth32Float; return 4;
+    case .Stencil8; return 1;
+    }
+
+    return 0;
 }
 
 MakeVkFormat :: inline (pixel_format : GfxPixelFormat) -> VkFormat {
@@ -1056,25 +1091,6 @@ MakeVertexInputDesc :: inline ($T : Type, buffer_binding : u32) -> GfxVertexInpu
 }
 
 MakeVertexInputDesc :: ($T : Type, buffer_bindings : []u32) -> GfxVertexInputDesc {
-    GetNoteIndex :: (notes : []string, note_name : string) -> int, bool {
-        prefix := TPrint("%(", note_name);
-        for notes {
-            if StringStartsWith(it, prefix) && it[it.count - 1] == #char ")" {
-                int_str := StringAdvance(it, prefix.count);
-                int_str.count -= 1;
-
-                value, ok, remainder := Basic.string_to_int(int_str, T=u32);
-                if !ok || remainder.count > 0 {
-                    LogError("Invalid % note '%'", note_name, it);
-                }
-
-                return value, true;
-            }
-        }
-
-        return 0, false;
-    }
-
     desc : GfxVertexInputDesc;
 
     #insert -> string {
@@ -1091,20 +1107,13 @@ MakeVertexInputDesc :: ($T : Type, buffer_bindings : []u32) -> GfxVertexInputDes
 
             highest_offset = it.offset_in_bytes + it.type.runtime_size;
 
-            attrib_index, has_attrib_note := GetNoteIndex(it.notes, "VertexAttrib");
-            buffer_index, has_buffer_note := GetNoteIndex(it.notes, "VertexBuffer");
+            normalized := GetNote(it.notes, "Normalized");
+            has_attrib_note, attrib_index := GetNote(it.notes, "VertexAttrib", int);
+            has_buffer_note, buffer_index := GetNote(it.notes, "VertexBuffer", int);
 
             location := cast(u32, ifx has_attrib_note then attrib_index else it_index);
             format := MakeGfxVertexFormat(get_type(it.type));
             Assert(format != .Invalid, "Invalid vertex attribute type %", get_type(it.type));
-
-            normalized := false;
-            for note : it.notes {
-                if note == "Normalized" {
-                    normalized = true;
-                    break;
-                }
-            }
 
             Appendln(*builder, "    .{location=%, binding=buffer_bindings[%], format=.%, offset=%, normalized=%},",
                 location, buffer_index, format, it.offset_in_bytes, normalized);
@@ -1355,12 +1364,17 @@ GfxGraphicsPipelineDesc :: struct {
     depth_state : GfxDepthStateDesc;
     stencil_state : GfxStencilStateDesc;
 
-    num_attachments : u32 = 1;
+    num_color_attachments : u32;
 
     blend_states : [Gfx_Max_Color_Attachments]GfxBlendStateDesc;
     color_formats : [Gfx_Max_Color_Attachments]GfxPixelFormat;
     depth_format : GfxPixelFormat;
     stencil_format : GfxPixelFormat;
+}
+
+AddColorAttachment :: (desc : *GfxGraphicsPipelineDesc, format : GfxPixelFormat) {
+    desc.color_formats[desc.num_color_attachments] = format;
+    desc.num_color_attachments += 1;
 }
 
 GfxGraphicsPipeline :: struct {
@@ -1426,8 +1440,8 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
     dynamic_state.pDynamicStates = dynamic_states.data;
 
     viewport_state : VkPipelineViewportStateCreateInfo;
-    viewport_state.viewportCount = desc.num_attachments;
-    viewport_state.scissorCount = desc.num_attachments;
+    viewport_state.viewportCount = 1;
+    viewport_state.scissorCount = 1;
 
     rasterizer_state : VkPipelineRasterizationStateCreateInfo;
     if #complete desc.rasterizer_state.fill_mode == {
@@ -1464,7 +1478,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
     }
 
     blend_state : VkPipelineColorBlendStateCreateInfo;
-    blend_state.attachmentCount = desc.num_attachments;
+    blend_state.attachmentCount = desc.num_color_attachments;
     blend_state.pAttachments = blend_states.data;
 
     depth_stencil_state : VkPipelineDepthStencilStateCreateInfo;
@@ -1491,7 +1505,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
     }
 
     rendering_info : VkPipelineRenderingCreateInfo;
-    rendering_info.colorAttachmentCount = desc.num_attachments;
+    rendering_info.colorAttachmentCount = desc.num_color_attachments;
     rendering_info.pColorAttachmentFormats = color_attachments.data;
     rendering_info.depthAttachmentFormat = MakeVkFormat(desc.depth_format);
     rendering_info.stencilAttachmentFormat = MakeVkFormat(desc.stencil_format);
@@ -1654,6 +1668,15 @@ GetNumMipmapLevelsForTextureSize :: (width : u32, height : u32) -> u32 {
     return cast(u32, Floor(Log2(xx Max(width, height)))) + 1;
 }
 
+GetTextureMemoryRequirementsForLevel0 :: (desc : GfxTextureDesc) -> u64 {
+    size := desc.width * desc.height * desc.depth * desc.array_length * GetPixelSize(desc.pixel_format);
+    if desc.type == .TextureCube || desc.type == .TextureCubeArray {
+        size *= 6;
+    }
+
+    return size;
+}
+
 GfxTexture :: struct {
     image : VkImage;
     image_view : VkImageView; // Default view for this texture
@@ -1789,8 +1812,6 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
         return .{};
     }
 
-    SetDebugName(image, TPrint("Image '%'", name));
-
     view_info : VkImageViewCreateInfo;
     view_info.image = image;
     view_info.format = image_info.format;
@@ -1830,7 +1851,8 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
         return .{};
     }
 
-    SetDebugName(image, TPrint("Image View '%'", name));
+    SetDebugName(image, TPrint("Image '%'", name));
+    SetDebugName(image_view, TPrint("Image View '%'", name));
 
     return .{image=image, image_view=image_view, allocation=allocation, desc=desc};
 }

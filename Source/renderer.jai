@@ -10,6 +10,48 @@
 #load "post_processing.jai";
 #load "shadow_map.jai";
 
+InitRenderer :: () {
+    if !LoadAllShaders() {
+        Basic.exit(1);
+    }
+
+    CreateRenderTargets();
+
+    CreateAllBindingSetLayouts();
+
+    CreateAllPipelines();
+
+    InitTextureUpload();
+
+    CreateGlobalShadowMapObjects();
+
+    for * g_frame_data_allocators {
+        InitFrameDataAllocator(it, TPrint("Frame Data %", it_index), Frame_Data_Capacity);
+    }
+
+    InitBindingSetAllocators();
+}
+
+CleanupRenderer :: () {
+    DestroyRenderTargets();
+
+    DestroyAllBindingSetLayouts();
+
+    DestroyAllPipelines();
+
+    DestroyAllUploadData();
+
+    DestroyGlobalShadowMapObjects();
+
+    for * g_frame_data_allocators {
+        DestroyFrameDataAllocator(it);
+    }
+
+    DestroyBindingSetAllocators();
+
+    DestroyAllShaders();
+}
+
 #placeholder Shader_Binding_Set_Types;
 
 IsInShaderBindingSetTypesArray :: (type : Type) -> bool {
@@ -120,6 +162,11 @@ DirectionalLightEntity :: struct {
     color : Vec3f; @Serialize(2)
     intensity : float; @Serialize(3)
     cast_shadows : bool; @Serialize(4)
+    shadow_map : ShadowMap;
+
+    OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
+        DestroyShadowMap(*light.shadow_map);
+    }
 } @Entity
 
 PointLightEntity :: struct {
@@ -133,24 +180,40 @@ PointLightEntity :: struct {
 EmptyBindingSet :: struct {
 } @BindingSet
 
+Max_Shadow_Maps :: 2;
+
 FrameBindingSet :: struct {
     frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
     directional_lights : GfxBindingStorageBuffer; @Binding(1) @FragmentStage @AllowNull
     point_lights : GfxBindingStorageBuffer; @Binding(2) @FragmentStage @AllowNull
     brdf_lut : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
+    shadow_map_noise : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
+    shadow_maps : [Max_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(5) @FragmentStage @AllowNull
 } @BindingSet
+
+ShadowMapParams :: struct {
+    noise_resolution : u32;
+    depth_bias_min_max : Vec2f;
+    normal_bias : float;
+    filter_radius : float;
+} @ShaderType
 
 FrameInfo :: struct {
     time : float;
     window_pixel_size : Vec2f;
     num_directional_lights : u32;
     num_point_lights : u32;
+    shadow_map_params : ShadowMapParams;
 } @ShaderType
 
 DirectionalLight :: struct {
     direction : Vec3f;
     color : Vec3f;
     intensity : float;
+    cast_shadows : bool;
+    shadow_map_resolution : u32;
+    shadow_map_cascade_sizes : [Num_Shadow_Map_Cascades]float = Shadow_Map_Cascade_Sizes;
+    shadow_map_viewpoints : [Num_Shadow_Map_Cascades]Viewpoint;
 } @ShaderType
 
 PointLight :: struct {
@@ -179,7 +242,6 @@ FrameRenderContext :: struct {
 }
 
 g_mesh_buffer : MeshBuffer;
-g_shadow_map : ShadowMap;
 
 RenderFrame :: (world : *World, camera : *Camera) {
     w, h : s32;
@@ -216,7 +278,11 @@ RenderFrame :: (world : *World, camera : *Camera) {
     SortMeshBuffer(*g_mesh_buffer);
     AllocDrawData(*g_mesh_buffer);
 
-    PopulateShadowMapMeshBuffer(world, *g_shadow_map, camera.transform);
+    for * world.DirectionalLightEntity_storage {
+        if it.cast_shadows {
+            PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(it.world_transform), camera.transform);
+        }
+    }
 
     ctx : FrameRenderContext;
     ctx.world = world;
@@ -231,12 +297,25 @@ RenderFrame :: (world : *World, camera : *Camera) {
     num_directional_lights : u64 = xx world.DirectionalLightEntity_storage.count;
     directional_lights_size := GLSLStd430Size(DirectionalLight) * num_directional_lights;
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
-    for world.DirectionalLightEntity_storage {
+    for * world.DirectionalLightEntity_storage {
+        if it.cast_shadows && it.shadow_map.resolution == 0 {
+            InitShadowMap(*it.shadow_map, Default_Shadow_Map_Resolution);
+        }
+
         directional_light := DirectionalLight.{
             direction=ForwardVector(it.world_transform),
             color=it.color,
             intensity=it.intensity,
+            cast_shadows=it.cast_shadows,
+            shadow_map_resolution=it.shadow_map.resolution,
         };
+
+        if it.cast_shadows {
+            for * viewpoint : directional_light.shadow_map_viewpoints {
+                viewpoint.* = GetShadowMapViewpoint(*it.shadow_map, directional_light.direction, camera.transform, it_index);
+            }
+        }
+
         directional_lights_ptr += PackToGLSLStd(directional_light, directional_lights_ptr, .Std430);
     }
 
@@ -257,6 +336,12 @@ RenderFrame :: (world : *World, camera : *Camera) {
         window_pixel_size=.{xx w, xx h},
         num_point_lights=xx num_point_lights,
         num_directional_lights=xx num_directional_lights,
+        shadow_map_params=.{
+            noise_resolution=Shadow_Map_Noise_Size,
+            depth_bias_min_max=.{1, 5},
+            normal_bias=10,
+            filter_radius=1,
+        },
     };
     frame_info_offset, frame_info_size := AllocAndPackUniformFrameData(frame_info);
 
@@ -265,16 +350,37 @@ RenderFrame :: (world : *World, camera : *Camera) {
         directional_lights=.{buffer=FrameDataBuffer(), offset=xx directional_lights_offset, size=xx directional_lights_size},
         point_lights=.{buffer=FrameDataBuffer(), offset=xx point_lights_offset, size=xx point_lights_size},
         brdf_lut=.{texture=*g_brdf_lut, sampler=*g_brdf_lut_sampler},
+        shadow_map_noise=.{texture=*g_shadow_map_noise_texture, sampler=*g_shadow_map_noise_sampler},
     };
 
+    shadow_map_index := 0;
+    for * world.DirectionalLightEntity_storage {
+        defer shadow_map_index += 1;
+
+        if shadow_map_index >= Max_Shadow_Maps {
+            break;
+        }
+
+        if !it.cast_shadows {
+            continue;
+        }
+
+        frame_binding_set.shadow_maps[shadow_map_index] = .{texture=*it.shadow_map.depth_texture, sampler=*g_shadow_map_sampler};
+    }
+
     ctx.frame_binding_set = CreateGfxBindingSet(GlobalBindingSetAllocator(), frame_binding_set);
+    BindGraphicsBindingSet(*cmd_buffer, *g_dummy_frame_pipeline_layout, 0, *ctx.frame_binding_set);
 
     PerformPendingUploads(*cmd_buffer);
 
+    for * world.DirectionalLightEntity_storage {
+        if it.cast_shadows {
+            ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(it.world_transform), camera);
+        }
+    }
+
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_color_texture);
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
-
-    BindGraphicsBindingSet(*cmd_buffer, *g_dummy_frame_pipeline_layout, 0, *ctx.frame_binding_set);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
 
@@ -319,7 +425,7 @@ RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
     pipeline_desc : GfxGraphicsPipelineDesc;
     pipeline_desc.vertex_shader = GetVertexShader("screen_effect");
     pipeline_desc.fragment_shader = GetFragmentShader("brdf_lut");
-    pipeline_desc.color_formats[0] = g_brdf_lut.desc.pixel_format;
+    AddColorAttachment(*pipeline_desc, g_brdf_lut.desc.pixel_format);
 
     g_brdf_lut_pipeline = CreateGfxGraphicsPipeline("BRDF LUT", pipeline_desc);
     Assert(!IsNull(*g_brdf_lut_pipeline), "Could not create BRDF LUT pipeline");

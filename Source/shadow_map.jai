@@ -3,17 +3,82 @@ Num_Shadow_Map_Cascades :: 4;
 #assert Num_Shadow_Map_Cascades <= Max_Viewpoints;
 
 Shadow_Map_Cascade_Sizes : [Num_Shadow_Map_Cascades]float : .[5,20,50,200];
-
+Shadow_Map_Forward_Offset :: 1.0;
 Shadow_Map_Depth_Extent_Factor :: 6.0;
 
 Shadow_Map_Noise_Size :: 32;
 Num_Shadow_Map_Sqrt_Samples :: 8;
 Num_Shadow_Map_Samples :: Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples;
-Shadow_Map_Forward_Offset :: 1.0;
+
+g_shadow_map_noise_texture : GfxTexture;
+g_shadow_map_noise_sampler : GfxSampler;
+g_shadow_map_sampler : GfxSampler;
+
+CreateGlobalShadowMapObjects :: () {
+    texture_desc : GfxTextureDesc;
+    texture_desc.type = .Texture2DArray;
+    texture_desc.pixel_format = .RGBA32Float;
+    texture_desc.width = Shadow_Map_Noise_Size;
+    texture_desc.height = Shadow_Map_Noise_Size;
+    texture_desc.array_length = Num_Shadow_Map_Samples;
+    texture_desc.usage = .TransferDst | .Sampled;
+
+    g_shadow_map_noise_texture = CreateGfxTexture("Shadow Map Noise", texture_desc);
+    Assert(!IsNull(*g_shadow_map_noise_texture), "Could not create shadow map noise texture");
+
+    noise_pixels := AllocArray(Vec4f, texture_desc.width * texture_desc.height * texture_desc.array_length ,, Temp);
+    for * noise_pixels {
+        offset := Vec2f.{
+            random_get_zero_to_one(),
+            random_get_zero_to_one(),
+        };
+        it.x = Sqrt(offset.y) * Cos(2 * Pi * offset.x);
+        it.y = Sqrt(offset.y) * Sin(2 * Pi * offset.x);
+
+        offset = Vec2f.{
+            random_get_zero_to_one(),
+            random_get_zero_to_one(),
+        };
+        it.z = Sqrt(offset.y) * Cos(2 * Pi * offset.x);
+        it.w = Sqrt(offset.y) * Sin(2 * Pi * offset.x);
+    }
+
+    QueueTextureUpload(noise_pixels.data, cast(*Texture2D, *g_shadow_map_noise_texture));
+
+    {
+        sampler_desc : GfxSamplerDesc;
+        sampler_desc.min_filter = .Nearest;
+        sampler_desc.mag_filter = .Nearest;
+        sampler_desc.u_address_mode = .Repeat;
+        sampler_desc.v_address_mode = .Repeat;
+        sampler_desc.w_address_mode = .Repeat;
+
+        g_shadow_map_noise_sampler = CreateGfxSampler("Shadow Map Noise", sampler_desc);
+        Assert(!IsNull(*g_shadow_map_noise_sampler), "Could not create shadow map noise sampler");
+    }
+    {
+        sampler_desc : GfxSamplerDesc;
+        sampler_desc.min_filter = .Linear;
+        sampler_desc.mag_filter = .Linear;
+        sampler_desc.u_address_mode = .ClampToEdge;
+        sampler_desc.v_address_mode = .ClampToEdge;
+        sampler_desc.compare_op = .Greater;
+
+        g_shadow_map_sampler = CreateGfxSampler("Shadow Map", sampler_desc);
+        Assert(!IsNull(*g_shadow_map_sampler), "Could not create shadow map sampler");
+    }
+}
+
+DestroyGlobalShadowMapObjects :: () {
+    DestroyGfxTexture(*g_shadow_map_noise_texture);
+    DestroyGfxSampler(*g_shadow_map_noise_sampler);
+    DestroyGfxSampler(*g_shadow_map_sampler);
+}
+
+Default_Shadow_Map_Resolution :: 2048;
 
 ShadowMap :: struct {
     resolution : u32;
-    light_direction : Vec3f;
     mesh_buffer : MeshBuffer;
     depth_texture : GfxTexture;
 }
@@ -35,9 +100,10 @@ InitShadowMap :: (shadow_map : *ShadowMap, resolution : u32) {
 
 DestroyShadowMap :: (shadow_map : *ShadowMap) {
     DestroyGfxTexture(*shadow_map.depth_texture);
+    FreeMeshBuffer(*shadow_map.mesh_buffer);
 }
 
-GetShadowMapViewpoint :: (shadow_map : *ShadowMap, viewpoint_transform : Mat4f, level : int) -> Viewpoint {
+GetShadowMapViewpoint :: (shadow_map : *ShadowMap, light_direction : Vec3f, viewpoint_transform : Mat4f, level : int) -> Viewpoint {
     size := Shadow_Map_Cascade_Sizes[level];
     depth := size * Shadow_Map_Depth_Extent_Factor;
 
@@ -46,7 +112,7 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, viewpoint_transform : Mat4f, 
     viewpoint : Viewpoint;
     viewpoint.projection = Mat4fOrthographicProjection(-size * 0.5, size * 0.5, -size * 0.5, size * 0.5, -depth * 0.5, depth * 0.5);
 
-    viewpoint.transform = Mat4fLookAt(center, center + shadow_map.light_direction, .{1,0,0});
+    viewpoint.transform = Mat4fLookAt(center, center + light_direction, .{1,0,0});
     viewpoint.position = TranslationVector(viewpoint.transform);
     viewpoint.right = RightVector(viewpoint.transform);
     viewpoint.up = UpVector(viewpoint.transform);
@@ -57,13 +123,13 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, viewpoint_transform : Mat4f, 
     return viewpoint;
 }
 
-GetShadowMapFrustum :: (shadow_map : *ShadowMap, viewpoint_transform : Mat4f, level : int) -> Frustum {
+GetShadowMapFrustum :: (shadow_map : *ShadowMap, light_direction : Vec3f, viewpoint_transform : Mat4f, level : int) -> Frustum {
     size := Shadow_Map_Cascade_Sizes[level];
     depth := size * Shadow_Map_Depth_Extent_Factor;
 
     center := TranslationVector(viewpoint_transform) + ForwardVector(viewpoint_transform) * size * 0.5 * Shadow_Map_Forward_Offset;
 
-    light_transform := Mat4fLookAt(center, center + shadow_map.light_direction, .{1,0,0});
+    light_transform := Mat4fLookAt(center, center + light_direction, .{1,0,0});
 
     return MakeOrthographicFrustum(
         light_transform,
@@ -73,17 +139,17 @@ GetShadowMapFrustum :: (shadow_map : *ShadowMap, viewpoint_transform : Mat4f, le
     );
 }
 
-PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, viewpoint_transform : Mat4f) {
+PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_direction : Vec3f, viewpoint_transform : Mat4f) {
     ClearMeshBuffer(*shadow_map.mesh_buffer);
 
     frustums : [Num_Shadow_Map_Cascades]Frustum = ---;
     for * frustums {
-        it.* = GetShadowMapFrustum(shadow_map, viewpoint_transform, it_index);
+        it.* = GetShadowMapFrustum(shadow_map, light_direction, viewpoint_transform, it_index);
     }
 
     viewpoints : [Num_Shadow_Map_Cascades]Viewpoint = ---;
     for * viewpoints {
-        it.* = GetShadowMapViewpoint(shadow_map, viewpoint_transform, it_index);
+        it.* = GetShadowMapViewpoint(shadow_map, light_direction, viewpoint_transform, it_index);
     }
 
     for * world.MeshEntity_storage {
@@ -137,14 +203,20 @@ CreateShadowMapPipeline :: () {
     Assert(ok, "Could not create shadow map pipeline");
 }
 
-ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, camera : *Camera) {
+ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, light_direction : Vec3f, camera : *Camera) {
     if IsNull(*g_shadow_map_pipeline) {
         CreateShadowMapPipeline();
     }
 
+    if IsNull(*shadow_map.depth_texture) {
+        InitShadowMap(shadow_map, Default_Shadow_Map_Resolution);
+    }
+
+    AddTextureBarrier(cmd_buffer, .Undefined, .DepthStencilAttachment, *shadow_map.depth_texture);
+
     viewpoints : [Max_Viewpoints]Viewpoint = ---;
     for i : 0..Num_Shadow_Map_Cascades - 1 {
-        viewpoints[i] = GetShadowMapViewpoint(shadow_map, camera.transform, i);
+        viewpoints[i] = GetShadowMapViewpoint(shadow_map, light_direction, camera.transform, i);
     }
 
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
@@ -155,6 +227,7 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, came
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
 
     pass_desc : GfxRenderPassDesc;
+    pass_desc.num_layers = Num_Shadow_Map_Cascades;
     AddDepthAttachment(*pass_desc, *shadow_map.depth_texture);
     ClearDepth(*pass_desc, 1);
 
@@ -175,4 +248,6 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, came
         }
     }
     EndGfxRenderPass(*pass);
+
+    AddTextureBarrier(cmd_buffer, .DepthStencilAttachment, .ShaderReadOnly, *shadow_map.depth_texture);
 }

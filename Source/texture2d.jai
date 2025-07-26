@@ -75,7 +75,7 @@ QueueTextureUpload :: (data : *void, texture : *Texture2D) {
     defer unlock(*g_texture_upload_mutex);
 
     buffer_desc : GfxBufferDesc;
-    buffer_desc.size = texture.width * texture.height * size_of(u32);
+    buffer_desc.size = GetTextureMemoryRequirementsForLevel0(texture.texture.desc);
     buffer_desc.usage = .TransferSrc;
     buffer_desc.memory_usage = .Upload;
 

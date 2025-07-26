@@ -435,6 +435,21 @@ GetEntity :: (using world : *World, index : EntityIndex) -> *Entity, GetEntityEr
     return null, .InvalidEntityIndex;
 }
 
+EntityCallback :: (world : *World, entity : *Entity, $Callback : string) {
+    #insert -> string {
+        builder : StringBuilder;
+
+        Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
+        for i : 1..Entity_Types.count - 1 {
+            type := Entity_Types[i];
+            Appendln(*builder, "case .%1; #if #exists(%1.%2) { cast(*%1, entity).%2(world, xx entity); }", type, Callback);
+        }
+        Appendln(*builder, "}");
+
+        return StringBuilderBuild(*builder);
+    }
+}
+
 AttachEntity :: (using world : *World, entity : *Entity, to : *Entity, keep_same_world_transform := false) {
     LogSectionScope(*Log_Entities);
 
@@ -724,6 +739,8 @@ DestroyKilledEntities :: (using world : *World) {
             }
         }
 
+        EntityCallback(world, entity, "OnDespawn");
+
         ArrayFree(*entity.children);
 
         if entity.name {
@@ -777,6 +794,9 @@ DestroyWorld :: (using world : *World) {
             type := Entity_Types[i];
 
             Appendln(*builder, "for * %_storage {", type);
+            Appendln(*builder, "    #if #exists(%1.OnDespawn) {", type);
+            Appendln(*builder, "        it.OnDespawn(world, it);");
+            Appendln(*builder, "    }");
             Appendln(*builder, "    UnreferenceAllAssets(it);");
             Appendln(*builder, "    HashMapRemove(*world.entities_by_guid, it.guid);");
             Appendln(*builder, "    if it.name {");

@@ -856,7 +856,7 @@ UnreferenceAllAssets :: (value : *$T)
             if TypeGetSourcePolymorph(xx pointed_type) == TypeGetSourcePolymorph(type_info(DummyAsset)) {
                 Appendln(*builder, "RemoveRef(value.%);", it.name);
             } else {
-                Appendln(*builder, "UnreferenceAllAssets(*value.%);", it.name);
+                Appendln(*builder, "UnreferenceAllAssets(value.%);", it.name);
             }
         }
 

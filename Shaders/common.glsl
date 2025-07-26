@@ -20,6 +20,8 @@
 
 #include "shader_types.generated.glsl"
 
+#define Max_Shadow_Maps 2
+
 #define DECLARE_STATIC_VERTEX_ATTRIBUTES() \
     layout(location=0) in float3 v_position; \
     layout(location=1) in float3 v_normal; \
@@ -44,7 +46,9 @@
     layout(set=0, binding=2, std430) readonly buffer PointLights { \
         PointLight u_point_lights[]; \
     }; \
-    layout(set=0, binding=3) uniform sampler2D u_brdf_lut
+    layout(set=0, binding=3) uniform sampler2D u_brdf_lut ; \
+    layout(set=0, binding=4) uniform sampler2DArray u_shadow_map_noise_texture; \
+    layout(set=0, binding=5) uniform sampler2DArrayShadow u_shadow_maps[Max_Shadow_Maps]
 #endif
 
 #define Max_Viewpoints 4
@@ -60,8 +64,7 @@
 #define DECLARE_FORWARD_PASS_PARAMS() \
     layout(set=1, binding=0) uniform Viewpoints { \
         Viewpoint u_viewpoints[Max_Viewpoints]; \
-    }; \
-    layout(set=1, binding=1) uniform sampler2DArrayShadow u_shadow_map
+    }
 #endif
 
 #ifdef SHADER_STAGE_VERTEX
@@ -135,6 +138,23 @@ float InverseLerp(float a, float b, float t) {
 
 float LinearRGBToLuminance(float3 rgb) {
     return dot(clamp(rgb, 0, 1), float3(0.2126729, 0.7151522, 0.0721750));
+}
+
+float Random(float seed) {
+    return fract(sin(seed * 91.3458) * 47453.5453);
+}
+
+float3 RandomColor(float seed) {
+    float3 result;
+    result.r = Random(seed);
+    result.g = Random(result.r);
+    result.b = Random(result.g);
+
+    return result;
+}
+
+float3 RandomEntityColor(uint4 entity_guid) {
+    return RandomColor((entity_guid.x + entity_guid.y + entity_guid.z + entity_guid.w) * 0.0000000001);
 }
 
 #endif

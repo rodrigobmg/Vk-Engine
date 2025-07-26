@@ -113,8 +113,14 @@ GenerateGLSLShaderCode :: (workspace : Workspace) {
         if type.type == .STRUCT {
             info_struct := cast(*Type_Info_Struct, type);
             for info_struct.members {
-                if it.type.type == .STRUCT || it.type.type == .ENUM {
+                if it.type.type == {
+                case .STRUCT; #through;
+                case .ENUM;
                     PushType(types, it.type);
+
+                case .ARRAY;
+                    elem_type := cast(*Type_Info_Array, it.type).element_type;
+                    PushType(types, elem_type);
                 }
             }
         }

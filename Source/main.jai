@@ -149,35 +149,10 @@ main :: () {
     defer SDL_DestroyWindow(g_window);
 
     InitGfxContext(g_window);
-    defer CleanupGfxContext();
+    defer DestroyGfxContext();
 
-    defer DestroyAllShaders();
-    if !LoadAllShaders() {
-        Basic.exit(1);
-    }
-
-    defer DestroyRenderTargets();
-    CreateRenderTargets();
-
-    CreateAllBindingSetLayouts();
-    defer DestroyAllBindingSetLayouts();
-
-    CreateAllPipelines();
-    defer DestroyAllPipelines();
-
-    InitTextureUpload();
-    defer DestroyAllUploadData();
-
-    for * g_frame_data_allocators {
-        InitFrameDataAllocator(it, TPrint("Frame Data %", it_index), Frame_Data_Capacity);
-    }
-
-    defer for * g_frame_data_allocators {
-        DestroyFrameDataAllocator(it);
-    }
-
-    InitBindingSetAllocators();
-    defer DestroyBindingSetAllocators();
+    InitRenderer();
+    defer CleanupRenderer();
 
     InitAssetCache(
         *g_Mesh_asset_cache,
@@ -220,7 +195,10 @@ main :: () {
     UpdateWorldTransform(*world, damaged_helmet);
 
     sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");
-    sun.local_rotation = QuatfLookAt(.{-1, -1, -1}, .{0,1,0});
+    sun.color = .{1,1,1};
+    sun.intensity = 1;
+    sun.cast_shadows = true;
+    sun.local_rotation = QuatfLookAt(Normalized(Vec3f.{-0.1, -1, -1}), .{0,1,0});
     UpdateWorldTransform(*world, sun);
 
     defer WaitForGPUIdle(); // Before destroying anything, we need to ensure all work is done

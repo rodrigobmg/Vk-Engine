@@ -1,5 +1,6 @@
 #include "common.glsl"
 #include "pbr.glsl"
+#include "shadow.glsl"
 
 DECLARE_PER_FRAME_PARAMS();
 DECLARE_FORWARD_PASS_PARAMS();
@@ -42,8 +43,10 @@ void main() {
 
     for (int i = 0; i < u_frame_info.num_directional_lights; i += 1) {
         DirectionalLight light = u_directional_lights[i];
+        float shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[i], in_position, N, gl_FragCoord.xy);
+
         float3 L = -light.direction;
-        Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light.color * light.intensity);
+        Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light.color * light.intensity * shadow);
     }
 
     for (int i = 0; i < u_frame_info.num_point_lights; i += 1) {

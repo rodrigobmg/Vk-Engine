@@ -273,7 +273,7 @@ InitGfxContext :: (window : *SDL_Window) {
     LogMessage("Limits: %", g_gfx_context.limits);
 }
 
-CleanupGfxContext :: () {
+DestroyGfxContext :: () {
     LogSectionScope(*Log_Vulkan);
 
     ctx := *g_gfx_context;
@@ -307,10 +307,6 @@ CleanupGfxContext :: () {
     vkDestroyDevice(ctx.device, g_vk_alloc_callbacks);
 
     vkDestroySurfaceKHR(ctx.instance, ctx.surface, g_vk_alloc_callbacks);
-
-    #if Basic.MEMORY_DEBUGGER {
-        Basic.report_memory_leaks();
-    }
 
     vkDestroyDebugUtilsMessengerEXT := cast(PFN_vkDestroyDebugUtilsMessengerEXT, vkGetInstanceProcAddr(ctx.instance, "vkDestroyDebugUtilsMessengerEXT"));
     if vkDestroyDebugUtilsMessengerEXT && ctx.debug_messenger != VK_NULL_HANDLE {

@@ -3,6 +3,9 @@
 // This algorithm detects edges by looking at the luminance value of the neighboring
 // pixels, and blurring along the direction of the edge
 
+#ifndef FXAA_GLSL
+#define FXAA_GLSL
+
 float RGBA2Luma(float4 rgba) {
     return LinearRGBToLuminance(rgba.rgb);
 }
@@ -162,3 +165,5 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
 
     return texture(tex, final_uv);
 }
+
+#endif

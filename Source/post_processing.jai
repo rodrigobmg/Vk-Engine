@@ -9,7 +9,7 @@ CreatePostProcessingPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("screen_effect");
     desc.fragment_shader = GetFragmentShader("post_processing");
-    desc.color_formats[0] = g_final_texture.desc.pixel_format;
+    AddColorAttachment(*desc, g_final_texture.desc.pixel_format);
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,

@@ -201,7 +201,7 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
 
 
     if type == type_info(EntityGUID) {
-        guid := cast(*EntityGUID) ptr;
+        guid := cast(*EntityGUID, ptr);
         Append(serializer, "0x%0%", FormatIntHex (guid.high), FormatIntHex (guid.low));
 
         return;
@@ -235,7 +235,7 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
     if #complete type.type == {
     case .STRING;
         // @Todo: print UTF32 characters as \Uxxxxxxxx
-        StringBuilderAppendStringLiteral(serializer, (cast(*string) ptr).*);
+        StringBuilderAppendStringLiteral(serializer, cast(*string, ptr).*);
 
     case .FLOAT;
         Append(serializer, "%", value);
@@ -245,11 +245,11 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
         StringBuilderAppendAny(serializer, value);
 
     case .ENUM;
-        enum_info := cast(*Type_Info_Enum) type;
+        enum_info := cast(*Type_Info_Enum, type);
         int_value := Basic.get_s64_from_void_pointer(ptr, enum_info.runtime_size);
 
         if enum_info.enum_type_flags & .FLAGS {
-            StringBuilderAppend(serializer, "0x%", FormatIntHex (cast, no_check(u64) int_value, 1));
+            StringBuilderAppend(serializer, "0x%", FormatIntHex(cast, no_check(u64, int_value), 1));
         } else {
             for enum_info.values {
                 if it == int_value {
@@ -262,7 +262,7 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
         }
 
     case .STRUCT;
-        struct_info := cast(*Type_Info_Struct) type;
+        struct_info := cast(*Type_Info_Struct, type);
         if struct_info.textual_flags & .UNION {
             LogError("Cannot serialize unions");
             return;
@@ -337,11 +337,11 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
         }
 
     case .ARRAY;
-        array_info := cast(*Type_Info_Array) type;
+        array_info := cast(*Type_Info_Array, type);
         elem_type := Devariantize(array_info.element_type);
 
         if !IsTypeSerializable(elem_type) {
-            LogError("Cannot serialize type %", (cast(*Type) *elem_type).*);
+            LogError("Cannot serialize type %", cast(*Type, *elem_type).*);
             return;
         }
 
@@ -376,6 +376,7 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
     case .POINTER;
         pointer_to := cast(*Type_Info_Pointer, type).pointer_to;
         if pointer_to.type == .STRUCT && TypeGetSourcePolymorph(xx pointer_to) == TypeGetSourcePolymorph(type_info(DummyAsset)) {
+            Panic("@Todo: cannot cast ptr to *AssetCommonData anymore since we changed the order of the members. We need a more robust way to get *AssetCommonData");
             asset := cast(*AssetCommonData, WalkPointer(ptr, xx type));
             StringBuilderAppendStringLiteral(serializer, ifx asset then asset.asset_name else "");
 
