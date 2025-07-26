@@ -11,6 +11,7 @@ CreateSkyboxPipeline :: () {
         desc : GfxSamplerDesc;
         desc.min_filter = .Linear;
         desc.mag_filter = .Linear;
+        desc.mipmap_filter = .Linear;
         desc.u_address_mode = .Repeat;
         desc.v_address_mode = .ClampToEdge;
 
