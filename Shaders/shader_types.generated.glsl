@@ -41,12 +41,18 @@ struct FrameInfo {
     ShadowMapParams shadow_map_params;
 };
 
+#define MaterialFlags int
+#define MaterialFlags_HasMetallicRoughness 1
+
 #define MaterialType int
 #define MaterialType_Opaque 0
 
 struct MaterialPerInstance {
     MaterialType type;
+    MaterialFlags flags;
     float3 base_color_tint;
+    float metallic;
+    float roughness;
     float3 emissive_tint;
     float emissive_strength;
 };

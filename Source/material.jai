@@ -15,9 +15,25 @@ Material :: struct {
     emissive_strength : float; @Serialize(10)
 } @Asset
 
+MaterialFlags :: enum_flags {
+    HasMetallicRoughness;
+} @ShaderType
+
+MakeMaterialFlags :: inline (material : Material) -> MaterialFlags {
+    result : MaterialFlags;
+    if material.metallic_roughness_map {
+        result |= .HasMetallicRoughness;
+    }
+
+    return result;
+}
+
 MaterialPerInstance :: struct {
     type : MaterialType;
+    flags : MaterialFlags;
     base_color_tint : Vec3f;
+    metallic : float;
+    roughness : float;
     emissive_tint : Vec3f;
     emissive_strength : float;
 } @ShaderType
@@ -29,7 +45,10 @@ operator== :: inline (a : MaterialPerInstance, b : MaterialPerInstance) -> bool 
 MakeMaterialPerInstance :: inline (material : *Material) -> MaterialPerInstance {
     return .{
         type=material.type,
+        flags=MakeMaterialFlags(material),
         base_color_tint=material.base_color_tint,
+        metallic=material.metallic,
+        roughness=material.roughness,
         emissive_tint=material.emissive_tint,
         emissive_strength=material.emissive_strength,
     };

@@ -34,9 +34,15 @@ void main() {
     emissive = sRGBToLinear(emissive);
     emissive *= sRGBToLinear(mesh.material.emissive_tint) * mesh.material.emissive_strength;
 
-    float2 metallic_roughness = texture(u_metallic_roughness_map_texture, in_tex_coords).zy;
-    float metallic = metallic_roughness.x;
-    float roughness = metallic_roughness.y;
+    float metallic, roughness;
+    if ((mesh.material.flags & MaterialFlags_HasMetallicRoughness) != 0) {
+        float2 metallic_roughness = texture(u_metallic_roughness_map_texture, in_tex_coords).zy;
+        metallic = metallic_roughness.x;
+        roughness = metallic_roughness.y;
+    } else {
+        metallic = mesh.material.metallic;
+        roughness = mesh.material.roughness;
+    }
 
     float3 Lo = float3(0);
 
