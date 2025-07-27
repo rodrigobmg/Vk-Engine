@@ -1,3 +1,6 @@
+// https://learnopengl.com/PBR/IBL/Specular-IBL
+// https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
+
 #include "common.glsl"
 #include "pbr.glsl"
 
@@ -26,25 +29,27 @@ void main() {
     float3 prefiltered_color = float3(0);
     ivec2 source_texture_size = textureSize(u_texture, 0);
 
-    const uint Num_Samples = 1024;
+    const uint Num_Samples = 128;
     for(uint i = 0; i < Num_Samples; i += 1) {
         float2 Xi = Hammersley(i, Num_Samples);
         float3 H  = ImportanceSampleGGX(Xi, N, roughness);
         float3 L  = normalize(2 * dot(V, H) * H - V);
-        float NdotL = max(dot(N, L), 0.0);
+        float NdotL = dot(N, L);
 
         if (NdotL > 0) {
-            // Sample from the environment's mip level based on roughness/PDF
+            // Sample from the environment's mipmap chain based on roughness/PDF
             // This technique removes noise from high frequency details and produces much better results
+            // and it allows us to considerably reduce the number of samples
             float D = DistributionThrowbridgeReitz(N, H, roughness);
             float NdotH = max(dot(N, H), 0.0);
             float HdotV = max(dot(H, V), 0.0);
-            float PDF = D * NdotH / (4 * HdotV) + 0.0001;
+            float PDF = D * NdotH / (4 * HdotV);
 
-            float sa_texel = 4 * Pi / (6.0 * source_texture_size.x * source_texture_size.x);
-            float sa_sample = 1 / (float(Num_Samples) * PDF + 0.0001);
+            float solid_angle_sample = 1 / (float(Num_Samples) * PDF + 0.0001);
+            float solid_angle_texel = 4 * Pi / (source_texture_size.x * source_texture_size.x);
 
-            float mip_level = roughness == 0 ? 0 : 0.5 * log2(sa_sample / sa_texel);
+            float mip_bias = 0;
+            float mip_level = roughness == 0 ? 0 : 0.5 * log2(solid_angle_sample / solid_angle_texel) + mip_bias;
 
             float2 uv = CartesianToSphericalUV(L);
 
