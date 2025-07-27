@@ -163,12 +163,10 @@ GenerateEnvironmentMaps :: (cmd_buffer : *GfxCommandBuffer) {
             }
             EndGfxRenderPass(*pass);
 
-            AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *it.environment_levels[level]);
-
             w /= 2;
             h /= 2;
         }
 
-        AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *it.irradiance_map);
+        AddTextureBarriers(cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*it.irradiance_map, *it.environment_map]);
     }
 }
