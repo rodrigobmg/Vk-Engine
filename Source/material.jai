@@ -13,16 +13,22 @@ Material :: struct {
     emissive_tint : Vec3f = .{1,1,1}; @Serialize(8)
     emissive : *Asset(Texture2D); @Serialize(9)
     emissive_strength : float; @Serialize(10)
+    depth_map : *Asset(Texture2D); @Serialize(11)
+    depth_map_scale : float; @Serialize(12)
 } @Asset
 
 MaterialFlags :: enum_flags {
     HasMetallicRoughness;
+    HasDepthMap;
 } @ShaderType
 
 MakeMaterialFlags :: inline (material : Material) -> MaterialFlags {
     result : MaterialFlags;
     if material.metallic_roughness_map {
         result |= .HasMetallicRoughness;
+    }
+    if material.depth_map {
+        result |= .HasDepthMap;
     }
 
     return result;
@@ -36,6 +42,7 @@ MaterialPerInstance :: struct {
     roughness : float;
     emissive_tint : Vec3f;
     emissive_strength : float;
+    depth_map_scale : float;
 } @ShaderType
 
 operator== :: inline (a : MaterialPerInstance, b : MaterialPerInstance) -> bool {
@@ -51,6 +58,7 @@ MakeMaterialPerInstance :: inline (material : *Material) -> MaterialPerInstance 
         roughness=material.roughness,
         emissive_tint=material.emissive_tint,
         emissive_strength=material.emissive_strength,
+        depth_map_scale=material.depth_map_scale,
     };
 }
 
@@ -60,6 +68,7 @@ MaterialPerDrawCall :: struct {
     normal_map : *Asset(Texture2D);
     metallic_roughness_map : *Asset(Texture2D);
     emissive : *Asset(Texture2D);
+    depth_map : *Asset(Texture2D);
 }
 
 operator== :: inline (a : MaterialPerDrawCall, b : MaterialPerDrawCall) -> bool {
@@ -73,6 +82,7 @@ MakeMaterialPerDrawCall :: inline (material : *Material) -> MaterialPerDrawCall 
         normal_map=material.normal_map,
         metallic_roughness_map=material.metallic_roughness_map,
         emissive=material.emissive,
+        depth_map=material.depth_map,
     };
 }
 
@@ -93,5 +103,6 @@ DestroyMaterial :: (material : *Material) {
     RemoveRef(material.normal_map);
     RemoveRef(material.metallic_roughness_map);
     RemoveRef(material.emissive);
+    RemoveRef(material.depth_map);
     material.* = .{};
 }

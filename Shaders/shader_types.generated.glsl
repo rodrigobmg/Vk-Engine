@@ -43,6 +43,7 @@ struct FrameInfo {
 
 #define MaterialFlags int
 #define MaterialFlags_HasMetallicRoughness 1
+#define MaterialFlags_HasDepthMap 2
 
 #define MaterialType int
 #define MaterialType_Opaque 0
@@ -55,6 +56,7 @@ struct MaterialPerInstance {
     float roughness;
     float3 emissive_tint;
     float emissive_strength;
+    float depth_map_scale;
 };
 
 struct MeshInstance {

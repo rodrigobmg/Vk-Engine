@@ -84,7 +84,8 @@
     layout(set=2, binding=1) uniform sampler2D u_base_color_texture; \
     layout(set=2, binding=2) uniform sampler2D u_normal_map_texture; \
     layout(set=2, binding=3) uniform sampler2D u_metallic_roughness_map_texture; \
-    layout(set=2, binding=4) uniform sampler2D u_emissive_texture
+    layout(set=2, binding=4) uniform sampler2D u_emissive_texture; \
+    layout(set=2, binding=5) uniform sampler2D u_depth_map_texture
 #endif
 
 #define Pi 3.14159265359

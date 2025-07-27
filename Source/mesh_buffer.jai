@@ -37,8 +37,9 @@ MeshBindingSet :: struct {
     mesh_instances : GfxBindingStorageBuffer; @Binding(0) @VertexStage @FragmentStage
     base_color : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
     normal_map : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
-    metallic_roughness_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
+    metallic_roughness_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage @AllowNull
     emissive : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
+    depth_map : GfxBindingCombinedTextureSampler; @Binding(5) @FragmentStage @AllowNull
 } @BindingSet
 
 ClearMeshBuffer :: (buffer : *MeshBuffer) {
@@ -175,15 +176,17 @@ AllocDrawData :: (buffer : *MeshBuffer) {
             sampler=*g_material_texture_sampler
         };
         bindings.metallic_roughness_map = .{
-            texture=ifx mesh.material.metallic_roughness_map && !IsNull(*mesh.material.metallic_roughness_map.texture)
-                then *mesh.material.metallic_roughness_map.texture
-                else *g_default_metallic_roughness_map.texture,
+            texture=mesh.material.metallic_roughness_map,
             sampler=*g_material_texture_sampler
         };
         bindings.emissive = .{
             texture=ifx mesh.material.emissive && !IsNull(*mesh.material.emissive.texture)
                 then *mesh.material.emissive.texture
                 else *g_default_emissive.texture,
+            sampler=*g_material_texture_sampler
+        };
+        bindings.depth_map = .{
+            texture=mesh.material.depth_map,
             sampler=*g_material_texture_sampler
         };
 
