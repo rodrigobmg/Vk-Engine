@@ -24,6 +24,7 @@ void main() {
 
     float total_weight = 0;
     float3 prefiltered_color = float3(0);
+    ivec2 source_texture_size = textureSize(u_texture, 0);
 
     const uint Num_Samples = 1024;
     for(uint i = 0; i < Num_Samples; i += 1) {
@@ -40,8 +41,7 @@ void main() {
             float HdotV = max(dot(H, V), 0.0);
             float PDF = D * NdotH / (4 * HdotV) + 0.0001;
 
-            const float Resolution = 1024;
-            float sa_texel = 4 * Pi / (6 * Resolution * Resolution);
+            float sa_texel = 4 * Pi / (6.0 * source_texture_size.x * source_texture_size.x);
             float sa_sample = 1 / (float(Num_Samples) * PDF + 0.0001);
 
             float mip_level = roughness == 0 ? 0 : 0.5 * log2(sa_sample / sa_texel);
