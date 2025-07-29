@@ -86,30 +86,34 @@ VK_API_VERSION_PATCH   :: (version: u32) -> u32 { return version & 0xfff; }
     vkCreateWin32SurfaceKHR :: (instance: VkInstance, pCreateInfo: *VkWin32SurfaceCreateInfoKHR, pAllocator: *VkAllocationCallbacks, pSurface: *VkSurfaceKHR) -> VkResult #foreign libvulkan;
     vkGetPhysicalDeviceWin32PresentationSupportKHR :: (physicalDevice: VkPhysicalDevice, queueFamilyIndex: u32) -> VkBool32 #foreign libvulkan;
 
-#scope_module // -------------------------------------------------------------------------------------------- { MODULE }
 
     #if USE_LOCAL_VULKAN_DYNAMIC_LIB {
-        libvulkan :: #library "libs/vulkan-1";
+        libvulkan :: #library "libs/windows/vulkan-1";
     } else {
-        libvulkan :: #library,no_dll "libs/vulkan-1";
+        libvulkan :: #library,no_dll "libs/windows/vulkan-1";
     }
 
-#scope_export // -------------------------------------------------------------------------------------------- { EXPORT }
-
     #if MEMORY_ALLOCATOR_DEBUG {
-        vkmemalloc :: #library,no_dll "libs/VkMemAlloc_DEBUG";
+        vkmemalloc :: #library,no_dll "libs/windows/VkMemAlloc_DEBUG";
     } else {
-        vkmemalloc :: #library,no_dll "libs/VkMemAlloc";
+        vkmemalloc :: #library,no_dll "libs/windows/VkMemAlloc";
     }
 } else #if OS == .LINUX {
     #load "generated_linux.jai";
 
-#scope_export // -------------------------------------------------------------------------------------------- { MODULE }
+    // Needed by VkMemAlloc
+    libstdcpp :: #system_library,link_always "libstdc++.so.6";
+    libunwind :: #system_library,link_always "libunwind";
+
+    #if MEMORY_ALLOCATOR_DEBUG {
+        vkmemalloc :: #library,no_dll "libs/linux/VkMemAlloc_DEBUG";
+    } else {
+        vkmemalloc :: #library,no_dll "libs/linux/VkMemAlloc";
+    }
 
     libvulkan :: #system_library "libvulkan";
-
 }
 
-#scope_module // -------------------------------------------------------------------------------------------- { MODULE }
+#scope_module
 
 size_t  :: u64;
