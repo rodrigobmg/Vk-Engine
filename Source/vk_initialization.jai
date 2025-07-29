@@ -540,6 +540,7 @@ CreateSwapchain :: () {
     ctx := *g_gfx_context;
 
     swapchain_support := QuerySwapchainSupportDetails(ctx.physical_device);
+    caps := swapchain_support.capabilities;
 
     surface_format_index := ChooseSwapchainSurfaceFormat(swapchain_support.formats);
     if surface_format_index < 0 {
@@ -549,12 +550,18 @@ CreateSwapchain :: () {
 
     surface_format := swapchain_support.formats[surface_format_index];
     present_mode := ChooseSwapchainPresentMode(swapchain_support.present_modes);
-    extent := ChooseSwapchainExtent(swapchain_support.capabilities);
-    Assert(Gfx_Num_Frames_In_Flight >= swapchain_support.capabilities.minImageCount && Gfx_Num_Frames_In_Flight <= swapchain_support.capabilities.maxImageCount, "Swapchain does not support the number of images required");
+    extent := ChooseSwapchainExtent(caps);
+    image_count : u32 = 2;
+    if caps.maxImageCount > 0 && image_count > caps.maxImageCount {
+        image_count = caps.maxImageCount;
+    }
+    if image_count < caps.minImageCount {
+        image_count = caps.minImageCount;
+    }
 
     swapchain_create_info : VkSwapchainCreateInfoKHR;
     swapchain_create_info.surface = ctx.surface;
-    swapchain_create_info.minImageCount = Gfx_Num_Frames_In_Flight;
+    swapchain_create_info.minImageCount = image_count;
     swapchain_create_info.imageFormat = surface_format.format;
     swapchain_create_info.imageColorSpace = surface_format.colorSpace;
     swapchain_create_info.imageExtent = extent;
@@ -571,7 +578,7 @@ CreateSwapchain :: () {
         swapchain_create_info.imageSharingMode = .EXCLUSIVE;
     }
 
-    swapchain_create_info.preTransform = swapchain_support.capabilities.currentTransform;
+    swapchain_create_info.preTransform = caps.currentTransform;
     swapchain_create_info.compositeAlpha = .OPAQUE_BIT_KHR;
 
     swapchain_create_info.presentMode = present_mode;
