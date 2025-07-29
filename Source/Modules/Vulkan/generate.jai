@@ -12,7 +12,7 @@ vulkan_h_location               :: "source/vulkan/vulkan.h";
 
 // if the lib path is empty system_library will be used.
 #if OS == .WINDOWS {
-    vulkan_lib_path :: "libs";
+    vulkan_lib_path :: "libs/windows";
 }  else {
     vulkan_lib_path :: "";
 }
@@ -73,19 +73,42 @@ compile_vulkan_memory_allocator :: () -> bool {
     cwd := get_working_directory();
     include := tprint("-I%/source", cwd);
     src_path := tprint("%/source/vulkan_memory_allocator/vk_mem_alloc.cpp", cwd);
-    success := true;
     extra_args: [..]string;
-    // vulkan memory allocator uses the VMA_CALL_PRE prefix before all of their functions
-    // here we can seet them to be exported when it's compiled as a library.
-    array_add(*extra_args, "/DVMA_CALL_PRE=__declspec(dllexport)");
-    // without this, all implementations are erased before commpliation
-    array_add(*extra_args, "/DVMA_IMPLEMENTATION");
-    // provide path to vulkan.h
-    array_add(*extra_args, include);
-    success &= build_cpp_static_lib("libs/VkMemAlloc_DEBUG", src_path, extra=extra_args, debug=true);
-    array_add(*extra_args, "/DNDEBUG");
-    success &= build_cpp_static_lib("libs/VkMemAlloc", src_path, extra=extra_args, debug=false);
-    return success;
+    array_add(*extra_args, "-std=c++17");
+
+    #if OS == .WINDOWS {
+        success := true;
+        // vulkan memory allocator uses the VMA_CALL_PRE prefix before all of their functions
+        // here we can seet them to be exported when it's compiled as a library.
+        array_add(*extra_args, "/DVMA_CALL_PRE=__declspec(dllexport)");
+        // without this, all implementations are erased before commpliation
+        array_add(*extra_args, "/DVMA_IMPLEMENTATION");
+        // provide path to vulkan.h
+        array_add(*extra_args, include);
+
+        success &= build_cpp_static_lib("libs/windows/VkMemAlloc_DEBUG", src_path, extra=extra_args, debug=true);
+
+        array_add(*extra_args, "/DNDEBUG");
+        success &= build_cpp_static_lib("libs/windows/VkMemAlloc", src_path, extra=extra_args, debug=false);
+
+        return success;
+    } else #if OS == .LINUX {
+        success := true;
+        // vulkan memory allocator uses the VMA_CALL_PRE prefix before all of their functions
+        // here we can seet them to be exported when it's compiled as a library.
+        // array_add(*extra_args, "-DVMA_CALL_PRE=__declspec(dllexport)");
+        // without this, all implementations are erased before commpliation
+        array_add(*extra_args, "-DVMA_IMPLEMENTATION");
+        // provide path to vulkan.h
+        array_add(*extra_args, include);
+
+        success &= build_cpp_static_lib("libs/linux/VkMemAlloc_DEBUG", src_path, extra=extra_args, debug=true);
+
+        array_add(*extra_args, "-DNDEBUG");
+        success &= build_cpp_static_lib("libs/linux/VkMemAlloc", src_path, extra=extra_args, debug=false);
+
+        return success;
+    }
 }
 
 generate_bindings :: () -> bool {
@@ -113,7 +136,11 @@ generate_bindings :: () -> bool {
         array_add(*source_files, vulkan_h_location);
         if VK_MEM_ALLOC_OUTPUT_BINDINGS {
             array_add(*source_files, "source/vulkan_memory_allocator/vk_mem_alloc.cpp");
-            array_add(*libpaths, "libs");
+            #if OS == .WINDOWS {
+                array_add(*libpaths, "libs/windows");
+            } else #if OS == .LINUX {
+                array_add(*libpaths, "libs/linux");
+            }
             array_add(*libnames, "VkMemAlloc");
         }
 
@@ -122,7 +149,7 @@ generate_bindings :: () -> bool {
         will_print_bindings = () {
             // Change the library name to be the same on all platforms
             // so that we don't have to generate identical bindings for every platform just because the library name is different.
-            context.generator.libraries[0].name = "libvulkan";
+            context.generator.libraries[0].identifier = "libvulkan";
         };
 
         visitor     = vulkan_visitor;
@@ -155,7 +182,7 @@ vulkan_visitor :: (decl: *Declaration, parent_decl: *Declaration) -> Declaration
         if en.name == "VkStructureType" {
             struct_type_decl = en; // Save for later
         }
-        
+
         // Almost all enums should be unsigned
         if en.type && decl.name != "VkResult" {
             if en.type.size == {
@@ -195,7 +222,7 @@ vulkan_visitor :: (decl: *Declaration, parent_decl: *Declaration) -> Declaration
     }
 
     // Set the default value for sType.
-    if parent_decl && parent_decl.kind == .STRUCT && parent_decl.name != "VkBaseInStructure" && parent_decl.name != "VkBaseOutStructure" && 
+    if parent_decl && parent_decl.kind == .STRUCT && parent_decl.name != "VkBaseInStructure" && parent_decl.name != "VkBaseOutStructure" &&
             decl.kind == .DECLARATION && decl.name == "sType" {
 
         enum_value_name := get_sType_default_value_from_struct_name(parent_decl.name);
