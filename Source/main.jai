@@ -39,7 +39,7 @@ g_num_cpus : s32;
 g_num_worker_threads : s32;
 
 Second_To_Nano :: 1000000000;
-Frame_Max_Wait :: Second_To_Nano * 100;
+Frame_Max_Wait :: Second_To_Nano * 4;
 
 Camera :: struct {
     position : Vec3f;
@@ -193,23 +193,77 @@ main :: () {
     world : World;
     defer DestroyWorld(*world);
 
-    LoadWorldFromDirectory(*world, "Data/Scenes/Sponza.scene");
+    // LoadWorldFromDirectory(*world, "Data/Scenes/Sponza.scene");
+    LoadWorldFromDirectory(*world, "Data/Scenes/ParallaxTest.scene");
 
-    damaged_helmet := SpawnEntity(*world, MeshEntity, "DamagedHelmet");
-    damaged_helmet.mesh = LoadAsset(Mesh, "DamagedHelmet/DamagedHelmet.mesh");
-    damaged_helmet.material = LoadAsset(Material, "DamagedHelmet/DamagedHelmet.mat");
-    damaged_helmet.local_position.y = 5;
-    damaged_helmet.local_rotation = QuatfFromAxisAngle(.{0,1,0}, Pi * 0.5);
-    UpdateWorldTransform(*world, damaged_helmet);
+    world.skybox = LoadAsset(EnvironmentMap, "Sky/MoonBurst_Color.png");
+    // world.skybox = LoadAsset(EnvironmentMap, "HighResProbes/pisa.hdr");
 
-    world.skybox = LoadAsset(EnvironmentMap, "Sky_MoonBurst_Equirect.png");
-
+    /*
     sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");
     sun.color = .{1,1,1};
     sun.intensity = 1;
     sun.cast_shadows = true;
-    sun.local_rotation = QuatfLookAt(Normalized(Vec3f.{-0.1, -1, -1}), .{0,1,0});
+    // sun.local_rotation = QuatfLookAt(Normalized(Vec3f.{-0.1, -1, -1}), .{0,1,0});
+    sun.local_rotation = QuatfLookAt(.{0,0,1}, .{0,1,0});
     UpdateWorldTransform(*world, sun);
+
+    plane := SpawnEntity(*world, MeshEntity, "Pebbles");
+    plane.mesh = LoadAsset(Mesh, "Plane.mesh");
+    plane.material = LoadAsset(Material, "Pebbles.mat");
+    plane.local_position.z = 4;
+    plane.local_scale = .{4,4,4};
+    // plane.local_rotation = QuatfFromAxisAngle(.{1,0,0}, -Pi * 0.5);
+    UpdateWorldTransform(*world, plane);
+
+    if true {
+        damaged_helmet := SpawnEntity(*world, MeshEntity, "DamagedHelmet");
+        damaged_helmet.mesh = LoadAsset(Mesh, "DamagedHelmet/DamagedHelmet.mesh");
+        damaged_helmet.material = LoadAsset(Material, "DamagedHelmet/DamagedHelmet.mat");
+        damaged_helmet.local_position.z = 5;
+        damaged_helmet.local_rotation = QuatfFromAxisAngle(.{0,1,0}, Pi);
+        UpdateWorldTransform(*world, damaged_helmet);
+    } else {
+        N :: 10;
+
+        light := SpawnEntity(*world, PointLightEntity);
+        light.color = .{1,1,1};
+        light.intensity = 1;
+        light.local_position = .{N * 0.25, N * 0.25, -4};
+        UpdateWorldTransform(*world, light);
+
+        light = SpawnEntity(*world, PointLightEntity);
+        light.color = .{1,1,1};
+        light.intensity = 1;
+        light.local_position = .{N * 0.75, N * 0.25, -4};
+        UpdateWorldTransform(*world, light);
+
+        light = SpawnEntity(*world, PointLightEntity);
+        light.color = .{1,1,1};
+        light.intensity = 1;
+        light.local_position = .{N * 0.25, N * 0.75, -4};
+        UpdateWorldTransform(*world, light);
+
+        light = SpawnEntity(*world, PointLightEntity);
+        light.color = .{1,1,1};
+        light.intensity = 1;
+        light.local_position = .{N * 0.75, N * 0.75, -4};
+        UpdateWorldTransform(*world, light);
+
+        for i : 0..N - 1 {
+            for j : 0..N - 1 {
+                sphere := SpawnEntity(*world, MeshEntity);
+                sphere.mesh = LoadAsset(Mesh, "Sphere.mesh");
+                sphere.material = AllocNewAsset(Material, TPrint("Sphere % %", i, j));
+                sphere.material.base_color_tint = .{1,0,0};
+                sphere.material.metallic = i / cast(float, N - 1);
+                sphere.material.roughness = j / cast(float, N - 1);
+                sphere.local_position = .{i * 1.5, j * 1.5, 0};
+                UpdateWorldTransform(*world, sphere);
+            }
+        }
+    }
+    */
 
     defer WaitForGPUIdle(); // Before destroying anything, we need to ensure all work is done
 
@@ -245,6 +299,11 @@ main :: () {
         ProcessDataDirectoryChanges();
 
         UpdateCamera(*camera);
+
+        // time := cast(float, Basic.to_float64_seconds(Basic.current_time_monotonic()));
+        // sun.local_position = .{0,Sin(time * 0.1),Cos(time * 0.1)};
+        // sun.local_rotation = QuatfLookAt(-sun.local_position, .{0,1,0});
+        // UpdateWorldTransform(*world, sun);
 
         w, h : s32;
         SDL_GetWindowSizeInPixels(g_window, *w, *h);
