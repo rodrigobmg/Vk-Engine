@@ -67,6 +67,7 @@ void main() {
 
     float3 N = texture(u_normal_map_texture, tex_coords).xyz;
     N = N * 2 - float3(1);
+    N.y = -N.y;
     N = normalize(TBN * N);
 
     float3 V = normalize(in_viewpoint_position - in_position);
