@@ -1,0 +1,6 @@
+@type 1: Opaque
+@base_color 3: "Textures/Pebbles_BaseColor.jpg"
+@normal_map 4: "Textures/Pebbles_Normal.jpg"
+@metallic_roughness_map 7: "Textures/Pebbles_MetallicRoughness.jpg"
+@depth_map 11: "Textures/Pebbles_Depth.jpg"
+@depth_map_scale 12: 0.05
