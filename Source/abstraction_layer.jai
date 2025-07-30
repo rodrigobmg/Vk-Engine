@@ -95,10 +95,13 @@ BeginFrame :: () {
     while true {
         acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Frame_Max_Wait, ctx.swapchain_image_acquired_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
 
-        if acquire_result == .ERROR_OUT_OF_DATE_KHR || acquire_result == .SUBOPTIMAL_KHR {
+        // If we get SUBOPTIMAL_KHR then semaphore has been signaled so we cannot
+        // ask again with the same semaphore.
+        // Continue rendering as normal, we'll recreate the swapchain later
+        if acquire_result == .ERROR_OUT_OF_DATE_KHR {
             RecreateSwapchain();
         } else {
-            Assert(acquire_result == .SUCCESS, "vkAcquireNextImageKHR failed: %", acquire_result);
+            Assert(acquire_result == .SUCCESS || acquire_result == .SUBOPTIMAL_KHR, "vkAcquireNextImageKHR failed: %", acquire_result);
             break;
         }
     }
@@ -134,9 +137,8 @@ SubmitFrame :: () {
     present_result := vkQueuePresentKHR(ctx.present_queue, *present_info);
     if present_result == .ERROR_OUT_OF_DATE_KHR || present_result == .SUBOPTIMAL_KHR {
         RecreateSwapchain();
-    } else if present_result != .SUCCESS {
-        LogError("Failed to present swapchain image");
-        Basic.exit(1);
+    } else {
+        Assert(present_result == .SUCCESS, "Failed to present swapchain image");
     }
 
     ctx.frame_in_flight += 1;
