@@ -22,14 +22,15 @@ layout(location=0) out float4 out_color;
 // https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
 float2 ParallaxOcclusionMapping(sampler2D depth_map, float height_scale, float2 tex_coords, float3 view_dir) {
     float num_layers = lerp(Max_Parallax_Layers, Min_Parallax_Layers, abs(dot(float3(0,0,1), view_dir)));
+    num_layers = clamp(num_layers, Min_Parallax_Layers, Max_Parallax_Layers);
     float layer_step = 1 / num_layers;
-
-    float current_layer = 0;
-    float2 delta_uv = (view_dir.xy * height_scale) / num_layers;
-    delta_uv.y = -delta_uv.y;
 
     float2 current_uv = tex_coords;
     float current_depth = texture(depth_map, current_uv).r;
+    float current_layer = 0;
+
+    float2 delta_uv = (view_dir.xy * height_scale) / num_layers;
+    delta_uv.y = -delta_uv.y;
 
     int i = 0;
     while (current_layer < current_depth && i < Max_Parallax_Layers) {
@@ -55,14 +56,15 @@ float ParallaxOcclusionShadow(sampler2D depth_map, float height_scale, float2 te
     }
 
     float num_layers = lerp(Max_Parallax_Layers, Min_Parallax_Layers, abs(dot(float3(0,0,1), view_dir)));
+    num_layers = clamp(num_layers, Min_Parallax_Layers, Max_Parallax_Layers);
     float layer_step = 1 / num_layers;
-
-    float2 delta_uv = (view_dir.xy * height_scale) / num_layers;
-    delta_uv.y = -delta_uv.y;
 
     float2 current_uv = tex_coords;
     float current_depth = texture(depth_map, current_uv).r;
     float current_layer = current_depth;
+
+    float2 delta_uv = (view_dir.xy * height_scale) / num_layers;
+    delta_uv.y = -delta_uv.y;
 
     int i = 0;
     while (current_layer <= current_depth && current_layer > 0 && i < Max_Parallax_Layers) {
@@ -84,14 +86,12 @@ void main() {
     float3 tangent_frag_pos = TBN * in_position;
     float3 tangent_view_dir = normalize(tangent_view_pos - tangent_frag_pos);
 
-    float2 tex_coords;
+    float2 tex_coords = in_tex_coords;
     if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
         tex_coords = ParallaxOcclusionMapping(u_depth_map_texture, mesh.material.depth_map_scale, in_tex_coords, tangent_view_dir);
         if (tex_coords.x < 0 || tex_coords.x > 1 || tex_coords.y < 0 || tex_coords.y > 1) {
             discard;
         }
-    } else {
-        tex_coords = in_tex_coords;
     }
 
     float3 N = texture(u_normal_map_texture, tex_coords).xyz;
