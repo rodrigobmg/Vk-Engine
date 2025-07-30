@@ -160,7 +160,7 @@ main :: () {
         LogMessage("Preferences: %", g_preferences ,, log_section=*Log_Preferences);
     }
 
-    g_window = SDL_CreateWindow("Vulkan", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1920, 1080, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    g_window = SDL_CreateWindow("Vulkan", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xx g_preferences.startup_window_width, xx g_preferences.startup_window_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     defer SDL_DestroyWindow(g_window);
 
     InitGfxContext(g_window);
