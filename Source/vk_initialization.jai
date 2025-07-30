@@ -284,11 +284,6 @@ DestroyGfxContext :: () {
     }
     Free(ctx.swapchain_image_acquired_semaphores.data);
 
-    for ctx.swapchain_image_ready_for_present_semaphores {
-        vkDestroySemaphore(ctx.device, it, g_vk_alloc_callbacks);
-    }
-    Free(ctx.swapchain_image_ready_for_present_semaphores.data);
-
     for * ctx.frame_command_pools {
         DestroyGfxCommandPool(it);
     }
