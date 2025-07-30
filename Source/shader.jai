@@ -161,11 +161,11 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     }
 
     vertex_filename := TPrint("Shaders/%.vert.glsl", shader.name);
-    vertex_filename = get_absolute_path(vertex_filename ,, Temp);
+    vertex_filename = get_absolute_path(vertex_filename ,, Temp, logger=IgnoreLogger);
     path_overwrite_separators(vertex_filename, #char "/");
 
     fragment_filename := TPrint("Shaders/%.frag.glsl", shader.name);
-    fragment_filename = get_absolute_path(fragment_filename ,, Temp);
+    fragment_filename = get_absolute_path(fragment_filename ,, Temp, logger=IgnoreLogger);
     path_overwrite_separators(fragment_filename, #char "/");
 
     has_vertex_shader := file_exists(vertex_filename);
