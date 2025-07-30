@@ -24,6 +24,7 @@ using,only(.["+","-","*","/"]) Basic;
 #load "asset.jai";
 #load "entity.jai";
 #load "renderer.jai";
+#load "preferences.jai";
 
 Debug_Vulkan_Allocations :: false;
 Vulkan_Break_On_Error :: true;
@@ -34,6 +35,8 @@ Appendln :: StringBuilderAppendLine;
 SDL_GetWindowSizeInPixels :: (win: *SDL_Window, w: *s32, h: *s32) #foreign SDL2;
 
 g_window : *SDL_Window;
+
+g_preferences : Preferences;
 
 g_num_cpus : s32;
 g_num_worker_threads : s32;
@@ -146,6 +149,17 @@ main :: () {
     g_num_worker_threads = Max(g_num_cpus - 1, 2);
     LogMessage("CPU Information: % logical CPUs, default worker thread count: %", g_num_cpus, g_num_worker_threads);
 
+    if file_exists("engine.prefs") {
+        LoadPreferences(*g_preferences, "engine.prefs");
+    }
+
+    defer FreePreferences(*g_preferences);
+
+    {
+        ScopeLongFormStructFormat();
+        LogMessage("Preferences: %", g_preferences ,, log_section=*Log_Preferences);
+    }
+
     g_window = SDL_CreateWindow("Vulkan", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1920, 1080, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     defer SDL_DestroyWindow(g_window);
 
@@ -193,8 +207,9 @@ main :: () {
     world : World;
     defer DestroyWorld(*world);
 
-    // LoadWorldFromDirectory(*world, "Data/Scenes/Sponza.scene");
-    LoadWorldFromDirectory(*world, "Data/Scenes/ParallaxTest.scene");
+    if g_preferences.startup_scene {
+        LoadWorldFromDirectory(*world, g_preferences.startup_scene);
+    }
 
     world.skybox = LoadAsset(EnvironmentMap, "Sky/MoonBurst_Color.png");
     // world.skybox = LoadAsset(EnvironmentMap, "HighResProbes/pisa.hdr");
