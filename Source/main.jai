@@ -267,8 +267,36 @@ main :: () {
 
     defer WaitForGPUIdle(); // Before destroying anything, we need to ensure all work is done
 
+    frame_times : [60]float;
+    frame_time_index : int;
     quit := false;
     while !quit {
+        frame_start := Basic.current_time_monotonic();
+        defer {
+            frame_end := Basic.current_time_monotonic();
+            frame_time := Basic.to_float64_seconds(frame_end - frame_start);
+            frame_times[frame_time_index] = xx frame_time;
+
+            if frame_time_index == frame_times.count - 1 {
+                frame_time_index = 0;
+
+                min := F32_Inf;
+                max := -F32_Inf;
+                avg : float;
+                for frame_times {
+                    min = Min(min, it);
+                    max = Max(max, it);
+                    avg += it;
+                }
+
+                avg /= frame_times.count;
+
+                Println("% avg, % min, % max", cast(int, 1 / avg), cast(int, 1 / max), cast(int, 1 / min));
+            } else {
+                frame_time_index += 1;
+            }
+        };
+
         Basic.memory_visualizer_per_frame_update();
 
         ResetTemporaryStorage();
