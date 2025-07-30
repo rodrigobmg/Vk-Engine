@@ -176,6 +176,8 @@ InitAssetCache :: (
     cache.parallel_load_group.name = #run SPrint("Parallel Asset Loading (%)", cache.T);
     cache.parallel_load_group.logging = false;
 
+    start(*cache.parallel_load_group);
+
     AssetCacheFileChangeCallback :: (watcher : *File_Watcher(void), change : *File_Change, data : *void) {
         using cache := cast(*T) data;
         asset_name := change.full_path;
@@ -766,8 +768,6 @@ LoadPendingAssetsInParallel :: (using cache : *AssetCache) {
         w.asset = it;
         add_work(*parallel_load_group, w);
     }
-
-    start(*parallel_load_group);
 
     finished := 0;
     while finished < pending_asset_loads.count {
