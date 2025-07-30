@@ -35,8 +35,8 @@ GfxContext :: struct {
     swapchain_extent : VkExtent2D;
     swapchain_textures : []GfxTexture;
     frame_command_pools : []GfxCommandPool;
-    swapchain_semaphores : []VkSemaphore;
-    render_semaphores : []VkSemaphore;
+    swapchain_image_acquired_semaphores : []VkSemaphore;
+    swapchain_image_ready_for_present_semaphores : []VkSemaphore;
     frame_in_flight_fences : []VkFence;
     frame_in_flight : int;
     frame_swapchain_image_index : u32;
@@ -93,7 +93,7 @@ BeginFrame :: () {
     Assert(wait_result == .SUCCESS, "vkWaitForFences failed: %", wait_result);
 
     while true {
-        acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Frame_Max_Wait, ctx.swapchain_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
+        acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Frame_Max_Wait, ctx.swapchain_image_acquired_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
 
         if acquire_result == .ERROR_OUT_OF_DATE_KHR || acquire_result == .SUBOPTIMAL_KHR {
             RecreateSwapchain();
@@ -109,38 +109,16 @@ BeginFrame :: () {
     ResetGfxCommandPool(cmd_pool);
 }
 
-SubmitFrame :: (color_texture : *GfxTexture) {
+SubmitFrame :: () {
     ctx := *g_gfx_context;
-
-    cmd_buffer := CreateGfxCommandBuffer("Submit Frame");
-
-    swapchain_texture := *ctx.swapchain_textures[ctx.frame_swapchain_image_index];
-    AddTextureBarrier(*cmd_buffer, 0, 0, .AllGraphics, .AllWrites | .AllReads, .Undefined, .TransferDst, swapchain_texture);
-
-    region : VkImageBlit;
-    region.srcSubresource = MakeVkImageSubresourceLayers(color_texture.desc, 0);
-    region.srcOffsets[1].x = xx color_texture.desc.width;
-    region.srcOffsets[1].y = xx color_texture.desc.height;
-    region.srcOffsets[1].z = 1;
-
-    region.dstSubresource = MakeVkImageSubresourceLayers(swapchain_texture.desc, 0);
-    region.dstOffsets[1].x = xx swapchain_texture.desc.width;
-    region.dstOffsets[1].y = xx swapchain_texture.desc.height;
-    region.dstOffsets[1].z = 1;
-
-    vkCmdBlitImage(cmd_buffer.cmd_buffer, color_texture.image, .TRANSFER_SRC_OPTIMAL, swapchain_texture.image, .TRANSFER_DST_OPTIMAL, 1, *region, .LINEAR);
-
-    AddTextureBarrier(*cmd_buffer, .AllGraphics, .AllWrites, 0, 0, .TransferDst, .PresentSrc, swapchain_texture);
-
-    SubmitGfxCommandBuffer(*cmd_buffer);
 
     submit_stage_mask := VkPipelineStageFlags.COLOR_ATTACHMENT_OUTPUT_BIT;
     submit_info : VkSubmitInfo;
     submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = *ctx.swapchain_semaphores[ctx.frame_in_flight];
+    submit_info.pWaitSemaphores = *ctx.swapchain_image_acquired_semaphores[ctx.frame_in_flight];
     submit_info.pWaitDstStageMask = *submit_stage_mask;
     submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = *ctx.render_semaphores[ctx.frame_in_flight];
+    submit_info.pSignalSemaphores = *ctx.swapchain_image_ready_for_present_semaphores[ctx.frame_swapchain_image_index];
     submit_info.commandBufferCount = xx ctx.command_buffers_to_submit.count;
     submit_info.pCommandBuffers = ctx.command_buffers_to_submit.data;
     vkQueueSubmit(ctx.general_purpose_queue, 1, *submit_info, ctx.frame_in_flight_fences[ctx.frame_in_flight]);
@@ -151,7 +129,7 @@ SubmitFrame :: (color_texture : *GfxTexture) {
     present_info.swapchainCount = 1;
     present_info.pSwapchains = *ctx.swapchain;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = *ctx.render_semaphores[ctx.frame_in_flight];
+    present_info.pWaitSemaphores = *ctx.swapchain_image_ready_for_present_semaphores[ctx.frame_swapchain_image_index];
     present_info.pImageIndices = *ctx.frame_swapchain_image_index;
     present_result := vkQueuePresentKHR(ctx.present_queue, *present_info);
     if present_result == .ERROR_OUT_OF_DATE_KHR || present_result == .SUBOPTIMAL_KHR {

@@ -383,9 +383,27 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);
 
+    swapchain_texture := *g_gfx_context.swapchain_textures[g_gfx_context.frame_swapchain_image_index];
+    AddTextureBarrier(*cmd_buffer, 0, 0, .AllGraphics, .AllWrites | .AllReads, .Undefined, .TransferDst, swapchain_texture);
+
+    region : VkImageBlit;
+    region.srcSubresource = MakeVkImageSubresourceLayers(g_final_texture.desc, 0);
+    region.srcOffsets[1].x = xx g_final_texture.desc.width;
+    region.srcOffsets[1].y = xx g_final_texture.desc.height;
+    region.srcOffsets[1].z = 1;
+
+    region.dstSubresource = MakeVkImageSubresourceLayers(swapchain_texture.desc, 0);
+    region.dstOffsets[1].x = xx swapchain_texture.desc.width;
+    region.dstOffsets[1].y = xx swapchain_texture.desc.height;
+    region.dstOffsets[1].z = 1;
+
+    vkCmdBlitImage(cmd_buffer.cmd_buffer, g_final_texture.image, .TRANSFER_SRC_OPTIMAL, swapchain_texture.image, .TRANSFER_DST_OPTIMAL, 1, *region, .LINEAR);
+
+    AddTextureBarrier(*cmd_buffer, .AllGraphics, .AllWrites, 0, 0, .TransferDst, .PresentSrc, swapchain_texture);
+
     SubmitGfxCommandBuffer(*cmd_buffer);
 
-    SubmitFrame(*g_final_texture);
+    SubmitFrame();
 }
 
 g_brdf_lut : GfxTexture;

@@ -241,20 +241,12 @@ InitGfxContext :: (window : *SDL_Window) {
         SetDebugName(it.*, TPrint("Fence 'Frame % rendered'", it_index));
     }
 
-    ctx.swapchain_semaphores = AllocArray(VkSemaphore, Gfx_Num_Frames_In_Flight);
-    for * ctx.swapchain_semaphores {
+    ctx.swapchain_image_acquired_semaphores = AllocArray(VkSemaphore, Gfx_Num_Frames_In_Flight);
+    for * ctx.swapchain_image_acquired_semaphores {
         create_info : VkSemaphoreCreateInfo;
         vkCreateSemaphore(ctx.device, *create_info, g_vk_alloc_callbacks, it);
 
         SetDebugName(it.*, TPrint("Semaphore 'Frame % swapchain image available'", it_index));
-    }
-
-    ctx.render_semaphores = AllocArray(VkSemaphore, Gfx_Num_Frames_In_Flight);
-    for * ctx.render_semaphores {
-        create_info : VkSemaphoreCreateInfo;
-        vkCreateSemaphore(ctx.device, *create_info, g_vk_alloc_callbacks, it);
-
-        SetDebugName(it.*, TPrint("Semaphore 'Frame % swapchain image presentable'", it_index));
     }
 
     allocator_info : VmaAllocatorCreateInfo;
@@ -287,15 +279,15 @@ DestroyGfxContext :: () {
     }
     Free(ctx.frame_in_flight_fences.data);
 
-    for ctx.swapchain_semaphores {
+    for ctx.swapchain_image_acquired_semaphores {
         vkDestroySemaphore(ctx.device, it, g_vk_alloc_callbacks);
     }
-    Free(ctx.swapchain_semaphores.data);
+    Free(ctx.swapchain_image_acquired_semaphores.data);
 
-    for ctx.render_semaphores {
+    for ctx.swapchain_image_ready_for_present_semaphores {
         vkDestroySemaphore(ctx.device, it, g_vk_alloc_callbacks);
     }
-    Free(ctx.render_semaphores.data);
+    Free(ctx.swapchain_image_ready_for_present_semaphores.data);
 
     for * ctx.frame_command_pools {
         DestroyGfxCommandPool(it);
@@ -520,6 +512,11 @@ DestroySwapchain :: () {
 
     ctx := *g_gfx_context;
 
+    for ctx.swapchain_image_ready_for_present_semaphores {
+        vkDestroySemaphore(ctx.device, it, g_vk_alloc_callbacks);
+    }
+    Free(ctx.swapchain_image_ready_for_present_semaphores.data);
+
     for ctx.swapchain_textures {
         vkDestroyImageView(ctx.device, it.image_view, g_vk_alloc_callbacks);
     }
@@ -627,4 +624,13 @@ CreateSwapchain :: () {
         SetDebugName(it.image, TPrint("Image 'Swapchain %'", it_index));
         SetDebugName(it.image_view, TPrint("Image View 'Swapchain %'", it_index));
     }
+
+    ctx.swapchain_image_ready_for_present_semaphores = AllocArray(VkSemaphore, num_images);
+    for * ctx.swapchain_image_ready_for_present_semaphores {
+        create_info : VkSemaphoreCreateInfo;
+        vkCreateSemaphore(ctx.device, *create_info, g_vk_alloc_callbacks, it);
+
+        SetDebugName(it.*, TPrint("Semaphore 'Swapchain image % ready for present'", it_index));
+    }
+
 }
