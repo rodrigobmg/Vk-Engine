@@ -5,6 +5,6 @@
   @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
   @local_scale 5: [1.0, 1.0, 1.0]
   @parent 6: 0xdd87b82947e146a18897730bc500d2f7
-@mesh 2: "Meshes/orn_windows_03.003.mesh"
-@material 3: "Materials/metal_door.001.mat"
+@mesh 2: "Sponza/Meshes/orn_windows_03.003.mesh"
+@material 3: "Sponza/Materials/metal_door.001.mat"
 @cast_shadows 4: True

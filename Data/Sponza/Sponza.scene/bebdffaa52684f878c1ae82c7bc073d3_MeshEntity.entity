@@ -5,6 +5,6 @@
   @local_rotation 4: [0.0, 0.7372773885726929, 0.0, 0.6755901575088501]
   @local_scale 5: [1.0, 1.0, 1.0]
   @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
-@mesh 2: "Meshes/lamps_2ndfloor_01.mesh"
-@material 3: "Materials/light_bulb.mat"
+@mesh 2: "Sponza/Meshes/lamps_2ndfloor_01.mesh"
+@material 3: "Sponza/Materials/light_bulb.mat"
 @cast_shadows 4: True
