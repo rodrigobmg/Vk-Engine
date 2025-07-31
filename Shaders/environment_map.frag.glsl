@@ -29,7 +29,7 @@ void main() {
     float3 prefiltered_color = float3(0);
     ivec2 source_texture_size = textureSize(u_texture, 0);
 
-    const uint Num_Samples = 128;
+    const uint Num_Samples = Num_Environment_Map_Samples;
     for(uint i = 0; i < Num_Samples; i += 1) {
         float2 Xi = Hammersley(i, Num_Samples);
         float3 H  = ImportanceSampleGGX(Xi, N, roughness);

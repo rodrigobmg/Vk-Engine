@@ -2,6 +2,11 @@ Preferences :: struct {
     startup_scene : string;
     startup_window_width : u32 = 1600;
     startup_window_height : u32 = 900;
+
+    environment_map_resolution : u32 = 1024;
+    environment_map_num_samples : u32 = 128;
+    irradiance_map_resolution : u32 = 256;
+    irradiance_map_sample_delta : float = 0.025;
 }
 
 Log_Preferences :: Log_Section.{name="Preferences"};

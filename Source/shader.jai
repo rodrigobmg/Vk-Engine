@@ -182,8 +182,13 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     fragment_shader : GfxShader;
     defer if !IsNull(*fragment_shader) then DestroyGfxShader(*fragment_shader);
 
+    extra := string.[
+        TPrint("-DNum_Environment_Map_Samples=%", g_preferences.environment_map_num_samples),
+        TPrint("-DIrradiance_Map_Sample_Delta=%", g_preferences.irradiance_map_sample_delta),
+    ];
+
     if has_vertex_shader {
-        vertex_shader = LoadGfxShader(TPrint("%.vert", shader.name), *dependencies);
+        vertex_shader = LoadGfxShader(TPrint("%.vert", shader.name), extra, dependencies=*dependencies);
 
         if IsNull(*vertex_shader) {
             return false;
@@ -191,7 +196,7 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     }
 
     if has_fragment_shader {
-        fragment_shader = LoadGfxShader(TPrint("%.frag", shader.name), *dependencies);
+        fragment_shader = LoadGfxShader(TPrint("%.frag", shader.name), extra, dependencies=*dependencies);
 
         if IsNull(*fragment_shader) {
             return false;

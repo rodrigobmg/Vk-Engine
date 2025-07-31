@@ -17,10 +17,10 @@ void main() {
 
     float3 irradiance = float3(0);
 
-    float sample_delta = 0.025;
+    const float Sample_Delta = Irradiance_Map_Sample_Delta;
     float num_samples = 0.0;
-    for (float phi = 0; phi < 2 * Pi; phi += sample_delta) {
-        for (float theta = 0; theta < 0.5 * Pi; theta += sample_delta) {
+    for (float phi = 0; phi < 2 * Pi; phi += Sample_Delta) {
+        for (float theta = 0; theta < 0.5 * Pi; theta += Sample_Delta) {
             float3 tangent_sample = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
             float3 sample_vector = right * tangent_sample.x + up * tangent_sample.y + ray_direction * tangent_sample.z;
             float2 uv = CartesianToSphericalUV(sample_vector);
