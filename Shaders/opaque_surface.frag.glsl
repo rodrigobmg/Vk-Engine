@@ -116,11 +116,11 @@ void main() {
         float shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[i], in_position, N, gl_FragCoord.xy);
         float3 L = -light.direction;
 
-        // if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-        //     float3 tangent_light_dir = TBN * L;
-        //     float parallax_shadow = ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
-        //     shadow *= 1 - parallax_shadow;
-        // }
+        if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
+            float3 tangent_light_dir = TBN * L;
+            float parallax_shadow = ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+            shadow *= 1 - parallax_shadow;
+        }
 
         float NdotL = max(dot(L, N), 0.0);
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * light.intensity * shadow);
