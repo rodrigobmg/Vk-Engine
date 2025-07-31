@@ -113,13 +113,13 @@ void main() {
     for (int i = 0; i < u_frame_info.num_directional_lights; i += 1) {
         DirectionalLight light = u_directional_lights[i];
         float3 light_color = sRGBToLinear(light.color);
+
         float shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[i], in_position, N, gl_FragCoord.xy);
         float3 L = -light.direction;
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
             float3 tangent_light_dir = TBN * L;
-            float parallax_shadow = ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
-            shadow *= 1 - parallax_shadow;
+            shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
         }
 
         float NdotL = max(dot(L, N), 0.0);
@@ -146,8 +146,7 @@ void main() {
             // and I am not sure there is a simple performant way to do so
             // Of course in addition to the shadow, it makes any light calculation a bit off, though it is more
             // visible with self shadowing
-            float parallax_shadow = ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
-            shadow *= 1 - parallax_shadow;
+            shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
         }
 
         float intensity = light.intensity / distance_sqrd;
