@@ -1,5 +1,3 @@
-Irradiance_Map_Resolution :: 256;
-Environment_Map_Resolution :: 1024;
 Num_Environment_Map_Levels :: 6;
 
 EnvironmentMap :: struct {
@@ -21,16 +19,16 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
     desc.type = .Texture2D;
     desc.pixel_format = .RGBA16Float;
     desc.usage = .Sampled | .ColorAttachment;
-    desc.width = Irradiance_Map_Resolution;
-    desc.height = cast(u32, Irradiance_Map_Resolution * aspect_ratio);
+    desc.width = g_preferences.irradiance_map_resolution;
+    desc.height = cast(u32, g_preferences.irradiance_map_resolution * aspect_ratio);
 
     map.irradiance_map = CreateGfxTexture(TPrint("% irradiance", name), desc);
     if IsNull(*map.irradiance_map) {
         return false;
     }
 
-    desc.width = Environment_Map_Resolution;
-    desc.height = cast(u32, Environment_Map_Resolution * aspect_ratio);
+    desc.width = g_preferences.environment_map_resolution;
+    desc.height = cast(u32, g_preferences.environment_map_resolution * aspect_ratio);
     desc.num_mipmap_levels = Num_Environment_Map_Levels;
     desc.usage = .Sampled | .ColorAttachment | .TransferSrc | .TransferDst;
 

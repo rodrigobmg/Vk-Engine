@@ -12,7 +12,7 @@
 #import "String";
 System :: #import "System";
 Math :: #import "Math";
-Basic :: #import "Basic"()(MEMORY_DEBUGGER=true);
+Basic :: #import "Basic"()(MEMORY_DEBUGGER=false);
 using,only(.["+","-","*","/"]) Basic;
 
 #load "math_and_utils.jai";
@@ -160,7 +160,7 @@ main :: () {
         LogMessage("Preferences: %", g_preferences ,, log_section=*Log_Preferences);
     }
 
-    g_window = SDL_CreateWindow("Vulkan", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1920, 1080, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    g_window = SDL_CreateWindow("Vulkan", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xx g_preferences.startup_window_width, xx g_preferences.startup_window_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     defer SDL_DestroyWindow(g_window);
 
     InitGfxContext(g_window);
@@ -210,9 +210,6 @@ main :: () {
     if g_preferences.startup_scene {
         LoadWorldFromDirectory(*world, g_preferences.startup_scene);
     }
-
-    world.skybox = LoadAsset(EnvironmentMap, "Sky/MoonBurst_Color.png");
-    // world.skybox = LoadAsset(EnvironmentMap, "HighResProbes/pisa.hdr");
 
     /*
     sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");

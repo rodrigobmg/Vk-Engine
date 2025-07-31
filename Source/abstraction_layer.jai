@@ -258,7 +258,7 @@ IsNull :: inline (shader : *GfxShader) -> bool {
 }
 
 // @Todo: integrate libshaderc instead of launching a child process
-LoadGfxShader :: (name : string, dependencies : *[..]string = null) -> GfxShader {
+LoadGfxShader :: (name : string, extra_compiler_args : []string = .[], dependencies : *[..]string = null) -> GfxShader {
     stage := ifx StringEndsWith(name, ".vert")
         then "vert"
         else ifx StringEndsWith(name, ".frag")
@@ -276,16 +276,20 @@ LoadGfxShader :: (name : string, dependencies : *[..]string = null) -> GfxShader
 
     filename := TPrint("Shaders/%.glsl", name);
     output_filename := TPrint("Shaders/%.spv", name);
-    result, stdout, stderr := run_command(
-        "glslc",
-        "-std=460",
-        "--target-env=vulkan1.3",
-        TPrint("-fshader-stage=%", stage),
-        TPrint("-D%", stage_define),
-        "-o", output_filename,
-        filename,
-        capture_and_return_output=true
-    );
+
+    args : [..]string;
+    args.allocator = Temp;
+    ArrayPush(*args, "glslc");
+    ArrayPush(*args, "-std=460");
+    ArrayPush(*args, "--target-env=vulkan1.3");
+    ArrayPush(*args, TPrint("-fshader-stage=%", stage));
+    ArrayPush(*args, TPrint("-D%", stage_define));
+    ArrayPushMultiple(*args, extra_compiler_args);
+    ArrayPush(*args, filename);
+
+    ArrayPush(*args, TPrint("-o%", output_filename));
+
+    result, stdout, stderr := run_command(..args, capture_and_return_output=true);
 
     defer {
         Free(stdout.data);
@@ -298,16 +302,10 @@ LoadGfxShader :: (name : string, dependencies : *[..]string = null) -> GfxShader
     }
 
     if dependencies {
-        _, stdout, stderr := run_command(
-            "glslc",
-            "-std=460",
-            "--target-env=vulkan1.3",
-            TPrint("-fshader-stage=%", stage),
-            TPrint("-D%", stage_define),
-            "-M",
-            filename,
-            capture_and_return_output=true
-        );
+        ArrayPop(*args);
+        ArrayPush(*args, "-M");
+
+        _, stdout, stderr := run_command(..args, capture_and_return_output=true);
         defer Free(stdout.data);
         defer Free(stderr.data);
 
