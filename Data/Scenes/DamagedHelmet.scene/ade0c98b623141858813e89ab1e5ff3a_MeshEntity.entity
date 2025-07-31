@@ -1,0 +1,9 @@
+1:
+  @guid 1: 0xade0c98b623141858813e89ab1e5ff3a
+  @name 2: "Plane"
+  @local_position 3: [0,-1,5]
+  @local_rotation 4: [0,0,0,1]
+  @local_scale 5: [5,5,5]
+@mesh 2: "Meshes/Plane.mesh"
+@material 3: "Pebbles.mat"
+@cast_shadows 4: true

@@ -5,6 +5,6 @@
   @local_rotation 4: [0,0,0,1]
   @local_scale 5: [1,1,1]
 @mesh 2: "DamagedHelmet/DamagedHelmet.mesh"
-@materail 3: "DamagedHelmet/DamagedHelmet.mat"
+@material 3: "DamagedHelmet/DamagedHelmet.mat"
 @cast_shadows 4: true
 
