@@ -16,8 +16,8 @@ layout(location=6) in float2 in_tex_coords;
 
 layout(location=0) out float4 out_color;
 
-#define Min_Parallax_Layers 0
-#define Max_Parallax_Layers 64
+#define Min_Parallax_Layers 1
+#define Max_Parallax_Layers 60
 
 // https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
 float2 ParallaxOcclusionMapping(sampler2D depth_map, float height_scale, float2 tex_coords, float3 view_dir) {
@@ -29,7 +29,7 @@ float2 ParallaxOcclusionMapping(sampler2D depth_map, float height_scale, float2 
     float current_depth = texture(depth_map, current_uv).r;
     float current_layer = 0;
 
-    float2 delta_uv = (view_dir.xy * height_scale) / num_layers;
+    float2 delta_uv = (view_dir.xy / view_dir.z * height_scale) / num_layers;
     delta_uv.y = -delta_uv.y;
 
     int i = 0;
@@ -50,11 +50,8 @@ float2 ParallaxOcclusionMapping(sampler2D depth_map, float height_scale, float2 
     return final_uv;
 }
 
-float ParallaxOcclusionShadow(sampler2D depth_map, float height_scale, float2 tex_coords, float3 view_dir) {
-    if (view_dir.z == 0) {
-        return 0;
-    }
-
+// https://godotshaders.com/shader/parallax-occlusion-mapping-with-self-shadowing/
+float ParallaxOcclusionSelfShadow(sampler2D depth_map, float height_scale, float2 tex_coords, float3 view_dir) {
     float num_layers = lerp(Max_Parallax_Layers, Min_Parallax_Layers, abs(dot(float3(0,0,1), view_dir)));
     num_layers = clamp(num_layers, Min_Parallax_Layers, Max_Parallax_Layers);
     float layer_step = 1 / num_layers;
@@ -63,7 +60,7 @@ float ParallaxOcclusionShadow(sampler2D depth_map, float height_scale, float2 te
     float current_depth = texture(depth_map, current_uv).r;
     float current_layer = current_depth;
 
-    float2 delta_uv = (view_dir.xy * height_scale) / num_layers;
+    float2 delta_uv = (view_dir.xy / view_dir.z * height_scale) / num_layers;
     delta_uv.y = -delta_uv.y;
 
     int i = 0;
@@ -74,7 +71,7 @@ float ParallaxOcclusionShadow(sampler2D depth_map, float height_scale, float2 te
         i += 1;
     }
 
-    return 1 - float(current_layer <= current_depth);
+    return float(current_layer > current_depth);
 }
 
 void main() {
@@ -82,21 +79,15 @@ void main() {
 
     float3x3 TBN = float3x3(in_tangent, in_bitangent, in_normal);
 
-    float3 tangent_view_pos = TBN * in_viewpoint_position;
-    float3 tangent_frag_pos = TBN * in_position;
-    float3 tangent_view_dir = normalize(tangent_view_pos - tangent_frag_pos);
+    float3 tangent_view_dir = TBN * normalize(in_viewpoint_position - in_position);
 
     float2 tex_coords = in_tex_coords;
     if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
         tex_coords = ParallaxOcclusionMapping(u_depth_map_texture, mesh.material.depth_map_scale, in_tex_coords, tangent_view_dir);
-        if (tex_coords.x < 0 || tex_coords.x > 1 || tex_coords.y < 0 || tex_coords.y > 1) {
-            discard;
-        }
     }
 
     float3 N = texture(u_normal_map_texture, tex_coords).xyz;
     N = N * 2 - float3(1);
-    N.y = -N.y;
     N = normalize(TBN * N);
 
     float3 V = normalize(in_viewpoint_position - in_position);
@@ -125,11 +116,11 @@ void main() {
         float shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[i], in_position, N, gl_FragCoord.xy);
         float3 L = -light.direction;
 
-        if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-            float3 tangent_light_dir = TBN * L;
-            float parallax_shadow = ParallaxOcclusionShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
-            shadow *= 1 - parallax_shadow;
-        }
+        // if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
+        //     float3 tangent_light_dir = TBN * L;
+        //     float parallax_shadow = ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+        //     shadow *= 1 - parallax_shadow;
+        // }
 
         float NdotL = max(dot(L, N), 0.0);
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * light.intensity * shadow);
@@ -147,10 +138,15 @@ void main() {
         float shadow = 1;
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-            float3 tangent_light_pos = TBN * light.position;
-            float3 tangent_light_dir = normalize(tangent_light_pos - tangent_frag_pos);
+            float3 tangent_light_dir = TBN * L;
 
-            float parallax_shadow = ParallaxOcclusionShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+            // Because we use in_position to calculate the light direction, the shadow is not 100% correct
+            // and it changes when the view position changes, because the view position affects tex_coords
+            // Ideally we would have a way to modify the vertex position based on the result of parallax mapping,
+            // and I am not sure there is a simple performant way to do so
+            // Of course in addition to the shadow, it makes any light calculation a bit off, though it is more
+            // visible with self shadowing
+            float parallax_shadow = ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
             shadow *= 1 - parallax_shadow;
         }
 

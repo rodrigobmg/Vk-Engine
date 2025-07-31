@@ -50,7 +50,7 @@ void main() {
     out_position = world_space_position;
     out_normal = world_space_normal;
     out_tangent = world_space_tangent;
-    out_bitangent = v_tangent.w * cross(out_normal, out_tangent);
+    out_bitangent = -v_tangent.w * cross(out_normal, out_tangent);
     out_tex_coords = v_tex_coords;
     out_tex_coords.y = 1 - out_tex_coords.y;
 
