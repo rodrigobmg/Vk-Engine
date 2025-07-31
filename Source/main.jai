@@ -340,10 +340,20 @@ main :: () {
 
         UpdateCamera(*camera);
 
-        // time := cast(float, Basic.to_float64_seconds(Basic.current_time_monotonic()));
-        // sun.local_position = .{0,Sin(time * 0.1),Cos(time * 0.1)};
-        // sun.local_rotation = QuatfLookAt(-sun.local_position, .{0,1,0});
-        // UpdateWorldTransform(*world, sun);
+        time := cast(float, Basic.to_float64_seconds(Basic.current_time_monotonic())) * 0.5;
+
+        light := GetEntityByName(*world, "Point");
+        if light {
+            light.local_position = Vec3f.{0,Sin(time),Cos(time)} * 9;
+            UpdateWorldTransform(*world, light);
+        }
+
+        sun := GetEntityByName(*world, "Sun");
+        if sun {
+            sun.local_position = .{0,Sin(time),Cos(time)};
+            sun.local_rotation = QuatfLookAt(-sun.local_position, .{0,1,0});
+            UpdateWorldTransform(*world, sun);
+        }
 
         w, h : s32;
         SDL_GetWindowSizeInPixels(g_window, *w, *h);
