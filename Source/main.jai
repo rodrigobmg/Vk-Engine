@@ -12,7 +12,7 @@
 #import "String";
 System :: #import "System";
 Math :: #import "Math";
-Basic :: #import "Basic"()(MEMORY_DEBUGGER=true);
+Basic :: #import "Basic"()(MEMORY_DEBUGGER=false);
 using,only(.["+","-","*","/"]) Basic;
 
 #load "math_and_utils.jai";
@@ -210,9 +210,6 @@ main :: () {
     if g_preferences.startup_scene {
         LoadWorldFromDirectory(*world, g_preferences.startup_scene);
     }
-
-    world.skybox = LoadAsset(EnvironmentMap, "Sky/MoonBurst_Color.png");
-    // world.skybox = LoadAsset(EnvironmentMap, "HighResProbes/pisa.hdr");
 
     /*
     sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");

@@ -54,6 +54,14 @@ World :: struct {
     skybox : *Asset(EnvironmentMap);
 }
 
+WorldSettings :: struct {
+    skybox : *Asset(EnvironmentMap); @Serialize(1)
+}
+
+SetWorldSettings :: (world : *World, settings : *WorldSettings) {
+    world.skybox = settings.skybox;
+}
+
 Entity :: struct {
     #as guid : EntityGUID; @HideInInspector @Serialize(1)
     index : EntityIndex; @HideInInspector
@@ -942,8 +950,34 @@ LoadWorldFromDirectory :: (world : *World, directory : string) {
         files = file_list(directory ,, Temp);
     }
 
+    found_world_file := false;
     for files {
-        if path_extension(it) == "entity" {
+        if path_extension(it) == "world" {
+            if found_world_file {
+                LogContentError("Found multiple .world files in directory '%'", directory);
+                continue;
+            }
+
+            found_world_file = true;
+
+            file_contents, file_ok := read_entire_file(it, log_errors=false);
+            if !file_ok {
+                LogContentError("Could not read file '%'", it);
+                continue;
+            }
+
+            defer Free(file_contents.data);
+
+            world_settings : WorldSettings;
+            result := DeserializeAny(file_contents, world_settings);
+            if !result.ok {
+                LogContentError("There were errors when deserializing world settings:\n%:%:%: %",
+                    it, result.line_index + 1, result.byte_index + 1, result.error_msg);
+            }
+
+            SetWorldSettings(world, *world_settings);
+
+        } else if path_extension(it) == "entity" {
             basename := path_basename(it);
             guid_str := string.{0, basename.data};
             for i : 0..basename.count - 1 {
