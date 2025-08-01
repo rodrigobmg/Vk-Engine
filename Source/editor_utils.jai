@@ -361,7 +361,7 @@ TypeInfoToImGuiDataType :: inline (info : *Type_Info) -> ImGui.DataType {
 }
 @NoProfile
 
-DragVector :: (label : *u8, values : []$T, step : float = 1, show_labels := false) -> InteractionState, activated : bool
+DragVector :: (label : *u8, values : []$T, step : float = 1, show_labels := false) -> InteractionState, activated : bool, edited_value : int
 #modify { return TypeIsNumeric(T); } {
     #if T == {
     case u8;      Data_Type :: ImGui.DataType.U8;
@@ -376,13 +376,13 @@ DragVector :: (label : *u8, values : []$T, step : float = 1, show_labels := fals
     case float64; Data_Type :: ImGui.DataType.Double;
     }
 
-    state, activated := DragVector(label, Data_Type, values.data, xx values.count, step, show_labels);
+    state, activated, edited_value := DragVector(label, Data_Type, values.data, xx values.count, step, show_labels);
 
-    return state, activated;
+    return state, activated, edited_value;
 }
 @NoProfile
 
-DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : s32, step : float = 1, show_labels := false) -> InteractionState, activated : bool {
+DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : s32, step : float = 1, show_labels := false) -> InteractionState, activated : bool, edited_value : int {
     Assert(count < 5);
 
     ImGui.PushID(label);
@@ -432,6 +432,7 @@ DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : 
     state : InteractionState;
     modified := false;
     activated := false;
+    edited_value := -1;
     g := ImGui.GImGui;
     for i : 0..count - 1 {
         label_bb : ImGui.ImRect;
@@ -446,7 +447,12 @@ DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : 
         ImGui.SetNextItemWidth(window.DC.ItemWidth - dummy_size.x);
 
         ImGui.DragScalar(Invisible_Labels[i].data, data_type, values + data_type_size * i, step);
-        state |= LastItemInteractionState();
+        item_state := LastItemInteractionState();
+        if item_state {
+            edited_value = i;
+        }
+
+        state |= item_state;
         activated |= ImGui.IsItemActivated();
 
         col := ImGui.ColorConvertFloat4ToU32(Colors[i]);
@@ -466,7 +472,7 @@ DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : 
 
     ImGui.Text("%", to_string(label));
 
-    return state, activated;
+    return state, activated, edited_value;
 }
 @NoProfile
 

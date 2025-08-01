@@ -329,13 +329,7 @@ InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q
     euler_angles = ToDegs(euler_angles);
     original_euler_angles := euler_angles;
 
-    state, activated := DragVector(label, euler_angles.n, step=0.1);
-    if activated {
-        storage.SetFloat(storage, store_x, xx q.x);
-        storage.SetFloat(storage, store_y, xx q.y);
-        storage.SetFloat(storage, store_z, xx q.z);
-        storage.SetFloat(storage, store_w, xx q.w);
-    }
+    state, activated, edited_value := DragVector(label, euler_angles.n, step=0.1);
 
     ImGui.SameLine();
 
@@ -344,29 +338,18 @@ InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q
         return .Started | .Submitted;
     }
 
-    if state {
-        q.* = QuatFromEulerAnglesOrdered(ToRads(euler_angles), .XYZ);
+    if edited_value >= 0 {
+        Axes :: Vec3(Q.T).[
+            .{1,0,0},
+            .{0,1,0},
+            .{0,0,1},
+        ];
 
-        // original : Q;
-        // original.x = xx storage.GetFloat(storage, store_x);
-        // original.y = xx storage.GetFloat(storage, store_y);
-        // original.z = xx storage.GetFloat(storage, store_z);
-        // original.w = xx storage.GetFloat(storage, store_w, 1);
-        // original_euler_angles = ToEulerAnglesXYZ(original);
+        delta := euler_angles[edited_value] - original_euler_angles[edited_value];
+        axis := Axes[edited_value];
+        rotate := QuatFromAxisAngle(axis, ToRads(cast(float, delta)));
 
-        // diff := euler_angles - original_euler_angles;
-
-        // angle := ifx diff.x != 0 then diff.x
-        //     else ifx diff.y != 0 then diff.y
-        //     else diff.z;
-
-        // axis := ifx diff.x != 0 then Vec3(Q.T).{1,0,0}
-        //     else ifx diff.y != 0 then Vec3(Q.T).{0,1,0}
-        //     else Vec3(Q.T).{0,0,1};
-
-        // rotate := QuatFromAxisAngle(axis, ToRads(angle));
-
-        // q.* = rotate * original;
+        q.* = rotate * q.*;
     }
 
     return state;
