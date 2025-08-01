@@ -6,7 +6,7 @@
 #load "file_browser.jai";
 
 g_show_imgui_demo : bool;
-g_show_world_settings : bool;
+g_show_world_inspector : bool;
 g_show_entity_outliner := true;
 g_show_entity_inspector := true;
 g_editor_camera : Camera;
@@ -223,17 +223,17 @@ UpdateEditor :: (world : *World) {
         }
 
         if ImGui.BeginMenu("Window") {
-            if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
-                g_show_imgui_demo = true;
+            if ImGui.MenuItem("World Inspector", selected=g_show_world_inspector) {
+                g_show_world_inspector = true;
             }
-            if ImGui.MenuItem("World Settings", selected=g_show_world_settings) {
-                g_show_world_settings = true;
+            if ImGui.MenuItem("Entity Inspector", selected=g_show_entity_inspector) {
+                g_show_entity_inspector = true;
             }
             if ImGui.MenuItem("Entity Outliner", selected=g_show_entity_outliner) {
                 g_show_entity_outliner = true;
             }
-            if ImGui.MenuItem("Entity Inspector", selected=g_show_entity_inspector) {
-                g_show_entity_inspector = true;
+            if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
+                g_show_imgui_demo = true;
             }
 
             ImGui.EndMenu();
@@ -262,7 +262,7 @@ UpdateEditor :: (world : *World) {
     }
 
     UpdateCamera(*g_editor_camera);
-    ShowWorldSettings(world);
+    ShowWorldInspector(world);
     ShowEntityOutliner(world);
 
     entity_to_inspect : *Entity;
@@ -309,10 +309,19 @@ UpdateEditor :: (world : *World) {
     UpdateAllFileBrowsers();
 }
 
-ShowWorldSettings :: (world : *World) {
-    if !g_show_world_settings {
+ShowWorldInspector :: (world : *World) {
+    if !g_show_world_inspector {
         return;
     }
+
+    defer ImGui.End();
+
+    ImGui.SetNextWindowSize(.{350, 500}, .FirstUseEver);
+    if !ImGui.Begin("World Settings", *g_show_world_inspector) {
+        return;
+    }
+
+    ShowInspector("", world, world, .["InspectorNoTree"]);
 }
 
 CopyEntityGUID :: inline (guid : EntityGUID) {
