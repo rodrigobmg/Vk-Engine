@@ -8,9 +8,9 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 * HDR textures
 * Cascaded shadow maps
 * Parallax occlusion mapping with self shadowing
+* Simple editor
 
 ## To explore/implement next:
-* Simple editor
 * Omnidirectional shadow maps
 * Global illumination
 * Non pre-baked reflections
