@@ -76,7 +76,7 @@ UnloadDefaultAssets :: () {
 
 main :: () {
     console_logger : ConsoleLogger;
-    console_logger.print_stack_trace = true;
+    console_logger.print_stack_trace = false;
     InitConsoleLogger(*console_logger);
     SetContextLogger(*console_logger, ConsoleLoggerProc);
 
