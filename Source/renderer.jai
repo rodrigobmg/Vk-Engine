@@ -167,7 +167,7 @@ MeshEntity :: struct {
     mesh : *Asset(Mesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
-    aabb : AABB; @HideInInspector
+    aabb : AABB;
 } @Entity
 
 DirectionalLightEntity :: struct {
@@ -176,7 +176,7 @@ DirectionalLightEntity :: struct {
     color : Vec3f = .{1,1,1}; @Serialize(2)
     intensity : float = 1; @Serialize(3)
     cast_shadows : bool; @Serialize(4)
-    shadow_map : ShadowMap; @HideInInspector
+    shadow_map : ShadowMap;
 
     OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
         DestroyShadowMap(*light.shadow_map);

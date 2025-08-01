@@ -53,20 +53,12 @@ World :: struct {
 
     entities_killed_this_frame : [..]EntityIndex;
 
-    skybox : *Asset(EnvironmentMap);
-}
-
-WorldSettings :: struct {
     skybox : *Asset(EnvironmentMap); @Serialize(1)
-}
-
-SetWorldSettings :: (world : *World, settings : *WorldSettings) {
-    world.skybox = settings.skybox;
 }
 
 Entity :: struct {
     #as guid : EntityGUID; @Serialize(1) @HideInInspector
-    index : EntityIndex; @HideInInspector
+    index : EntityIndex;
 
     name : string; @Serialize(2) @HideInInspector
 
@@ -74,9 +66,9 @@ Entity :: struct {
     local_rotation : Quatf; @Serialize(4)
     local_scale : Vec3f = .{1,1,1}; @Serialize(5)
 
-    world_transform : Mat4f; @HideInInspector
+    world_transform : Mat4f;
     parent : EntityGUID; @Serialize(6)
-    children : [..]EntityIndex; @HideInInspector
+    children : [..]EntityIndex;
 }
 
 EmptyEntity :: struct {
@@ -979,15 +971,11 @@ LoadWorldFromDirectory :: (world : *World, directory : string) {
 
             defer Free(file_contents.data);
 
-            world_settings : WorldSettings;
-            result := DeserializeAny(file_contents, world_settings);
+            result := DeserializeAny(file_contents, world);
             if !result.ok {
                 LogContentError("There were errors when deserializing world settings:\n%:%:%: %",
                     it, result.line_index + 1, result.byte_index + 1, result.error_msg);
             }
-
-            SetWorldSettings(world, *world_settings);
-
         } else if path_extension(it) == "entity" {
             basename := path_basename(it);
             guid_str := string.{0, basename.data};

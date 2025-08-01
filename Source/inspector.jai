@@ -581,9 +581,16 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                 not_editable := false;
                 member_no_tree := false;
                 color_edit := false;
+                found_serialize_note := false;
+                show_in_inspector := false;
                 for note : it.notes {
+                    if StringStartsWith(note, "Serialize(") {
+                        found_serialize_note = true;
+                    }
 
                     if note == {
+                    case "ShowInInspector";
+                        show_in_inspector = true;
                     case "HideInInspector";
                         continue it;
                     case "NoCustomInspector";
@@ -595,6 +602,10 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                     case "ColorEdit";
                         color_edit = true;
                     }
+                }
+
+                if !found_serialize_note && !show_in_inspector {
+                    continue it;
                 }
 
                 highest_offset = it.offset_in_bytes;

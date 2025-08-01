@@ -65,11 +65,11 @@ AssetCommonData :: struct {
 
 Asset :: struct (DataType : Type) {
     #as using _ : AssetCommonData; @Serialize(1)
-    asset_cache : *AssetCache(DataType); @HideInInspector
-    #as using asset_data : DataType; @HideInInspector
+    asset_cache : *AssetCache(DataType);
+    #as using asset_data : DataType;
 
     #if Track_Asset_Reference_Locations {
-        asset_reference_locations : [..]Source_Code_Location; @HideInInspector
+        asset_reference_locations : [..]Source_Code_Location;
     }
 }
 
