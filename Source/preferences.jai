@@ -19,6 +19,10 @@ LoadPreferences :: (preferences : *Preferences, filename : string, str : string)
     for it, line_index : lines {
         line := trim(it);
 
+        if line.count <= 0 || line[0] == #char "#" {
+            continue;
+        }
+
         ident := parse_token(*line);
         for c : ident {
             if it_index == 0 && !Basic.is_alpha(c) {
