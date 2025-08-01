@@ -21,6 +21,10 @@ using,only(.["+","-","*","/","<",">","=="]) Basic;
 ImGui :: #import "ImGui";
 ImGui_SDL :: #import "ImGui/Impl/SDL";
 
+#if OS == .WINDOWS {
+    Win32 :: #import "Win32"(File_System=true);
+}
+
 #load "math_and_utils.jai";
 #load "vk_initialization.jai";
 #load "abstraction_layer.jai";
