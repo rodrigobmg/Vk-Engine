@@ -68,6 +68,8 @@ Camera :: struct {
 
 UpdateCamera :: (using camera : *Camera) {
     is_moving_camera := IsMouseButtonDown(.Right);
+    is_moving_camera &= !ImGui.GetIO().WantCaptureMouse;
+    is_moving_camera &= !ImGui.GetIO().WantCaptureKeyboard;
     if is_moving_camera {
         SDL_SetRelativeMouseMode(SDL_TRUE);
 
