@@ -93,6 +93,77 @@ IsMouseButtonReleased :: inline (button : MouseButton) -> bool {
     return WasMouseButtonDown(button) && !IsMouseButtonDown(button);
 }
 
+GetModState :: inline () -> KeyMods {
+    result : KeyMods;
+
+    if IsKeyDown(.Shift) {
+        result |= .Shift;
+    }
+    if IsKeyDown(.Ctrl) {
+        result |= .Ctrl;
+    }
+    if IsKeyDown(.Alt) {
+        result |= .Alt;
+    }
+    if IsKeyDown(.Cmd) {
+        result |= .Cmd;
+    }
+
+    return result;
+}
+
+GetMousePointPosition :: (window : *SDL_Window) -> x : s32, y : s32 {
+    x, y : s32;
+    SDL_GetGlobalMouseState(*x, *y);
+
+    win_x, win_y : s32;
+    SDL_GetWindowPosition(window, *win_x, *win_y);
+
+    return x - win_x, y - win_y;
+}
+
+GetMousePixelPosition :: (window : *SDL_Window) -> x : s32, y : s32 {
+    x, y := GetMousePointPosition(window);
+    scale_factor := GetWindowScaleFactor(window);
+
+    return xx (x * scale_factor), xx (y * scale_factor);
+}
+
+GetMousePointPositionVector :: (window : *SDL_Window) -> Vec2f {
+    x, y := GetMousePointPosition(window);
+    return .{xx x, xx y};
+}
+
+GetMousePixelPositionVector :: (window : *SDL_Window) -> Vec2f {
+    x, y := GetMousePixelPosition(window);
+    return .{xx x, xx y};
+}
+
+GetWindowPointSize :: (window : *SDL_Window) -> width : s32, height : s32 {
+    w, h : s32;
+    SDL_GetWindowSize(window, *w, *h);
+
+    return w, h;
+}
+
+GetWindowPixelSize :: (window : *SDL_Window) -> width : s32, height : s32 {
+    w, h : s32;
+    SDL_GetWindowSizeInPixels(window, *w, *h);
+
+    return w, h;
+}
+
+GetWindowScaleFactor :: (window : *SDL_Window) -> float {
+    #if #exists(Window_Scale_Factor_Override) {
+        return Window_Scale_Factor_Override;
+    } else {
+        w := GetWindowPointSize(window);
+        w_px := GetWindowPixelSize(window);
+
+        return w_px / cast(float, w);
+    }
+}
+
 KeyCode :: enum u8 {
     Invalid;
 

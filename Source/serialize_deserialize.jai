@@ -376,7 +376,6 @@ SerializeAny :: (serializer : *Serializer, value : Any) {
     case .POINTER;
         pointer_to := cast(*Type_Info_Pointer, type).pointer_to;
         if pointer_to.type == .STRUCT && TypeGetSourcePolymorph(xx pointer_to) == TypeGetSourcePolymorph(type_info(DummyAsset)) {
-            Panic("@Todo: cannot cast ptr to *AssetCommonData anymore since we changed the order of the members. We need a more robust way to get *AssetCommonData");
             asset := cast(*AssetCommonData, WalkPointer(ptr, xx type));
             StringBuilderAppendStringLiteral(serializer, ifx asset then asset.asset_name else "");
 

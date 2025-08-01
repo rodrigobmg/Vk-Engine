@@ -162,21 +162,21 @@ DestroyRenderTargets :: () {
 }
 
 MeshEntity :: struct {
-    #as using _ : Entity; @Serialize(1)
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(Mesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
-    aabb : AABB;
+    aabb : AABB; @HideInInspector
 } @Entity
 
 DirectionalLightEntity :: struct {
-    #as using _ : Entity; @Serialize(1)
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
-    color : Vec3f; @Serialize(2)
-    intensity : float; @Serialize(3)
+    color : Vec3f = .{1,1,1}; @Serialize(2)
+    intensity : float = 1; @Serialize(3)
     cast_shadows : bool; @Serialize(4)
-    shadow_map : ShadowMap;
+    shadow_map : ShadowMap; @HideInInspector
 
     OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
         DestroyShadowMap(*light.shadow_map);
@@ -184,10 +184,10 @@ DirectionalLightEntity :: struct {
 } @Entity
 
 PointLightEntity :: struct {
-    #as using _ : Entity; @Serialize(1)
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
-    color : Vec3f; @Serialize(2)
-    intensity : float; @Serialize(3)
+    color : Vec3f = .{1,1,1}; @Serialize(2)
+    intensity : float = 1; @Serialize(3)
     cast_shadows : bool; @Serialize(4)
 } @Entity
 

@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0xb4b746f7144a4adabd54c3d966b0fdb7
   @name 2: "DamagedHelmet"
-  @local_position 3: [0,0,5]
-  @local_rotation 4: [0,0,0,1]
-  @local_scale 5: [1,1,1]
+  @local_position 3: [0, 0, 5]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
+  @parent 6: 0x00000000000000000000000000000000
 @mesh 2: "DamagedHelmet/DamagedHelmet.mesh"
 @material 3: "DamagedHelmet/DamagedHelmet.mat"
 @cast_shadows 4: true
-

@@ -176,7 +176,7 @@ AllocDrawData :: (buffer : *MeshBuffer) {
             sampler=*g_material_texture_sampler
         };
         bindings.metallic_roughness_map = .{
-            texture=mesh.material.metallic_roughness_map,
+            texture=ifx mesh.material.metallic_roughness_map then *mesh.material.metallic_roughness_map.texture,
             sampler=*g_material_texture_sampler
         };
         bindings.emissive = .{
@@ -186,7 +186,7 @@ AllocDrawData :: (buffer : *MeshBuffer) {
             sampler=*g_material_texture_sampler
         };
         bindings.depth_map = .{
-            texture=mesh.material.depth_map,
+            texture=ifx mesh.material.depth_map then *mesh.material.depth_map.texture,
             sampler=*g_material_texture_sampler
         };
 

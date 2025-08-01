@@ -1,4 +1,7 @@
-#import "Common";
+Common :: #import "Common";
+using Common;
+#poke_name Common operator==;
+
 #import "SDL";
 #import "Vulkan";
 #import "Linalg";
@@ -13,7 +16,7 @@
 System :: #import "System";
 Math :: #import "Math";
 Basic :: #import "Basic"()(MEMORY_DEBUGGER=false);
-using,only(.["+","-","*","/"]) Basic;
+using,only(.["+","-","*","/","<",">","=="]) Basic;
 
 ImGui :: #import "ImGui";
 ImGui_SDL :: #import "ImGui/Impl/SDL";
@@ -28,6 +31,7 @@ ImGui_SDL :: #import "ImGui/Impl/SDL";
 #load "entity.jai";
 #load "renderer.jai";
 #load "preferences.jai";
+#load "editor.jai";
 
 Debug_Vulkan_Allocations :: false;
 Vulkan_Break_On_Error :: true;
@@ -47,81 +51,14 @@ g_num_worker_threads : s32;
 Second_To_Nano :: 1000000000;
 Frame_Max_Wait :: Second_To_Nano * 4;
 
-Camera :: struct {
-    position : Vec3f;
-    target_yaw, target_pitch : float;
-    yaw, pitch : float;
-    rotation : Quatf;
-    fov_in_degrees := 80.0;
-    z_near := 0.1;
-    z_far := 1000.0;
-    transform : Mat4f;
-    view : Mat4f;
-    projection : Mat4f;
-
-    speed_mult := 1.0;
-    base_speed := 0.1;
-    fast_speed := 1.0;
-    rotation_speed := 0.2;
-    rotation_smoothing := 0.3;
-}
-
-UpdateCamera :: (using camera : *Camera) {
-    is_moving_camera := IsMouseButtonDown(.Right);
-    is_moving_camera &= !ImGui.GetIO().WantCaptureMouse;
-    is_moving_camera &= !ImGui.GetIO().WantCaptureKeyboard;
-    if is_moving_camera {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-
-        if !IsKeyDown(.Ctrl) {
-            movement_input : Vec3f;
-            movement_input.x = GetKeyAxisValue(.A, .D);
-            movement_input.y = GetKeyAxisValue(.Q, .E);
-            movement_input.z = GetKeyAxisValue(.S, .W);
-            movement_input = Normalized(movement_input);
-
-            speed := ifx IsKeyDown(.Shift)
-                then fast_speed
-                else base_speed;
-
-            speed *= speed_mult;
-
-            // @Todo: delta timing
-            position += speed * (
-                RightVector(rotation) * movement_input.x +
-                UpVector(rotation) * movement_input.y +
-                ForwardVector(rotation) * movement_input.z
-            );
-        }
-
-        rotation_delta := GetRawMouseDelta() * rotation_speed;
-
-        target_yaw += ToRads(rotation_delta.x);
-        target_pitch += ToRads(rotation_delta.y);
-        target_pitch = Clamp(target_pitch, ToRads(-90), ToRads(90));
-
-        yaw = Lerp(yaw, target_yaw, rotation_smoothing);
-        pitch = Lerp(pitch, target_pitch, rotation_smoothing);
-
-        rotation = QuatfFromEulerAnglesYXZ(.{x=pitch,y=yaw});
-    } else {
-        SDL_SetRelativeMouseMode(SDL_FALSE);
-    }
-
-    transform = Mat4fTranslate(position) * Mat4fFromQuat(rotation);
-    view = Inverse(transform);
-
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
-
-    aspect := w / cast(float, h);
-    projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_near, z_far);
-}
-
 g_default_base_color : *Asset(Texture2D);
 g_default_normal_map : *Asset(Texture2D);
 g_default_metallic_roughness_map : *Asset(Texture2D);
 g_default_emissive : *Asset(Texture2D);
+
+g_avg_frame_time : float = 1 / 60.0;
+g_min_frame_time : float = 1 / 60.0;
+g_max_frame_time : float = 1 / 60.0;
 
 LoadDefaultAssets :: () {
     g_default_base_color = LoadAsset(Texture2D, "Default_BaseColor.png");
@@ -139,7 +76,7 @@ UnloadDefaultAssets :: () {
 
 main :: () {
     console_logger : ConsoleLogger;
-    console_logger.print_stack_trace = false;
+    console_logger.print_stack_trace = true;
     InitConsoleLogger(*console_logger);
     SetContextLogger(*console_logger, ConsoleLoggerProc);
 
@@ -208,7 +145,6 @@ main :: () {
     LoadDefaultAssets();
     defer UnloadDefaultAssets();
 
-    camera : Camera;
     world : World;
     defer DestroyWorld(*world);
 
@@ -218,6 +154,8 @@ main :: () {
 
     ImGui.CreateContext();
     defer ImGui.DestroyContext();
+
+    InitEditor();
 
     ImGui_SDL.Init(g_window);
     defer ImGui_SDL.Terminate();
@@ -251,7 +189,9 @@ main :: () {
 
                 avg /= frame_times.count;
 
-                Println("% avg, % min, % max", cast(int, 1 / avg), cast(int, 1 / max), cast(int, 1 / min));
+                g_min_frame_time = min;
+                g_max_frame_time = max;
+                g_avg_frame_time = avg;
             } else {
                 frame_time_index += 1;
             }
@@ -291,9 +231,7 @@ main :: () {
         ImGui_SDL.NewFrame();
         ImGui.NewFrame();
 
-        ImGui.ShowDemoWindow();
-
-        UpdateCamera(*camera);
+        UpdateEditor(*world);
 
         time := cast(float, Basic.seconds_since_init()) * 0.5;
 
@@ -320,21 +258,18 @@ main :: () {
 
         ImGui.Render();
 
-        RenderFrame(*world, *camera);
+        RenderFrame(*world, *g_editor_camera);
     }
 }
 
 #placeholder Runtime_Tests;
 
-ExecuteRuntimeTests :: ()
-{
-    #insert -> string
-    {
+ExecuteRuntimeTests :: () {
+    #insert -> string {
         builder : StringBuilder;
 
-        for Runtime_Tests
-        {
-            Appendln(*builder, "% ();", it);
+        for Runtime_Tests {
+            Appendln(*builder, "%();", it);
         }
 
         return StringBuilderBuild(*builder);

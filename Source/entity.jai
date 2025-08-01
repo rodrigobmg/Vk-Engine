@@ -30,6 +30,8 @@ Entities_Per_Page :: 20;
 EntityStorage :: #bake_arguments PagedArray(Page_Size=Entities_Per_Page);
 
 World :: struct {
+    loaded_from_directory : string;
+
     #insert -> string {
         builder : StringBuilder;
 
@@ -63,10 +65,10 @@ SetWorldSettings :: (world : *World, settings : *WorldSettings) {
 }
 
 Entity :: struct {
-    #as guid : EntityGUID; @HideInInspector @Serialize(1)
+    #as guid : EntityGUID; @Serialize(1) @HideInInspector
     index : EntityIndex; @HideInInspector
 
-    name : string; @HideInInspector @Serialize(2)
+    name : string; @Serialize(2) @HideInInspector
 
     local_position : Vec3f; @Serialize(3)
     local_rotation : Quatf; @Serialize(4)
@@ -78,7 +80,7 @@ Entity :: struct {
 }
 
 EmptyEntity :: struct {
-    #as using _ : Entity; @Serialize(1)
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
 } @Entity
 
 // EntityIndex is guaranteed to be unique for all currently existing entities
@@ -799,6 +801,8 @@ DestroyWorld :: (using world : *World) {
 
     RemoveRef(skybox);
 
+    Free(loaded_from_directory.data);
+
     #insert -> string {
         builder : StringBuilder;
 
@@ -923,6 +927,8 @@ LoadWorldFromDirectory :: (world : *World, directory : string) {
     loaded_entities := 0;
 
     DestroyWorld(world);
+
+    world.loaded_from_directory = StringClone(directory);
 
     DeferNextAssetLoadsForAllCaches();
 

@@ -64,9 +64,9 @@ AssetCommonData :: struct {
 }
 
 Asset :: struct (DataType : Type) {
-    #as using asset_data : DataType; @HideInInspector
     #as using _ : AssetCommonData; @Serialize(1)
     asset_cache : *AssetCache(DataType); @HideInInspector
+    #as using asset_data : DataType; @HideInInspector
 
     #if Track_Asset_Reference_Locations {
         asset_reference_locations : [..]Source_Code_Location; @HideInInspector
