@@ -321,6 +321,8 @@ ShowWorldInspector :: (world : *World) {
         return;
     }
 
+    ImGui.SeparatorText(CStringClone(world.loaded_from_directory));
+
     ShowInspector("", world, world, .["InspectorNoTree"]);
 }
 
