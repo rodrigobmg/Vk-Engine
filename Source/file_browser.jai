@@ -421,13 +421,26 @@ SortEntries :: (using browser : *FileBrowser, specs : ImGui.TableSortSpecs) {
                 Panic("Unknown column entry %", column_spec.ColumnUserID);
             }
 
-            if delta > 0 {
-                return ifx column_spec.SortDirection == xx ImGui.SortDirection.Ascending
-                    then 1 else -1;
-            }
-            if delta < 0 {
-                return ifx column_spec.SortDirection == xx ImGui.SortDirection.Ascending
-                    then -1 else 1;
+            // @Todo @Fix:
+            // For some reason the bindings generator does not generate the same name for SortDirection...
+            #if OS == .WINDOWS {
+                if delta > 0 {
+                    return ifx column_spec.SortDirection_ == xx ImGui.SortDirection.Ascending
+                        then 1 else -1;
+                }
+                if delta < 0 {
+                    return ifx column_spec.SortDirection_ == xx ImGui.SortDirection.Ascending
+                        then -1 else 1;
+                }
+            } else {
+                if delta > 0 {
+                    return ifx column_spec.SortDirection == xx ImGui.SortDirection.Ascending
+                        then 1 else -1;
+                }
+                if delta < 0 {
+                    return ifx column_spec.SortDirection == xx ImGui.SortDirection.Ascending
+                        then -1 else 1;
+                }
             }
         }
 
