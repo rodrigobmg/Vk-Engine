@@ -15,6 +15,17 @@ LoadPreferences :: (preferences : *Preferences, filename : string, str : string)
     LogSectionScope(*Log_Preferences);
 
     info := type_info(Preferences);
+    for info.members {
+        if it.type.type != .STRING {
+            continue;
+        }
+
+        str := cast(*string, cast(*void, preferences) + it.offset_in_bytes);
+        if str.data {
+            str.* = StringClone(str.*);
+        }
+    }
+
     lines := StringSplit(str, #char "\n" ,, Temp);
     for it, line_index : lines {
         line := trim(it);
@@ -76,7 +87,9 @@ LoadPreferences :: (preferences : *Preferences, filename : string, str : string)
                 if line[i] == #char "\"" {
                     i += 1;
 
-                    cast(*string, value.value_pointer).* = xx result;
+                    str := cast(*string, value.value_pointer);
+                    Free(str.data);
+                    str.* = xx result;
                     if i != line.count {
                         LogError("%:%: Unexpected characters after string literal", filename, line_index + 1);
                     }
