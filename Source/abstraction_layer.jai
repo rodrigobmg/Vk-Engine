@@ -15,6 +15,7 @@ Log_Vulkan :: Log_Section.{name="Graphics/Vulkan"};
 
 Gfx_Max_Color_Attachments :: 8;
 Gfx_Num_Frames_In_Flight :: 2;
+Gfx_Viewport_Origin_Bottom_Left :: false;
 
 g_gfx_context : GfxContext;
 g_vk_alloc_callbacks : *VkAllocationCallbacks;

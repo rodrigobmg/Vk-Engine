@@ -15,6 +15,9 @@ Math :: #import "Math";
 Basic :: #import "Basic"()(MEMORY_DEBUGGER=false);
 using,only(.["+","-","*","/"]) Basic;
 
+ImGui :: #import "ImGui";
+ImGui_SDL :: #import "ImGui/Impl/SDL";
+
 #load "math_and_utils.jai";
 #load "vk_initialization.jai";
 #load "abstraction_layer.jai";
@@ -211,6 +214,15 @@ main :: () {
         LoadWorldFromDirectory(*world, g_preferences.startup_scene);
     }
 
+    ImGui.CreateContext();
+    defer ImGui.DestroyContext();
+
+    ImGui_SDL.Init(g_window);
+    defer ImGui_SDL.Terminate();
+
+    InitImGuiRenderer();
+    defer DestroyImGuiRenderer();
+
     /*
     sun := SpawnEntity(*world, DirectionalLightEntity, "Sun");
     sun.color = .{1,1,1};
@@ -323,6 +335,8 @@ main :: () {
                 quit = true;
             }
 
+            ImGui_SDL.HandleWindowEvent(event);
+
             if event.type == SDL_WINDOWEVENT {
                 if event.window.event == SDL_WINDOWEVENT_RESIZED
                 || event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
@@ -338,9 +352,14 @@ main :: () {
         HandleShaderHotReloading();
         ProcessDataDirectoryChanges();
 
+        ImGui_SDL.NewFrame();
+        ImGui.NewFrame();
+
+        ImGui.ShowDemoWindow();
+
         UpdateCamera(*camera);
 
-        time := cast(float, Basic.to_float64_seconds(Basic.current_time_monotonic())) * 0.5;
+        time := cast(float, Basic.seconds_since_init()) * 0.5;
 
         light := GetEntityByName(*world, "Point");
         if light {
@@ -362,6 +381,8 @@ main :: () {
             CreateRenderTargets();
             RecreateSwapchain();
         }
+
+        ImGui.Render();
 
         RenderFrame(*world, *camera);
     }

@@ -6,11 +6,14 @@
 #load "allocator.jai";
 #load "binding_set_allocator.jai";
 
+#load "imgui.jai";
 #load "image_based_lighting.jai";
 #load "forward_pass.jai";
 #load "post_processing.jai";
 #load "shadow_map.jai";
 #load "skybox.jai";
+
+g_linear_clamp_sampler : GfxSampler;
 
 InitRenderer :: () {
     if !LoadAllShaders() {
@@ -32,6 +35,12 @@ InitRenderer :: () {
     }
 
     InitBindingSetAllocators();
+
+    sampler_desc : GfxSamplerDesc;
+    sampler_desc.min_filter = .Linear;
+    sampler_desc.mag_filter = .Linear;
+    g_linear_clamp_sampler = CreateGfxSampler("Linear Clamp", sampler_desc);
+    Assert(!IsNull(*g_linear_clamp_sampler));
 }
 
 CleanupRenderer :: () {
@@ -54,6 +63,7 @@ CleanupRenderer :: () {
     DestroyAllShaders();
 
     DestroyGfxSampler(*g_skybox_sampler);
+    DestroyGfxSampler(*g_linear_clamp_sampler);
 }
 
 #placeholder Shader_Binding_Set_Types;
@@ -380,6 +390,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     PostProcessingPass(*ctx);
+    ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);
 
