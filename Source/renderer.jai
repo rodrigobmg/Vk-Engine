@@ -12,6 +12,7 @@
 #load "post_processing.jai";
 #load "shadow_map.jai";
 #load "skybox.jai";
+#load "entity_selection.jai";
 
 g_linear_clamp_sampler : GfxSampler;
 
@@ -109,9 +110,64 @@ DestroyAllBindingSetLayouts :: () {
     }
 }
 
+// Pipeline layout used to bind binding sets outside of any render pass at the beginning of the frame
+g_dummy_frame_pipeline_layout : GfxPipelineLayout;
+
+g_material_texture_sampler : GfxSampler;
+
+CreateAllPipelines :: () {
+    {
+        sampler_desc : GfxSamplerDesc;
+        sampler_desc.min_filter = .Linear;
+        sampler_desc.mag_filter = .Linear;
+        sampler_desc.mipmap_filter = .Linear;
+        sampler_desc.u_address_mode = .Repeat;
+        sampler_desc.v_address_mode = .Repeat;
+
+        g_material_texture_sampler = CreateGfxSampler("Material Texture", sampler_desc);
+        Assert(!IsNull(*g_material_texture_sampler), "Could not create material texture sampler");
+    }
+
+    frame_layout_desc : GfxPipelineLayoutDesc;
+    frame_layout_desc.binding_sets = .[
+        g_binding_set_layouts.FrameBindingSet,
+    ];
+    g_dummy_frame_pipeline_layout = CreateGfxPipelineLayout("Dummy Frame", frame_layout_desc);
+    Assert(!IsNull(*g_dummy_frame_pipeline_layout), "Could not create dummy frame pipeline layout");
+
+    CreateForwardPipeline();
+    CreatePostProcessingPipeline();
+    CreateShadowMapPipeline();
+    CreateSkyboxPipeline();
+    CreateIrradianceMapPipeline();
+    CreateEnvironmentMapPipeline();
+    CreateEntityGUIDPipeline();
+}
+
+DestroyAllPipelines :: () {
+    DestroyGfxGraphicsPipeline(*g_entity_guid_pipeline);
+    DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
+    DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
+    DestroyGfxGraphicsPipeline(*g_skybox_pipeline);
+    DestroyGfxGraphicsPipeline(*g_forward_pipeline);
+    DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
+
+    DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
+    DestroyGfxSampler(*g_post_processing_sampler);
+
+    DestroyGfxTexture(*g_brdf_lut);
+    DestroyGfxSampler(*g_brdf_lut_sampler);
+    DestroyGfxGraphicsPipeline(*g_brdf_lut_pipeline);
+
+    DestroyGfxSampler(*g_material_texture_sampler);
+
+    DestroyGfxPipelineLayout(*g_dummy_frame_pipeline_layout);
+}
+
 g_final_texture : GfxTexture;
 g_color_texture : GfxTexture;
 g_depth_texture : GfxTexture;
+g_selected_entities_depth_texture : GfxTexture;
 
 CreateRenderTargets :: () {
     WaitForGPUIdle();
@@ -128,8 +184,11 @@ CreateRenderTargets :: () {
         DestroyGfxTexture(*g_depth_texture);
     }
 
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+    if !IsNull(*g_selected_entities_depth_texture) {
+        DestroyGfxTexture(*g_selected_entities_depth_texture);
+    }
+
+    w, h := GetWindowPixelSize(g_window);
 
     texture_desc : GfxTextureDesc;
     texture_desc.type = .Texture2D;
@@ -153,12 +212,20 @@ CreateRenderTargets :: () {
 
     g_depth_texture = CreateGfxTexture("Depth", texture_desc);
     Assert(!IsNull(*g_depth_texture), "Could not create depth texture");
+
+    g_selected_entities_depth_texture = CreateGfxTexture("Selected Entities Depth", texture_desc);
+    Assert(!IsNull(*g_selected_entities_depth_texture), "Could not create selected entities depth texture");
+
+    CreateEntityGUIDTexture();
 }
 
 DestroyRenderTargets :: () {
     DestroyGfxTexture(*g_final_texture);
     DestroyGfxTexture(*g_color_texture);
     DestroyGfxTexture(*g_depth_texture);
+    DestroyGfxTexture(*g_selected_entities_depth_texture);
+    DestroyGfxTexture(*g_entity_guid_texture);
+    DestroyGfxTexture(*g_selected_entity_guid_texture);
 }
 
 MeshEntity :: struct {
@@ -217,6 +284,9 @@ FrameInfo :: struct {
     num_directional_lights : u32;
     num_point_lights : u32;
     shadow_map_params : ShadowMapParams;
+    entity_outline_thickness : float = 2;
+    entity_outline_covered_alpha : float = 0.4;
+    entity_outline_color : Vec4f = .{0,0,1,1};
 } @ShaderType
 
 DirectionalLight :: struct {
@@ -257,10 +327,10 @@ FrameRenderContext :: struct {
 }
 
 g_mesh_buffer : MeshBuffer;
+g_selected_mesh_buffer : MeshBuffer;
 
 RenderFrame :: (world : *World, camera : *Camera) {
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+    w, h := GetWindowPixelSize(g_window);
 
     BeginFrame();
 
@@ -292,6 +362,36 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     SortMeshBuffer(*g_mesh_buffer);
     AllocDrawData(*g_mesh_buffer);
+
+    ClearMeshBuffer(*g_selected_mesh_buffer);
+
+    for * guid : g_editor_selected_entities {
+        it := GetEntity(world, guid, MeshEntity);
+        if !it {
+            continue;
+        }
+
+        if !it.mesh || !it.material {
+            continue;
+        }
+
+        if IsNull(*it.mesh.vertex_buffer) || IsNull(*it.mesh.index_buffer) {
+            continue;
+        }
+
+        aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
+        if !AABBIsInFrustum(aabb, frustum) {
+            continue;
+        }
+
+        position := TranslationVector(it.world_transform);
+        depth := TransformPoint(camera.view, position).z;
+        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, it.material, depth);
+        PushMesh(*g_selected_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, it.material);
+    }
+
+    SortMeshBuffer(*g_selected_mesh_buffer);
+    AllocDrawData(*g_selected_mesh_buffer);
 
     for * world.DirectionalLightEntity_storage {
         if it.cast_shadows {
@@ -380,13 +480,16 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
     }
 
-    AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_color_texture);
+    AddTextureBarriers(*cmd_buffer, .Undefined, .ColorAttachment, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
 
-    AddTextureBarrier(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_color_texture);
+    EntityGUIDPass(*ctx, *g_entity_guid_texture, *g_depth_texture, camera, *g_mesh_buffer);
+    EntityGUIDPass(*ctx, *g_selected_entity_guid_texture, *g_selected_entities_depth_texture, camera, *g_selected_mesh_buffer);
+
+    AddTextureBarriers(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     PostProcessingPass(*ctx);
@@ -467,61 +570,6 @@ RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
     EndGfxRenderPass(*pass);
 
     AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_brdf_lut);
-}
-
-// Pipeline layout used to bind binding sets outside of any render pass at the beginning of the frame
-g_dummy_frame_pipeline_layout : GfxPipelineLayout;
-
-g_material_texture_sampler : GfxSampler;
-
-CreateAllPipelines :: () {
-    {
-        sampler_desc : GfxSamplerDesc;
-        sampler_desc.min_filter = .Linear;
-        sampler_desc.mag_filter = .Linear;
-        sampler_desc.mipmap_filter = .Linear;
-        sampler_desc.u_address_mode = .Repeat;
-        sampler_desc.v_address_mode = .Repeat;
-
-        g_material_texture_sampler = CreateGfxSampler("Material Texture", sampler_desc);
-        Assert(!IsNull(*g_material_texture_sampler), "Could not create material texture sampler");
-    }
-
-    frame_layout_desc : GfxPipelineLayoutDesc;
-    frame_layout_desc.binding_sets = .[
-        g_binding_set_layouts.FrameBindingSet,
-    ];
-    g_dummy_frame_pipeline_layout = CreateGfxPipelineLayout("Dummy Frame", frame_layout_desc);
-    Assert(!IsNull(*g_dummy_frame_pipeline_layout), "Could not create dummy frame pipeline layout");
-
-    CreateForwardPipeline();
-    CreatePostProcessingPipeline();
-    CreateShadowMapPipeline();
-    CreateSkyboxPipeline();
-    CreateIrradianceMapPipeline();
-    CreateEnvironmentMapPipeline();
-}
-
-DestroyAllPipelines :: () {
-    DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
-    DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
-
-    DestroyGfxGraphicsPipeline(*g_skybox_pipeline);
-
-    DestroyGfxGraphicsPipeline(*g_forward_pipeline);
-
-    DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
-    DestroyGfxSampler(*g_post_processing_sampler);
-
-    DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
-
-    DestroyGfxTexture(*g_brdf_lut);
-    DestroyGfxSampler(*g_brdf_lut_sampler);
-    DestroyGfxGraphicsPipeline(*g_brdf_lut_pipeline);
-
-    DestroyGfxSampler(*g_material_texture_sampler);
-
-    DestroyGfxPipelineLayout(*g_dummy_frame_pipeline_layout);
 }
 
 Plane :: struct {

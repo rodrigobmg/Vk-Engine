@@ -247,6 +247,29 @@ UpdateEditor :: (world : *World) {
         ImGui.Separator();
         ImGui.Text("FPS: %/%/% (min/avg/max)", cast(int, 1 / g_max_frame_time), cast(int, 1 / g_avg_frame_time), cast(int, 1 / g_min_frame_time));
 
+        shader_failed_to_reload := 0;
+        shader := "";
+        for g_shaders {
+            if it.failed_to_reload {
+                shader_failed_to_reload += 1;
+                shader = it.name;
+            }
+        }
+
+        if shader_failed_to_reload > 0 {
+            ImGui.Separator();
+
+            ImGui.PushStyleColor(.Text, .{1,0,0,1});
+
+            if shader_failed_to_reload == 1 {
+                ImGui.Text("There were errors reloading shader '%'", shader);
+            } else {
+                ImGui.Text("There were errors reloading shaders");
+            }
+
+            ImGui.PopStyleColor();
+        }
+
         ImGui.EndMainMenuBar();
     }
 

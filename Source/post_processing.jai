@@ -1,5 +1,7 @@
 PostProcessingBindingSet :: struct {
     color_texture : GfxBindingCombinedTextureSampler; @Binding(0) @FragmentStage
+    entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
+    selected_entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
 } @BindingSet
 
 g_post_processing_pipeline : GfxGraphicsPipeline;
@@ -23,8 +25,9 @@ CreatePostProcessingPipeline :: () {
 PostProcessingPass :: (using ctx : *FrameRenderContext) {
     if IsNull(*g_post_processing_sampler) {
         desc : GfxSamplerDesc;
-        desc.min_filter = .Linear;
-        desc.mag_filter = .Linear;
+        desc.min_filter = .Nearest;
+        desc.mag_filter = .Nearest;
+        desc.mipmap_filter = .Nearest;
         g_post_processing_sampler = CreateGfxSampler("Post Processing", desc);
     }
 
@@ -34,11 +37,12 @@ PostProcessingPass :: (using ctx : *FrameRenderContext) {
 
     bindings := PostProcessingBindingSet.{
         color_texture=.{texture=*g_color_texture, sampler=*g_post_processing_sampler},
+        entity_guid_texture=.{texture=*g_entity_guid_texture, sampler=*g_post_processing_sampler},
+        selected_entity_guid_texture=.{texture=*g_selected_entity_guid_texture, sampler=*g_post_processing_sampler},
     };
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+    w, h := GetWindowPixelSize(g_window);
 
     pass_desc : GfxRenderPassDesc;
     AddColorAttachment(*pass_desc, *g_final_texture, load_op=.DontCare);

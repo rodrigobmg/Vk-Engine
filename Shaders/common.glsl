@@ -160,6 +160,14 @@ float3 RandomEntityColor(uint4 entity_guid) {
     return RandomColor((entity_guid.x + entity_guid.y + entity_guid.z + entity_guid.w) * 0.0000000001);
 }
 
+bool ApproxZero(float x, float epsilon) {
+    return abs(x) < epsilon;
+}
+
+bool ApproxEquals(float a, float b, float epsilon) {
+    return abs(a - b) < epsilon;
+}
+
 // Azimuth: 0 = positive Z
 // Polar: 0 = horizon, Pi/2 = North, -Pi/2 = South
 

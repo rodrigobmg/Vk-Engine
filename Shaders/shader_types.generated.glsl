@@ -39,6 +39,9 @@ struct FrameInfo {
     uint num_directional_lights;
     uint num_point_lights;
     ShadowMapParams shadow_map_params;
+    float entity_outline_thickness;
+    float entity_outline_covered_alpha;
+    float4 entity_outline_color;
 };
 
 #define MaterialFlags int
