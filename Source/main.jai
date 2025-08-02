@@ -252,8 +252,7 @@ main :: () {
             UpdateWorldTransform(*world, sun);
         }
 
-        w, h : s32;
-        SDL_GetWindowSizeInPixels(g_window, *w, *h);
+        w, h := GetWindowPixelSize(g_window);
 
         if should_recreate_swapchain && w > 0 && h > 0 {
             CreateRenderTargets();

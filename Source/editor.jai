@@ -207,6 +207,21 @@ InitEditor :: () {
 }
 
 UpdateEditor :: (world : *World) {
+    // Entity selection
+    if !ImGui.GetIO().WantCaptureMouse && IsMouseButtonPressed(.Left) {
+        x, y := GetMousePixelPosition(g_window);
+        entity := GetEntityAtPoint(world, x, y);
+        if entity {
+            if EntityIsSelected(entity.guid) {
+                DeselectEntity(entity.guid);
+            } else {
+                SelectEntity(entity.guid, add_to_selection=IsKeyDown(.Shift));
+            }
+        } else if !IsKeyDown(.Shift) {
+            ArrayClear(*g_editor_selected_entities);
+        }
+    }
+
     if ImGui.BeginMainMenuBar() {
         if ImGui.BeginMenu("World") {
             if ImGui.MenuItem("Load") {

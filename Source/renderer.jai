@@ -226,6 +226,12 @@ DestroyRenderTargets :: () {
     DestroyGfxTexture(*g_selected_entities_depth_texture);
     DestroyGfxTexture(*g_entity_guid_texture);
     DestroyGfxTexture(*g_selected_entity_guid_texture);
+
+    for * g_entity_guid_readback_buffers {
+        if !IsNull(it) {
+            DestroyGfxBuffer(it);
+        }
+    }
 }
 
 MeshEntity :: struct {
@@ -285,7 +291,7 @@ FrameInfo :: struct {
     num_point_lights : u32;
     shadow_map_params : ShadowMapParams;
     entity_outline_thickness : float = 2;
-    entity_outline_covered_alpha : float = 0.4;
+    entity_outline_covered_alpha : float = 0.2;
     entity_outline_color : Vec4f = .{0,0,1,1};
 } @ShaderType
 
@@ -489,7 +495,13 @@ RenderFrame :: (world : *World, camera : *Camera) {
     EntityGUIDPass(*ctx, *g_entity_guid_texture, *g_depth_texture, camera, *g_mesh_buffer);
     EntityGUIDPass(*ctx, *g_selected_entity_guid_texture, *g_selected_entities_depth_texture, camera, *g_selected_mesh_buffer);
 
-    AddTextureBarriers(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);
+    AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_entity_guid_texture);
+
+    TransferEntityGUIDForReadback(*cmd_buffer);
+
+    AddTextureBarrier(*cmd_buffer, .TransferSrc, .ShaderReadOnly, *g_entity_guid_texture);
+
+    AddTextureBarriers(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*g_color_texture, *g_selected_entity_guid_texture]);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     PostProcessingPass(*ctx);

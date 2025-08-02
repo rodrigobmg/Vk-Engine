@@ -1,6 +1,8 @@
 g_entity_guid_texture : GfxTexture;
 g_selected_entity_guid_texture : GfxTexture;
 g_entity_guid_pipeline : GfxGraphicsPipeline;
+g_entity_guid_readback_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
+g_entity_guid_readback_ptrs : [Gfx_Num_Frames_In_Flight]*EntityGUID;
 
 CreateEntityGUIDTexture :: () {
     if !IsNull(*g_entity_guid_texture) {
@@ -11,6 +13,12 @@ CreateEntityGUIDTexture :: () {
         DestroyGfxTexture(*g_selected_entity_guid_texture);
     }
 
+    for * g_entity_guid_readback_buffers {
+        if !IsNull(it) {
+            DestroyGfxBuffer(it);
+        }
+    }
+
     w, h := GetWindowPixelSize(g_window);
 
     texture_desc : GfxTextureDesc;
@@ -19,13 +27,32 @@ CreateEntityGUIDTexture :: () {
     texture_desc.height = xx h;
 
     texture_desc.pixel_format = .RGBA32UInt;
-    texture_desc.usage = .ColorAttachment | .Sampled;
+    texture_desc.usage = .ColorAttachment | .Sampled | .TransferSrc;
 
     g_entity_guid_texture = CreateGfxTexture("Entity GUID", texture_desc);
     Assert(!IsNull(*g_entity_guid_texture), "Could not create entity GUID texture");
 
+    texture_desc.usage &= ~.TransferSrc;
+
     g_selected_entity_guid_texture = CreateGfxTexture("Selected Entity GUID", texture_desc);
     Assert(!IsNull(*g_selected_entity_guid_texture), "Could not create entity GUID texture");
+
+    for * g_entity_guid_readback_buffers {
+        buffer_desc : GfxBufferDesc;
+        buffer_desc.size = xx (w * h * size_of([4]u32));
+        buffer_desc.usage = .TransferDst;
+        buffer_desc.memory_usage = .Readback;
+
+        it.* = CreateGfxBuffer(TPrint("Entity GUID Readback %", it_index), buffer_desc);
+        Assert(!IsNull(it), "Could not create entity GUID readback buffer");
+
+
+        alloc_info : VmaAllocationInfo;
+        vmaGetAllocationInfo(g_gfx_context.allocator, it.allocation, *alloc_info);
+        Assert(alloc_info.pMappedData != null);
+
+        g_entity_guid_readback_ptrs[it_index] = alloc_info.pMappedData;
+    }
 }
 
 CreateEntityGUIDPipeline :: () {
@@ -99,4 +126,34 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
         }
     }
     EndGfxRenderPass(*pass);
+}
+
+TransferEntityGUIDForReadback :: (cmd_buffer : *GfxCommandBuffer) {
+    pass := BeginGfxCopyPass(cmd_buffer, "Transfer Entity GUIDs for Readback");
+    {
+        CopyTextureToBuffer(*pass, *g_entity_guid_texture, *g_entity_guid_readback_buffers[g_gfx_context.frame_in_flight]);
+    }
+    EndGfxCopyPass(*pass);
+}
+
+GetEntityGUIDAtPoint :: (x : int, y : int) -> EntityGUID {
+    w, h := GetWindowPixelSize(g_window);
+    if x < 0 || x >= w || y < 0 || y >= h {
+        return Null_Entity_GUID;
+    }
+
+    frame_index := g_gfx_context.frame_in_flight;
+    frame_index += Gfx_Num_Frames_In_Flight - 1;
+    frame_index %= Gfx_Num_Frames_In_Flight;
+
+    return g_entity_guid_readback_ptrs[frame_index][y * w + x];
+}
+
+GetEntityAtPoint :: (world : *World, x : int, y : int) -> *Entity {
+    guid := GetEntityGUIDAtPoint(x, y);
+    if guid == Null_Entity_GUID {
+        return null;
+    }
+
+    return GetEntity(world, *guid);
 }
