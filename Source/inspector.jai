@@ -320,16 +320,33 @@ InspectQuatdAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, any : 
 
 InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q : *$Q/Quat, notes : []string, data : *void) -> InteractionState {
     storage := ImGui.GetStateStorage();
-    store_x := ImGui.GetID(CTPrint("%.x", label));
-    store_y := ImGui.GetID(CTPrint("%.y", label));
-    store_z := ImGui.GetID(CTPrint("%.z", label));
-    store_w := ImGui.GetID(CTPrint("%.w", label));
+    current_euler_x_store := ImGui.GetID(CTPrint("%.current.x", label));
+    current_euler_y_store := ImGui.GetID(CTPrint("%.current.y", label));
+    current_euler_z_store := ImGui.GetID(CTPrint("%.current.z", label));
+    dragging_store := ImGui.GetID(CTPrint("%.dragging", label));
 
-    euler_angles := ToEulerAnglesXYZ(q);
-    euler_angles = ToDegs(euler_angles);
-    original_euler_angles := euler_angles;
+    Rotation_Order :: EulerAnglesRotationOrder.YXZ;
 
-    state, activated, edited_value := DragVector(label, euler_angles.n, step=0.1);
+    euler_angles : Vec3(Q.T);
+    if storage.GetBool(storage, dragging_store, false) {
+        euler_angles = .{
+            xx storage.GetFloat(storage, current_euler_x_store),
+            xx storage.GetFloat(storage, current_euler_y_store),
+            xx storage.GetFloat(storage, current_euler_z_store),
+        };
+    } else {
+        euler_angles = ToEulerAngles(q, Rotation_Order);
+        euler_angles = ToDegs(euler_angles);
+    }
+
+    // Just for aesthetic
+    for * euler_angles.n {
+        if it.* == -0.0 {
+            it.* = 0.0;
+        }
+    }
+
+    state, _, edited_value := DragVector(label, euler_angles.n, step=0.1);
 
     ImGui.SameLine();
 
@@ -339,17 +356,14 @@ InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q
     }
 
     if edited_value >= 0 {
-        Axes :: Vec3(Q.T).[
-            .{1,0,0},
-            .{0,1,0},
-            .{0,0,1},
-        ];
+        storage.SetBool(storage, dragging_store, true);
+        storage.SetFloat(storage, current_euler_x_store, xx euler_angles.x);
+        storage.SetFloat(storage, current_euler_y_store, xx euler_angles.y);
+        storage.SetFloat(storage, current_euler_z_store, xx euler_angles.z);
 
-        delta := euler_angles[edited_value] - original_euler_angles[edited_value];
-        axis := Axes[edited_value];
-        rotate := QuatFromAxisAngle(axis, ToRads(cast(float, delta)));
-
-        q.* = rotate * q.*;
+        q.* = QuatFromEulerAnglesOrdered(ToRads(euler_angles), Rotation_Order);
+    } else {
+        storage.SetBool(storage, dragging_store, false);
     }
 
     return state;
