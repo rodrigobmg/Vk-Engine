@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x6ecc97a3e32e455a89dc95357be11552
   @name 2: "walls_floor_03.004"
-  @local_position 3: [1.4462536573410034, 13.452463150024414, -0.0494467169046402]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [1.446254, 13.452463, -0.049447]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xdd87b82947e146a18897730bc500d2f7
 @mesh 2: "Sponza/Meshes/walls_floor_03.004.mesh"
 @material 3: "Sponza/Materials/brickwall_01.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0xa11912c0a62c4e11887b9cd14d6cb960
   @name 2: "roof_floor_03_01.001"
-  @local_position 3: [-11.028592109680176, 16.175004959106445, -5.4987688064575195]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [-11.028592, 16.175005, -5.498769]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xdd87b82947e146a18897730bc500d2f7
 @mesh 2: "Sponza/Meshes/roof_floor_03_01.001.mesh"
 @material 3: "Sponza/Materials/stones_01_tile.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

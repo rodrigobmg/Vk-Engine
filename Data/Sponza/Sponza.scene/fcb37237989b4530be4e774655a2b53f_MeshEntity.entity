@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0xfcb37237989b4530be4e774655a2b53f
   @name 2: "lionhead"
-  @local_position 3: [-15.945751190185547, 0.22804443538188934, -0.09938076138496399]
-  @local_rotation 4: [-0.0, -0.7071068286895752, -0.0, 0.7071067094802856]
-  @local_scale 5: [0.4699629247188568, 0.4699629545211792, 0.4699629247188568]
+  @local_position 3: [-15.945751, 0.228044, -0.099381]
+  @local_rotation 4: [-0, -0.707107, -0, 0.707107]
+  @local_scale 5: [0.469963, 0.469963, 0.469963]
   @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
 @mesh 2: "Sponza/Meshes/lionhead.mesh"
 @material 3: "Sponza/Materials/ornament_lion.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

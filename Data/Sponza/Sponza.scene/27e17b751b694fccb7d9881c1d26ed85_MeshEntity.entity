@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x27e17b751b694fccb7d9881c1d26ed85
   @name 2: "ornament_door_2ndfloor_12"
-  @local_position 3: [-5.841040134429932, 5.450929641723633, -7.430119514465332]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [-5.84104, 5.45093, -7.43012]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
 @mesh 2: "Sponza/Meshes/ornament_door_2ndfloor_12.mesh"
 @material 3: "Sponza/Materials/brickwall_02.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

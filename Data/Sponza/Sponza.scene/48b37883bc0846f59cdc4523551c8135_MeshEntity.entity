@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x48b37883bc0846f59cdc4523551c8135
   @name 2: "master_material.022"
-  @local_position 3: [1.9864367246627808, 4.999999987376214e-07, -13.863932609558105]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [1.986437, 0, -13.863933]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xd4fd13fe2a9f4e97b6bf6f12817b7794
 @mesh 2: "Sponza/Meshes/master_material.022.mesh"
 @material 3: "Sponza/Materials/wood_door_01.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

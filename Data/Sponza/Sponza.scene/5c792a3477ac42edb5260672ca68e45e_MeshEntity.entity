@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x5c792a3477ac42edb5260672ca68e45e
   @name 2: "orn_windows_07.002"
-  @local_position 3: [0.12733794748783112, 14.929462432861328, 2.9162285327911377]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [0.127338, 14.929462, 2.916229]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xdd87b82947e146a18897730bc500d2f7
 @mesh 2: "Sponza/Meshes/orn_windows_07.002.mesh"
 @material 3: "Sponza/Materials/stones_01_tile.001.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0xbc9a7e620d7742e18b8ae530c30ffca5
   @name 2: "lamps_2ndfloor_03.002"
-  @local_position 3: [2.1634457111358643, 10.383440971374512, 4.695348262786865]
-  @local_rotation 4: [0.0, -0.13052619993686676, 0.0, 0.9914448857307434]
-  @local_scale 5: [0.9999998807907104, 1.0, 0.9999998807907104]
+  @local_position 3: [2.163446, 10.383441, 4.695348]
+  @local_rotation 4: [0, -0.130526, 0, 0.991445]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xdb84b1d6c33240a49f16de597b1524f5
 @mesh 2: "Sponza/Meshes/lamps_2ndfloor_03.002.mesh"
 @material 3: "Sponza/Materials/lamp_glass_01.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

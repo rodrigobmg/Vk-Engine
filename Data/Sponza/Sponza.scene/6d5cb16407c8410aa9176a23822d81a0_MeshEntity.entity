@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x6d5cb16407c8410aa9176a23822d81a0
   @name 2: "ornament_stones_01"
-  @local_position 3: [-1.2055010795593262, 2.8793656826019287, 0.13393187522888184]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [-1.205501, 2.879366, 0.133932]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
 @mesh 2: "Sponza/Meshes/ornament_stones_01.mesh"
 @material 3: "Sponza/Materials/stone_trims_01.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

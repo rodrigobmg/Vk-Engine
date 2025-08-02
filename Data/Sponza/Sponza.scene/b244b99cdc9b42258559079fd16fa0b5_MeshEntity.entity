@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0xb244b99cdc9b42258559079fd16fa0b5
   @name 2: "columns_1stfloor_02"
-  @local_position 3: [4.2073211669921875, -0.012799834832549095, 0.04089896008372307]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [4.207321, -0.0128, 0.040899]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
 @mesh 2: "Sponza/Meshes/columns_1stfloor_02.mesh"
 @material 3: "Sponza/Materials/column_head_1stfloor.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

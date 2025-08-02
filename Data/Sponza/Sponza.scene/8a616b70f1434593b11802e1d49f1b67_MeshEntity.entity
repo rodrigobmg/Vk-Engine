@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x8a616b70f1434593b11802e1d49f1b67
   @name 2: "ceiling_1stfloor_02.001"
-  @local_position 3: [15.272645950317383, 3.9124488830566406, 2.0942840576171875]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [15.272646, 3.912449, 2.094284]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xf177a54a13784d4cb1e7b7e539d08db7
 @mesh 2: "Sponza/Meshes/ceiling_1stfloor_02.001.mesh"
 @material 3: "Sponza/Materials/stone_trims_01.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true

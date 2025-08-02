@@ -1,10 +1,10 @@
-1:
+@_ 1:
   @guid 1: 0x0b568b9b6c0e4cc0b9bcdc7e786d050e
   @name 2: "ornament_roof"
-  @local_position 3: [0.8993908762931824, 15.94246768951416, 0.0030139158479869366]
-  @local_rotation 4: [0.0, 0.0, 0.0, 1.0]
-  @local_scale 5: [1.0, 1.0, 1.0]
+  @local_position 3: [0.899391, 15.942468, 0.003014]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
   @parent 6: 0xdd87b82947e146a18897730bc500d2f7
 @mesh 2: "Sponza/Meshes/ornament_roof.mesh"
 @material 3: "Sponza/Materials/metal_door.001.mat"
-@cast_shadows 4: True
+@cast_shadows 4: true
