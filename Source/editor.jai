@@ -208,7 +208,7 @@ InitEditor :: () {
 
 UpdateEditor :: (world : *World) {
     // Entity selection
-    if !ImGui.GetIO().WantCaptureMouse && IsMouseButtonPressed(.Left) {
+    if !ImGui.GetIO().WantCaptureMouse && IsMouseButtonPressed(.Left) && !IsMouseButtonDown(.Right) {
         x, y := GetMousePixelPosition(g_window);
         entity := GetEntityAtPoint(world, x, y);
         if entity {
