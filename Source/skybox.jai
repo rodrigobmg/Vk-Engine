@@ -44,8 +44,7 @@ SkyboxPass :: (using ctx : *FrameRenderContext, camera : *Camera, skybox_texture
         return;
     }
 
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+    w, h := GetWindowPixelSize(g_window);
 
     viewpoint := Viewpoint.{
         position=camera.position,

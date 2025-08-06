@@ -491,8 +491,7 @@ ChooseSwapchainExtent :: (capabilities : VkSurfaceCapabilitiesKHR) -> VkExtent2D
     if capabilities.currentExtent.width != 0xffffffff {
         result = capabilities.currentExtent;
     } else {
-        w, h : s32;
-        SDL_GetWindowSizeInPixels(ctx.window, *w, *h);
+        w, h := GetWindowPixelSize(ctx.window);
 
         result.width = xx w;
         result.height = xx h;

@@ -85,8 +85,7 @@ UpdateCamera :: (using camera : *Camera) {
     transform = Mat4fTranslate(position) * Mat4fFromQuat(rotation);
     view = Inverse(transform);
 
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+    w, h := GetWindowPixelSize(g_window);
 
     aspect := w / cast(float, h);
     projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_near, z_far);

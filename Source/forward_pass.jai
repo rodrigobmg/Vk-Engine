@@ -32,8 +32,7 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
         CreateForwardPipeline();
     }
 
-    w, h : s32;
-    SDL_GetWindowSizeInPixels(g_window, *w, *h);
+    w, h := GetWindowPixelSize(g_window);
 
     viewpoints : [Max_Viewpoints]Viewpoint;
     viewpoints[0] = .{
