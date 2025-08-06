@@ -235,8 +235,7 @@ EntityIsInHierarchy :: (world : *World, entity : *Entity, of : *Entity) -> bool 
 }
 
 TryDowncast :: inline (entity : *Entity, $T : Type) -> *T
-#modify { return IsInEntityTypesArray(T); }
-{
+#modify { return IsInEntityTypesArray(T); } {
     if !entity {
         return null;
     }
@@ -249,8 +248,7 @@ TryDowncast :: inline (entity : *Entity, $T : Type) -> *T
 }
 
 Downcast :: inline (entity : *Entity, $T : Type) -> *T
-#modify { return IsInEntityTypesArray(T); }
-{
+#modify { return IsInEntityTypesArray(T); } {
     if !entity {
         return null;
     }
@@ -332,21 +330,6 @@ SetEntityName :: inline (using world : *World, entity : *Entity, new_name : stri
     return number_postfix == -1;
 }
 
-GetEntityByName :: inline (using world : *World, name : string) -> *Entity {
-    return HashMapGet(*entities_by_name, name, fallback = null);
-}
-
-GetEntityByName :: inline (using world : *World, name : string, $T : Type) -> *T
-#modify { return IsInEntityTypesArray(T); }
-{
-    entity := HashMapGet(*entities_by_name, name, fallback = null);
-    if !entity {
-        return null;
-    }
-
-    return Downcast(entity, T);
-}
-
 GetEntityError :: enum {
     Ok;
     NullEntity;
@@ -356,15 +339,33 @@ GetEntityError :: enum {
     DowncastFailed;
 }
 
+GetEntityByName :: inline (using world : *World, name : string) -> *Entity {
+    return HashMapGet(*entities_by_name, name, fallback = null);
+}
+
+GetEntityByName :: inline (using world : *World, name : string, $T : Type) -> *T, GetEntityError
+#modify { return IsInEntityTypesArray(T); } {
+    entity := HashMapGet(*entities_by_name, name, fallback = null);
+    if !entity {
+        return null, .NullEntity;
+    }
+
+    typed_entity := TryDowncast(entity, T);
+    if !typed_entity {
+        return null, .DowncastFailed;
+    }
+
+    return typed_entity, .Ok;
+}
+
 GetEntity :: (using world : *World, guid : EntityGUID, $T : Type) -> *T, GetEntityError
-#modify { return IsInEntityTypesArray(T); }
-{
+#modify { return IsInEntityTypesArray(T); } {
     entity, err := GetEntity(world, guid);
     if !entity {
         return null, err;
     }
 
-    typed_entity := Downcast(entity, T);
+    typed_entity := TryDowncast(entity, T);
     if !typed_entity {
         return null, .DowncastFailed;
     }
@@ -392,7 +393,7 @@ GetEntity :: (using world : *World, index : EntityIndex, $T : Type) -> *T, GetEn
         return null, err;
     }
 
-    typed_entity := Downcast(entity, T);
+    typed_entity := TryDowncast(entity, T);
     if !typed_entity {
         return null, .DowncastFailed;
     }
@@ -400,8 +401,7 @@ GetEntity :: (using world : *World, index : EntityIndex, $T : Type) -> *T, GetEn
     return typed_entity, .Ok;
 }
 
-GetEntity :: (using world : *World, index : EntityIndex) -> *Entity, GetEntityError
-{
+GetEntity :: (using world : *World, index : EntityIndex) -> *Entity, GetEntityError {
     LogSectionScope(*Log_Entities);
 
     if index == 0 {
