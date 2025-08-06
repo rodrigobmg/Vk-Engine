@@ -791,12 +791,7 @@ DestroyWorld :: (using world : *World) {
         ArrayFree(*children);
     }
 
-    // @Todo: This is there so destroying GPU resources when unloading assets does not
-    // cause validation errors. We need to build something that manages the lifetime of GPU objects
-    // without requiring to wait for idle.
-    WaitForGPUIdle();
-
-    RemoveRef(skybox);
+    DerefAsset(*skybox);
 
     Free(loaded_from_directory.data);
 

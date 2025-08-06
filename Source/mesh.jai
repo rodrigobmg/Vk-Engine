@@ -134,8 +134,8 @@ LoadMeshFromMemory :: (mesh : *Mesh, data : []u8, name : string) -> bool {
 DestroyMesh :: (using mesh : *Mesh) {
     Free(vertices.data);
     Free(indices.data);
-    DestroyGfxBuffer(*vertex_buffer);
-    DestroyGfxBuffer(*index_buffer);
+    QueueDestroyGfxBuffer(*vertex_buffer);
+    QueueDestroyGfxBuffer(*index_buffer);
     mesh.* = .{};
 }
 

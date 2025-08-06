@@ -351,6 +351,11 @@ RemoveRef :: (using asset : *Asset) {
     }
 }
 
+DerefAsset :: (asset : **Asset) {
+    RemoveRef(asset.*);
+    asset.* = null;
+}
+
 UnloadAllUnreferencedAssets :: () {
     num_unloaded_assets := 0;
 

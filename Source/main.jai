@@ -72,10 +72,10 @@ LoadDefaultAssets :: () {
 }
 
 UnloadDefaultAssets :: () {
-    RemoveRef(g_default_base_color);
-    RemoveRef(g_default_normal_map);
-    RemoveRef(g_default_metallic_roughness_map);
-    RemoveRef(g_default_emissive);
+    DerefAsset(*g_default_base_color);
+    DerefAsset(*g_default_normal_map);
+    DerefAsset(*g_default_metallic_roughness_map);
+    DerefAsset(*g_default_emissive);
 }
 
 main :: () {

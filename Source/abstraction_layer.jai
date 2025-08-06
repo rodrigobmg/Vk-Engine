@@ -40,16 +40,52 @@ GfxContext :: struct {
     swapchain_image_ready_for_present_semaphores : []VkSemaphore;
     frame_in_flight_fences : []VkFence;
     frame_in_flight : int;
+    frame_index : int;
     frame_swapchain_image_index : u32;
     allocation_callbacks : VkAllocationCallbacks;
     allocator : VmaAllocator;
     limits : GfxLimits;
+
+    texture_view_collectors : [Gfx_Num_Frames_In_Flight]GfxGarbageCollector(GfxTexture, DestroyGfxTextureView);
+    texture_collectors : [Gfx_Num_Frames_In_Flight]GfxGarbageCollector(GfxTexture);
+    sampler_collectors : [Gfx_Num_Frames_In_Flight]GfxGarbageCollector(GfxSampler);
+    buffer_collectors : [Gfx_Num_Frames_In_Flight]GfxGarbageCollector(GfxBuffer);
 
     command_buffers_to_submit : [..]VkCommandBuffer;
 
     vkSetDebugUtilsObjectNameEXT : PFN_vkSetDebugUtilsObjectNameEXT;
     vkCmdBeginDebugUtilsLabelEXT : PFN_vkCmdBeginDebugUtilsLabelEXT;
     vkCmdEndDebugUtilsLabelEXT : PFN_vkCmdEndDebugUtilsLabelEXT;
+    vkQueueBeginDebugUtilsLabelEXT : PFN_vkQueueBeginDebugUtilsLabelEXT;
+    vkQueueEndDebugUtilsLabelEXT : PFN_vkQueueEndDebugUtilsLabelEXT;
+}
+
+// Tool to defer destroying objects after the last frame they were used is finished processing on the GPU
+GfxGarbageCollector :: struct($T : Type, destroy_func : #type (*T) = null) {
+    garbage : [..]T;
+}
+
+AddGarbage :: (collector : *GfxGarbageCollector, garbage : collector.T) {
+    ArrayPush(*collector.garbage, garbage);
+}
+
+DestroyGfxGarbageCollector :: (collector : *GfxGarbageCollector) {
+    CollectGarbage(collector);
+    ArrayFree(*collector.garbage);
+}
+
+CollectGarbage :: (collector : *GfxGarbageCollector) {
+    #if collector.destroy_func {
+        Destroy :: collector.destroy_func;
+    } else {
+        Destroy :: #insert #run TPrint("Destroy%;", collector.T);
+    }
+
+    for * collector.garbage {
+        Destroy(it);
+    }
+
+    ArrayClear(*collector.garbage);
 }
 
 GfxLimits :: struct {
@@ -66,7 +102,7 @@ GfxLimits :: struct {
     storage_buffer_offset_alignment : u32;
 }
 
-MakeGfxLimits :: (limits : VkPhysicalDeviceLimits) -> GfxLimits {
+MakeGfxLimits :: inline (limits : VkPhysicalDeviceLimits) -> GfxLimits {
     result : GfxLimits;
     result.max_texture_1d_dimension = limits.maxImageDimension1D;
     result.max_texture_2d_dimension = limits.maxImageDimension2D;
@@ -90,6 +126,10 @@ GetGfxLimits :: inline () -> GfxLimits {
 BeginFrame :: () {
     ctx := *g_gfx_context;
 
+    ctx.frame_in_flight += 1;
+    ctx.frame_in_flight %= Gfx_Num_Frames_In_Flight;
+    ctx.frame_index += 1;
+
     wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Frame_Max_Wait);
     Assert(wait_result == .SUCCESS, "vkWaitForFences failed: %", wait_result);
 
@@ -111,10 +151,19 @@ BeginFrame :: () {
 
     cmd_pool := *ctx.frame_command_pools[ctx.frame_in_flight];
     ResetGfxCommandPool(cmd_pool);
+
+    BeginGfxDebugMarker(TPrint("Frame %", ctx.frame_index));
+
+    CollectGarbage(*ctx.texture_view_collectors[ctx.frame_in_flight]);
+    CollectGarbage(*ctx.texture_collectors[ctx.frame_in_flight]);
+    CollectGarbage(*ctx.sampler_collectors[ctx.frame_in_flight]);
+    CollectGarbage(*ctx.buffer_collectors[ctx.frame_in_flight]);
 }
 
 SubmitFrame :: () {
     ctx := *g_gfx_context;
+
+    EndGfxDebugMarker();
 
     submit_stage_mask := VkPipelineStageFlags.COLOR_ATTACHMENT_OUTPUT_BIT;
     submit_info : VkSubmitInfo;
@@ -141,9 +190,6 @@ SubmitFrame :: () {
     } else {
         Assert(present_result == .SUCCESS, "Failed to present swapchain image");
     }
-
-    ctx.frame_in_flight += 1;
-    ctx.frame_in_flight %= Gfx_Num_Frames_In_Flight;
 }
 
 WaitForGPUIdle :: () {
@@ -281,6 +327,7 @@ LoadGfxShader :: (name : string, extra_compiler_args : []string = .[], dependenc
     args : [..]string;
     args.allocator = Temp;
     ArrayPush(*args, "glslc");
+    ArrayPush(*args, "-g");
     ArrayPush(*args, "-std=460");
     ArrayPush(*args, "--target-env=vulkan1.3");
     ArrayPush(*args, TPrint("-fshader-stage=%", stage));
@@ -1648,6 +1695,12 @@ DestroyGfxBuffer :: (buffer : *GfxBuffer) {
     buffer.* = .{};
 }
 
+QueueDestroyGfxBuffer :: (buffer : *GfxBuffer) {
+    collector := *g_gfx_context.buffer_collectors[g_gfx_context.frame_in_flight];
+    AddGarbage(collector, buffer);
+    buffer.* = .{};
+}
+
 GfxTextureType :: enum u8 {
     Invalid;
     Texture1D;
@@ -1932,6 +1985,12 @@ DestroyGfxTexture :: (texture : *GfxTexture) {
     texture.* = .{};
 }
 
+QueueDestroyGfxTexture :: (texture : *GfxTexture) {
+    collector := *g_gfx_context.texture_collectors[g_gfx_context.frame_in_flight];
+    AddGarbage(collector, texture);
+    texture.* = .{};
+}
+
 CreateGfxTextureView :: (name : string, desc : GfxTextureViewDesc, texture : *GfxTexture) -> GfxTexture {
     if IsNull(texture) {
         return .{};
@@ -1984,6 +2043,12 @@ DestroyGfxTextureView :: (texture : *GfxTexture) {
     LogSectionScope(*Log_Vulkan);
 
     vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
+    texture.* = .{};
+}
+
+QueueDestroyGfxTextureView :: (texture : *GfxTexture) {
+    collector := *g_gfx_context.texture_view_collectors[g_gfx_context.frame_in_flight];
+    AddGarbage(collector, texture);
     texture.* = .{};
 }
 
@@ -2098,6 +2163,12 @@ DestroyGfxSampler :: (sampler : *GfxSampler) {
     LogSectionScope(*Log_Vulkan);
 
     vkDestroySampler(g_gfx_context.device, sampler.sampler, g_vk_alloc_callbacks);
+    sampler.* = .{};
+}
+
+QueueDestroyGfxSampler :: (sampler : *GfxSampler) {
+    collector := *g_gfx_context.sampler_collectors[g_gfx_context.frame_in_flight];
+    AddGarbage(collector, sampler);
     sampler.* = .{};
 }
 
@@ -2333,6 +2404,28 @@ EndGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer) {
     }
 
     g_gfx_context.vkCmdEndDebugUtilsLabelEXT(cmd_buffer.cmd_buffer);
+}
+
+BeginGfxDebugMarker :: (name : string) {
+    LogSectionScope(*Log_Vulkan);
+
+    if !g_gfx_context.vkQueueBeginDebugUtilsLabelEXT || !g_gfx_context.vkQueueEndDebugUtilsLabelEXT {
+        return;
+    }
+
+    label : VkDebugUtilsLabelEXT;
+    label.pLabelName = CStringClone(name ,, Temp);
+    g_gfx_context.vkQueueBeginDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue, *label);
+}
+
+EndGfxDebugMarker :: () {
+    LogSectionScope(*Log_Vulkan);
+
+    if !g_gfx_context.vkQueueBeginDebugUtilsLabelEXT || !g_gfx_context.vkQueueEndDebugUtilsLabelEXT {
+        return;
+    }
+
+    g_gfx_context.vkQueueEndDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue);
 }
 
 BindGraphicsPipeline :: (pass : *GfxRenderPass, pipeline : *GfxGraphicsPipeline) {

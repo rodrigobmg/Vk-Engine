@@ -99,7 +99,7 @@ InitShadowMap :: (shadow_map : *ShadowMap, resolution : u32) {
 }
 
 DestroyShadowMap :: (shadow_map : *ShadowMap) {
-    DestroyGfxTexture(*shadow_map.depth_texture);
+    QueueDestroyGfxTexture(*shadow_map.depth_texture);
     FreeMeshBuffer(*shadow_map.mesh_buffer);
 }
 

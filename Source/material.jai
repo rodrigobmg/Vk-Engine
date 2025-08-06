@@ -99,10 +99,10 @@ LoadMaterialFromMemory :: (material : *Material, data : []u8, name : string) -> 
 }
 
 DestroyMaterial :: (material : *Material) {
-    RemoveRef(material.base_color);
-    RemoveRef(material.normal_map);
-    RemoveRef(material.metallic_roughness_map);
-    RemoveRef(material.emissive);
-    RemoveRef(material.depth_map);
+    DerefAsset(*material.base_color);
+    DerefAsset(*material.normal_map);
+    DerefAsset(*material.metallic_roughness_map);
+    DerefAsset(*material.emissive);
+    DerefAsset(*material.depth_map);
     material.* = .{};
 }

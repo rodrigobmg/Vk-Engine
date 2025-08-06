@@ -68,7 +68,7 @@ CreateImGuiFontsTexture :: () {
     renderer := GetImGuiRenderer();
 
     if !IsNull(*renderer.font_texture) {
-        DestroyGfxTexture(*renderer.font_texture);
+        QueueDestroyGfxTexture(*renderer.font_texture);
     }
 
     pixels : *u8;
@@ -94,7 +94,7 @@ DestroyImGuiFontsTexture :: () {
     io := ImGui.GetIO();
 
     if io.Fonts.TexID {
-        DestroyGfxTexture(cast(*GfxTexture, io.Fonts.TexID));
+        QueueDestroyGfxTexture(cast(*GfxTexture, io.Fonts.TexID));
     }
 
     io.Fonts.TexID = null;

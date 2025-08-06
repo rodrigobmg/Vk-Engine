@@ -24,6 +24,7 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
 
     map.irradiance_map = CreateGfxTexture(TPrint("% irradiance", name), desc);
     if IsNull(*map.irradiance_map) {
+        DerefAsset(*map.base_texture);
         return false;
     }
 
@@ -34,6 +35,9 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
 
     map.environment_map = CreateGfxTexture(TPrint("% environment", name), desc);
     if IsNull(*map.environment_map) {
+        DerefAsset(*map.base_texture);
+        DestroyGfxTexture(*map.irradiance_map);
+
         return false;
     }
 
@@ -45,6 +49,13 @@ LoadEnvironmentMapFromMemory :: (map : *EnvironmentMap, data : []u8, name : stri
 
         map.environment_levels[i] = CreateGfxTextureView(TPrint("% environment %", name, i), view_desc, *map.environment_map);
         if IsNull(*map.environment_map) {
+            DerefAsset(*map.base_texture);
+            DestroyGfxTexture(*map.irradiance_map);
+            for j : 0..i - 1 {
+                DestroyGfxTextureView(*map.environment_levels[j]);
+            }
+            DestroyGfxTexture(*map.environment_map);
+
             return false;
         }
     }
@@ -58,19 +69,20 @@ DestroyEnvironmentMap :: (map : *EnvironmentMap) {
     for g_environment_maps_to_generate {
         if it == map {
             remove it;
-            break;
         }
     }
 
-    RemoveRef(map.base_texture);
+    DerefAsset(*map.base_texture);
 
     for * map.environment_levels {
-        DestroyGfxTextureView(it);
+        QueueDestroyGfxTextureView(it);
     }
 
-    DestroyGfxTexture(*map.environment_map);
+    QueueDestroyGfxTexture(*map.environment_map);
 
-    DestroyGfxTexture(*map.irradiance_map);
+    QueueDestroyGfxTexture(*map.irradiance_map);
+
+    map.* = .{};
 }
 
 g_environment_maps_to_generate : [..]*EnvironmentMap;

@@ -270,6 +270,19 @@ DestroyGfxContext :: () {
 
     ctx := *g_gfx_context;
 
+    for * ctx.texture_view_collectors {
+        DestroyGfxGarbageCollector(it);
+    }
+    for * ctx.texture_collectors {
+        DestroyGfxGarbageCollector(it);
+    }
+    for * ctx.sampler_collectors {
+        DestroyGfxGarbageCollector(it);
+    }
+    for * ctx.buffer_collectors {
+        DestroyGfxGarbageCollector(it);
+    }
+
     vmaDestroyAllocator(ctx.allocator);
 
     vkDeviceWaitIdle(ctx.device);

@@ -107,12 +107,13 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
             asset_filename := event.filename;
 
             RemoveRefDynamic(asset_type, value_ptr.*);
-            value_ptr .* = null;
+            value_ptr.* = null;
 
             if StringStartsWith(asset_filename, g_data_directory_absolute_path) {
                 asset_filename = StringAdvance(asset_filename, g_data_directory_absolute_path.count);
-                if asset_filename.count > 0 && asset_filename[0] == #char "/"
+                if asset_filename.count > 0 && asset_filename[0] == #char "/" {
                     asset_filename = StringAdvance(asset_filename, 1);
+                }
 
                 value_ptr.* = LoadAssetDynamic(asset_type, asset_filename);
             } else {

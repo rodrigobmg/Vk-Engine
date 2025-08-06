@@ -54,7 +54,7 @@ LoadTexture2DFromMemory :: (texture : *Texture2D, data : []u8, name : string) ->
 
 DestroyTexture2D :: (texture : *Texture2D) {
     CancelTextureUpload(texture);
-    DestroyGfxTexture(*texture.texture);
+    QueueDestroyGfxTexture(*texture.texture);
 }
 
 #scope_file
