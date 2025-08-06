@@ -4,13 +4,13 @@ MaterialType :: enum u8 {
 
 Material :: struct {
     type : MaterialType; @Serialize(1)
-    base_color_tint : Vec3f = .{1,1,1}; @Serialize(2)
+    base_color_tint : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
     base_color : *Asset(Texture2D); @Serialize(3)
     normal_map : *Asset(Texture2D); @Serialize(4)
-    metallic : float; @Serialize(5);
-    roughness : float; @Serialize(6);
+    metallic : float; @Serialize(5) @FloatRange(0,1)
+    roughness : float; @Serialize(6) @FloatRange(0,1)
     metallic_roughness_map : *Asset(Texture2D); @Serialize(7)
-    emissive_tint : Vec3f = .{1,1,1}; @Serialize(8)
+    emissive_tint : Vec3f = .{1,1,1}; @Serialize(8) @ColorEdit
     emissive : *Asset(Texture2D); @Serialize(9)
     emissive_strength : float; @Serialize(10)
     depth_map : *Asset(Texture2D); @Serialize(11)
@@ -94,6 +94,16 @@ LoadMaterialFromMemory :: (material : *Material, data : []u8, name : string) -> 
     if !result.ok {
         LogError("There were errors when loading material '%'\nAt line %: %", name, result.line_index + 1, result.error_msg);
     }
+
+    return true;
+}
+
+WriteMaterial :: (builder : *StringBuilder, material : *Material) -> bool {
+    serializer : Serializer;
+    serializer.builder = builder.*;
+    defer builder.* = serializer.builder;
+
+    SerializeAny(*serializer, material.*);
 
     return true;
 }

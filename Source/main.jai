@@ -130,7 +130,7 @@ main :: () {
         load_proc=LoadMaterialFromMemory,
         post_load_proc=null,
         unload_proc=DestroyMaterial,
-        write_proc=null
+        write_proc=WriteMaterial
     );
     InitAssetCache(
         *g_Texture2D_asset_cache,
@@ -163,6 +163,7 @@ main :: () {
     defer ImGui.DestroyContext();
 
     InitEditor();
+    defer CleanupEditor();
 
     ImGui_SDL.Init(g_window);
     defer ImGui_SDL.Terminate();

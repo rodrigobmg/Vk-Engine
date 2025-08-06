@@ -5,6 +5,8 @@
 #load "inspector.jai";
 #load "file_browser.jai";
 
+Log_Editor :: Log_Section.{name="Editor"};
+
 g_show_imgui_demo : bool;
 g_show_world_inspector : bool;
 g_show_entity_outliner := true;
@@ -158,6 +160,8 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
 }
 
 InitEditor :: () {
+    LogSectionScope(*Log_Editor);
+
     io := ImGui.GetIO();
 
     ImGui.StyleColorsDark();
@@ -207,7 +211,15 @@ InitEditor :: () {
     }
 }
 
+CleanupEditor :: () {
+    LogSectionScope(*Log_Editor);
+
+    DerefAsset(*g_material_editor_selected_material);
+}
+
 UpdateEditor :: (world : *World) {
+    LogSectionScope(*Log_Editor);
+
     // Entity selection
     if !ImGui.GetIO().WantCaptureMouse && IsMouseButtonPressed(.Left) && !IsMouseButtonDown(.Right) {
         x, y := GetMousePixelPosition(g_window);
@@ -247,6 +259,9 @@ UpdateEditor :: (world : *World) {
             }
             if ImGui.MenuItem("Entity Outliner", selected=g_show_entity_outliner) {
                 g_show_entity_outliner = true;
+            }
+            if ImGui.MenuItem("Material Editor", selected=g_show_material_editor) {
+                g_show_material_editor = true;
             }
             if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
                 g_show_imgui_demo = true;
@@ -303,6 +318,7 @@ UpdateEditor :: (world : *World) {
     UpdateCamera(*g_editor_camera);
     ShowWorldInspector(world);
     ShowEntityOutliner(world);
+    ShowMaterialEditor();
 
     entity_to_inspect : *Entity;
     if g_editor_selected_entities.count == 1 {
@@ -680,5 +696,54 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
 
     if state {
         UpdateWorldTransform(world, entity);
+    }
+}
+
+g_show_material_editor : bool;
+g_material_editor_selected_material : *Asset(Material);
+
+OpenMaterialEditor :: (material : *Asset(Material)) {
+    g_show_material_editor = true;
+
+    if g_material_editor_selected_material {
+        DerefAsset(*g_material_editor_selected_material);
+    }
+
+    g_material_editor_selected_material = AddRef(material);
+}
+
+ShowMaterialEditor :: () {
+    if !g_show_material_editor {
+        return;
+    }
+
+    defer ImGui.End();
+
+    ImGui.SetNextWindowSize(.{350, 500}, .FirstUseEver);
+    if !ImGui.Begin("Material Editor", *g_show_material_editor) {
+        return;
+    }
+
+    world : *World;
+    ShowInspector("Selected Material", world, g_material_editor_selected_material);
+
+    ImGui.Separator();
+
+    if g_material_editor_selected_material {
+        ShowInspector("", world, g_material_editor_selected_material.asset_data, .["InspectorNoTree"]);
+
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        if ImGui.Button("Reload", size=.{-1, 0}) {
+            reloaded, asset := TryReloadAsset(*g_Material_asset_cache, g_material_editor_selected_material.asset_name);
+            RemoveRef(asset); // TryReloadAsset adds a ref
+        }
+
+        if ImGui.Button("Save", size=.{-1, 0}) {
+            SaveAsset(g_material_editor_selected_material);
+        }
+    } else {
+        ImGui.Text("No material selected");
     }
 }

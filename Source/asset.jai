@@ -818,12 +818,13 @@ SaveAsset :: (asset : *Asset) -> bool {
     }
 
     cache := asset.asset_cache;
+
+    LogSectionScope(*cache.log_section);
+
     if !cache.write_proc {
         LogError("No write proc in asset cache");
         return false;
     }
-
-    LogSectionScope(*cache.log_section);
 
     filename := StringJoin("Data/", asset.asset_name,, Temp);
 
@@ -835,6 +836,23 @@ SaveAsset :: (asset : *Asset) -> bool {
     }
 
     return write_entire_file(filename, *builder);
+}
+
+SaveAssetDynamic :: (data_type : Type, asset : *void) -> bool {
+    #insert -> string {
+        builder : StringBuilder;
+
+        Appendln(*builder, "if data_type == {");
+        for Asset_Types {
+            Appendln(*builder, "case %1; return SaveAsset(cast(*Asset(%1), asset));", it);
+        }
+        Appendln(*builder, "case; LogError(\"SaveAssetDynamic does not handle asset type \%\", data_type);");
+        Appendln(*builder, "}");
+
+        return StringBuilderBuild(*builder);
+    }
+
+    return false;
 }
 
 UnreferenceAllAssets :: (value : *$T)

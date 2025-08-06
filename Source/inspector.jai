@@ -195,7 +195,7 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
     imgui_ctx := ImGui.GetCurrentContext();
     info_pointer := cast(*Type_Info_Pointer, Devariantize(any.type));
     info_asset := cast(*Type_Info_Struct, info_pointer.pointer_to);
-    asset_type := GetAssetType(info_asset);
+    asset_type := cast(*Type, *GetAssetType(info_asset)).*;
     value := cast(**AssetCommonData, any.value_pointer).*;
 
     if !label {
@@ -203,23 +203,23 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
     }
 
     if !value {
-        LabelTextButton(label, "(null % asset)", cast(*Type, *asset_type).*);
+        LabelTextButton(label, "(null % asset)", asset_type);
     } else {
         LabelTextButton(label, "%", value.asset_name);
     }
 
     if IsItemDoubleClicked() {
-        OpenAssetBrowserPopupFor(cast(*Type, *asset_type).*, cast(**void, any.value_pointer));
+        OpenAssetBrowserPopupFor(asset_type, cast(**void, any.value_pointer));
     }
 
     if ImGui.BeginDragDropSource() {
         if !value {
-            ImGui.Text("% asset (null)", cast(*Type, *asset_type).*);
+            ImGui.Text("% asset (null)", asset_type);
         } else {
-            ImGui.Text("% asset '%'", cast(*Type, *asset_type).*, value.asset_name);
+            ImGui.Text("% asset '%'", asset_type, value.asset_name);
         }
 
-        payload_type := CTPrint("%", cast(*Type, *asset_type).*);
+        payload_type := CTPrint("%", asset_type);
         ImGui.SetDragDropPayload(payload_type, any.value_pointer, size_of(*void));
         ImGui.EndDragDropSource();
     }
@@ -228,18 +228,18 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
 
     not_editable := ArrayFindFirst(notes, "NotEditable") != -1;
     if !not_editable && !(imgui_ctx.LastItemData_.InFlags & .Disabled) && ImGui.BeginDragDropTarget() {
-        payload_type := CTPrint("%", cast(*Type, *asset_type).*);
+        payload_type := CTPrint("%", asset_type);
         asset_payload := ImGui.AcceptDragDropPayload(payload_type);
         if asset_payload {
             Assert(asset_payload.DataSize == size_of(*void));
 
-            RemoveRefDynamic(cast(*Type, *asset_type).*, value);
+            RemoveRefDynamic(asset_type, value);
 
             cast(**void, any.value_pointer).* = cast(**void, asset_payload.Data).*;
 
             new_asset := cast(**void, any.value_pointer).*;
             if new_asset {
-                AddRefDynamic(cast(*Type, *asset_type).*, new_asset);
+                AddRefDynamic(asset_type, new_asset);
             }
 
             state |= .Started;
@@ -250,9 +250,9 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
         if asset_name_payload {
             asset_name := MakeString(cast(*u8) asset_name_payload.Data);
 
-            RemoveRefDynamic(cast(*Type, *asset_type).*, value);
+            RemoveRefDynamic(asset_type, value);
 
-            new_asset := LoadAssetDynamic(cast(*Type, *asset_type).*, asset_name);
+            new_asset := LoadAssetDynamic(asset_type, asset_name);
             cast(**void, any.value_pointer).* = new_asset;
 
             state |= .Started;
@@ -262,22 +262,26 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
         ImGui.EndDragDropTarget();
     }
 
-    if ImGui.BeginPopupContextItem(CTPrint("Asset %###context_menu", cast(*Type, *asset_type).*)) {
+    if ImGui.BeginPopupContextItem(CTPrint("Asset %###context_menu", asset_type)) {
         if !not_editable && ImGui.MenuItem("Clear") {
-            RemoveRefDynamic(cast(*Type, *asset_type).*, value);
+            RemoveRefDynamic(asset_type, value);
             cast(**void, any.value_pointer).* = null;
 
             state |= .Started;
             state |= .Submitted;
         }
 
-        ImGui.BeginDisabled(value == null || true);
-        if ImGui.MenuItem("Re-export asset") {
-            // if !SaveAssetDynamic(cast(*Type, *asset_type).*, value) {
-            //     LogError("Could not save asset '%'", value.asset_name);
-            // }
+        if ImGui.MenuItem("Re-export asset", enabled=value != null) {
+            if !SaveAssetDynamic(asset_type, value) {
+                LogError("Could not save asset '%'", value.asset_name);
+            }
         }
-        ImGui.EndDisabled();
+
+        if asset_type == Material {
+            if ImGui.MenuItem("Open In Material Editor", enabled=value != null) {
+                OpenMaterialEditor(xx value);
+            }
+        }
 
         ImGui.EndPopup();
     }
@@ -288,11 +292,11 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
         new_asset := cast(**void, any.value_pointer).*;
 
         if old_asset && old_asset != new_asset {
-            RemoveRefDynamic(cast(*Type, *asset_type).*, old_asset);
+            RemoveRefDynamic(asset_type, old_asset);
         }
 
         if new_asset && old_asset != new_asset {
-            AddRefDynamic(cast(*Type, *asset_type).*, new_asset);
+            AddRefDynamic(asset_type, new_asset);
         }
     }
 
