@@ -2106,7 +2106,7 @@ MakeVkBorderColor :: (color : GfxSamplerBorderColor) -> VkBorderColor {
 GfxSamplerDesc :: struct {
     min_filter : GfxSamplerFilter = .Nearest;
     mag_filter : GfxSamplerFilter = .Nearest;
-    mipmap_filter : GfxSamplerFilter = .Linear;
+    mipmap_filter : GfxSamplerFilter = .Nearest;
     u_address_mode : GfxSamplerAddressMode = .ClampToEdge;
     v_address_mode : GfxSamplerAddressMode = .ClampToEdge;
     w_address_mode : GfxSamplerAddressMode = .ClampToEdge;

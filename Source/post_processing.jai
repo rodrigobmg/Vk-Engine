@@ -6,6 +6,7 @@ PostProcessingBindingSet :: struct {
 
 g_post_processing_pipeline : GfxGraphicsPipeline;
 g_post_processing_sampler : GfxSampler;
+g_entity_guid_sampler : GfxSampler;
 
 CreatePostProcessingPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
@@ -25,10 +26,16 @@ CreatePostProcessingPipeline :: () {
 PostProcessingPass :: (using ctx : *FrameRenderContext) {
     if IsNull(*g_post_processing_sampler) {
         desc : GfxSamplerDesc;
+        desc.min_filter = .Linear;
+        desc.mag_filter = .Linear;
+        g_post_processing_sampler = CreateGfxSampler("Post Processing", desc);
+    }
+
+    if IsNull(*g_entity_guid_sampler) {
+        desc : GfxSamplerDesc;
         desc.min_filter = .Nearest;
         desc.mag_filter = .Nearest;
-        desc.mipmap_filter = .Nearest;
-        g_post_processing_sampler = CreateGfxSampler("Post Processing", desc);
+        g_entity_guid_sampler = CreateGfxSampler("Entity GUID", desc);
     }
 
     if IsNull(*g_post_processing_pipeline) {
@@ -37,8 +44,8 @@ PostProcessingPass :: (using ctx : *FrameRenderContext) {
 
     bindings := PostProcessingBindingSet.{
         color_texture=.{texture=*g_color_texture, sampler=*g_post_processing_sampler},
-        entity_guid_texture=.{texture=*g_entity_guid_texture, sampler=*g_post_processing_sampler},
-        selected_entity_guid_texture=.{texture=*g_selected_entity_guid_texture, sampler=*g_post_processing_sampler},
+        entity_guid_texture=.{texture=*g_entity_guid_texture, sampler=*g_entity_guid_sampler},
+        selected_entity_guid_texture=.{texture=*g_selected_entity_guid_texture, sampler=*g_entity_guid_sampler},
     };
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 

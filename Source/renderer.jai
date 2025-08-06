@@ -154,6 +154,7 @@ DestroyAllPipelines :: () {
 
     DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
     DestroyGfxSampler(*g_post_processing_sampler);
+    DestroyGfxSampler(*g_entity_guid_sampler);
 
     DestroyGfxTexture(*g_brdf_lut);
     DestroyGfxSampler(*g_brdf_lut_sampler);

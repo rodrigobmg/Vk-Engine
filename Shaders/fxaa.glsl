@@ -18,14 +18,14 @@ float RGBA2Luma(float4 rgba) {
 float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
     const float FXAA_Quality[] = float[](1, 1, 1, 1, 1, 1.5, 2, 2, 2, 2, 4, 8);
 
-    float4 color_center = texture(tex, tex_coords);
+    float4 color_center = textureLod(tex, tex_coords, 0);
 
     float luma_center = RGBA2Luma(color_center);
 
-    float luma_up = RGBA2Luma(texture(tex, tex_coords + float2(0, texel_size.y)));
-    float luma_down = RGBA2Luma(texture(tex, tex_coords + float2(0, -texel_size.y)));
-    float luma_left = RGBA2Luma(texture(tex, tex_coords + float2(-texel_size.x, 0)));
-    float luma_right = RGBA2Luma(texture(tex, tex_coords + float2(texel_size.x, 0)));
+    float luma_up = RGBA2Luma(textureLod(tex, tex_coords + float2(0, texel_size.y), 0));
+    float luma_down = RGBA2Luma(textureLod(tex, tex_coords + float2(0, -texel_size.y), 0));
+    float luma_left = RGBA2Luma(textureLod(tex, tex_coords + float2(-texel_size.x, 0), 0));
+    float luma_right = RGBA2Luma(textureLod(tex, tex_coords + float2(texel_size.x, 0), 0));
 
     float luma_min = min(luma_center, min(luma_up, min(luma_down, min(luma_left, luma_right))));
     float luma_max = max(luma_center, max(luma_up, max(luma_down, max(luma_left, luma_right))));
@@ -36,10 +36,10 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
         return color_center;
     }
 
-    float luma_up_right = RGBA2Luma(texture(tex, tex_coords + float2(texel_size.x, texel_size.y)));
-    float luma_up_left = RGBA2Luma(texture(tex, tex_coords + float2(-texel_size.x, texel_size.y)));
-    float luma_down_right = RGBA2Luma(texture(tex, tex_coords + float2(texel_size.x, -texel_size.y)));
-    float luma_down_left = RGBA2Luma(texture(tex, tex_coords + float2(-texel_size.x, -texel_size.y)));
+    float luma_up_right = RGBA2Luma(textureLod(tex, tex_coords + float2(texel_size.x, texel_size.y), 0));
+    float luma_up_left = RGBA2Luma(textureLod(tex, tex_coords + float2(-texel_size.x, texel_size.y), 0));
+    float luma_down_right = RGBA2Luma(textureLod(tex, tex_coords + float2(texel_size.x, -texel_size.y), 0));
+    float luma_down_left = RGBA2Luma(textureLod(tex, tex_coords + float2(-texel_size.x, -texel_size.y), 0));
 
     float luma_down_up = luma_down + luma_up;
     float luma_left_right = luma_left + luma_right;
@@ -86,8 +86,8 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
     float2 uv1 = current_uv - offset;
     float2 uv2 = current_uv + offset;
 
-    float luma_end1 = RGBA2Luma(texture(tex, uv1));
-    float luma_end2 = RGBA2Luma(texture(tex, uv2));
+    float luma_end1 = RGBA2Luma(textureLod(tex, uv1, 0));
+    float luma_end2 = RGBA2Luma(textureLod(tex, uv2, 0));
     luma_end1 -= luma_local_average;
     luma_end2 -= luma_local_average;
 
@@ -105,12 +105,12 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
     if (!reached_both) {
         for (int i = 2; i < FXAA_Iterations; i += 1) {
             if (!reached1) {
-                luma_end1 = RGBA2Luma(texture(tex, uv1));
+                luma_end1 = RGBA2Luma(textureLod(tex, uv1, 0));
                 luma_end1 = luma_end1 - luma_local_average;
             }
 
             if (!reached2) {
-                luma_end2 = RGBA2Luma(texture(tex, uv2));
+                luma_end2 = RGBA2Luma(textureLod(tex, uv2, 0));
                 luma_end2 = luma_end2 - luma_local_average;
             }
 
@@ -163,7 +163,7 @@ float4 FXAA(sampler2D tex, float2 tex_coords, float2 texel_size) {
         final_uv.x += final_offset * step_length;
     }
 
-    return texture(tex, final_uv);
+    return textureLod(tex, final_uv, 0);
 }
 
 #endif
