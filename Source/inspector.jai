@@ -271,7 +271,7 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
             state |= .Submitted;
         }
 
-        ImGui.BeginDisabled(value == null);
+        ImGui.BeginDisabled(value == null || true);
         if ImGui.MenuItem("Re-export asset") {
             // if !SaveAssetDynamic(cast(*Type, *asset_type).*, value) {
             //     LogError("Could not save asset '%'", value.asset_name);
@@ -292,7 +292,7 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
         }
 
         if new_asset && old_asset != new_asset {
-            AddRefDynamic(cast(*Type, *asset_type).*, old_asset);
+            AddRefDynamic(cast(*Type, *asset_type).*, new_asset);
         }
     }
 
