@@ -184,6 +184,10 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_d
     AllocDrawData(*shadow_map.mesh_buffer);
 }
 
+ShadowMapPassBindingSet :: struct {
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
+} @BindingSet
+
 g_shadow_map_pipeline : GfxGraphicsPipeline;
 
 CreateShadowMapPipeline :: () {
@@ -196,7 +200,7 @@ CreateShadowMapPipeline :: () {
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.ForwardPassBindingSet,
+        g_binding_set_layouts.ShadowMapPassBindingSet,
         g_binding_set_layouts.MeshBindingSet,
     ];
 
@@ -222,7 +226,7 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, ligh
 
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
 
-    pass_bindings := ForwardPassBindingSet.{
+    pass_bindings := ShadowMapPassBindingSet.{
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
     };
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);

@@ -1,3 +1,7 @@
+EntityGUIDPassBindingSet :: struct {
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
+} @BindingSet
+
 g_entity_guid_texture : GfxTexture;
 g_selected_entity_guid_texture : GfxTexture;
 g_entity_guid_pipeline : GfxGraphicsPipeline;
@@ -67,7 +71,7 @@ CreateEntityGUIDPipeline :: () {
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.ForwardPassBindingSet,
+        g_binding_set_layouts.EntityGUIDPassBindingSet,
         g_binding_set_layouts.MeshBindingSet,
     ];
 
@@ -97,7 +101,7 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
     };
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
 
-    pass_bindings := ForwardPassBindingSet.{
+    pass_bindings := EntityGUIDPassBindingSet.{
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
     };
 

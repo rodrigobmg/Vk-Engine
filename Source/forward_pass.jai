@@ -1,8 +1,8 @@
 ForwardPassBindingSet :: struct {
-    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
     shadow_maps : [Max_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage @AllowNull
-    irradiance_map : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage @AllowNull
-    environment_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage @AllowNull
+    irradiance_map : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
+    environment_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
 } @BindingSet
 
 g_forward_pipeline : GfxGraphicsPipeline;
@@ -52,9 +52,17 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     pass_bindings := ForwardPassBindingSet.{
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
-        irradiance_map=.{texture=ifx world.skybox then *world.skybox.irradiance_map, sampler=*g_skybox_sampler},
-        environment_map=.{texture=ifx world.skybox then *world.skybox.environment_map, sampler=*g_skybox_sampler},
+        irradiance_map.sampler=*g_skybox_sampler,
+        environment_map.sampler=*g_skybox_sampler,
     };
+
+    if world.skybox {
+        pass_bindings.irradiance_map.texture = *world.skybox.irradiance_map;
+        pass_bindings.environment_map.texture = *world.skybox.environment_map;
+    } else {
+        pass_bindings.irradiance_map.texture = *g_default_environment_map.irradiance_map;
+        pass_bindings.environment_map.texture = *g_default_environment_map.environment_map;
+    }
 
     shadow_map_index := 0;
     for * world.DirectionalLightEntity_storage {
