@@ -173,7 +173,7 @@ main :: () {
 
     defer WaitForGPUIdle(); // Before destroying anything, we need to ensure all work is done
 
-    frame_times : [60]float;
+    frame_times : [120]float;
     frame_time_index : int;
     quit := false;
     while !quit {
@@ -232,6 +232,13 @@ main :: () {
             HandleInputEvent(event);
         }
 
+        w, h := GetWindowPixelSize(g_window);
+
+        if should_recreate_swapchain && w > 0 && h > 0 {
+            CreateRenderTargets();
+            RecreateSwapchain();
+        }
+
         UnloadAllUnreferencedAssets();
         HandleShaderHotReloading();
         ProcessDataDirectoryChanges();
@@ -240,28 +247,6 @@ main :: () {
         ImGui.NewFrame();
 
         UpdateEditor(*world);
-
-        time := cast(float, Basic.seconds_since_init()) * 0.5;
-
-        light := GetEntityByName(*world, "Point");
-        if light {
-            light.local_position = Vec3f.{0,Sin(time),Cos(time)} * 9;
-            UpdateWorldTransform(*world, light);
-        }
-
-        sun := GetEntityByName(*world, "Sun");
-        if sun {
-            sun.local_position = .{0,Sin(time),Cos(time)};
-            sun.local_rotation = QuatfLookAt(-sun.local_position, .{0,1,0});
-            UpdateWorldTransform(*world, sun);
-        }
-
-        w, h := GetWindowPixelSize(g_window);
-
-        if should_recreate_swapchain && w > 0 && h > 0 {
-            CreateRenderTargets();
-            RecreateSwapchain();
-        }
 
         ImGui.Render();
 
