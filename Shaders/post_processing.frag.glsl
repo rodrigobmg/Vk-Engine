@@ -44,8 +44,8 @@ float4 GetEntityOutline(float2 tex_coords, float2 texel_size) {
 void main() {
     // float3 color = texture(u_color_texture, in_position).rgb;
     float3 color = FXAA(u_color_texture, in_position, 1 / u_frame_info.window_pixel_size).rgb;
-    color = LinearTosRGB(color);
     color = ApplyToneMapping(color);
+    color = LinearTosRGB(color);
 
     float4 entity_outline = GetEntityOutline(in_position, 1 / u_frame_info.window_pixel_size);
     color = lerp(color, entity_outline.rgb, entity_outline.a);
