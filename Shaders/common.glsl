@@ -218,4 +218,71 @@ float3 SphericalToCartesian(float azimuth, float polar) {
     return float3(sina * cosp, sinp, cosa * cosp);
 }
 
+float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size, float scale) {
+    float4 result;
+    result  = texture(s, uv + float2(-texel_size.x * scale, -texel_size.y * scale));
+    result += texture(s, uv + float2( texel_size.x * scale, -texel_size.y * scale));
+    result += texture(s, uv + float2(-texel_size.x * scale,  texel_size.y * scale));
+    result += texture(s, uv + float2( texel_size.x * scale,  texel_size.y * scale));
+
+    return result / 4.0;
+}
+
+// [Jimenez14] https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
+// . . . . . . .
+// . A . B . C .
+// . . D . E . .
+// . F . G . H .
+// . . I . J . .
+// . K . L . M .
+// . . . . . . .
+float4 DownsampleBox13(sampler2D s, float2 uv, float2 texel_size) {
+    float4 A = texture(s, uv + texel_size * 2 * float2(-1.0, -1.0));
+    float4 B = texture(s, uv + texel_size * 2 * float2( 0.0, -1.0));
+    float4 C = texture(s, uv + texel_size * 2 * float2( 1.0, -1.0));
+    float4 D = texture(s, uv + texel_size * 2 * float2(-0.5, -0.5));
+    float4 E = texture(s, uv + texel_size * 2 * float2( 0.5, -0.5));
+    float4 F = texture(s, uv + texel_size * 2 * float2(-1.0,  0.0));
+    float4 G = texture(s, uv);
+    float4 H = texture(s, uv + texel_size * 2 * float2( 1.0,  0.0));
+    float4 I = texture(s, uv + texel_size * 2 * float2(-0.5,  0.5));
+    float4 J = texture(s, uv + texel_size * 2 * float2( 0.5,  0.5));
+    float4 K = texture(s, uv + texel_size * 2 * float2(-1.0,  1.0));
+    float4 L = texture(s, uv + texel_size * 2 * float2( 0.0,  1.0));
+    float4 M = texture(s, uv + texel_size * 2 * float2( 1.0,  1.0));
+
+    float4 result = G * 0.125;
+    result += (A + C + M + K) * 0.03125;
+    result += (B + H + L + F) * 0.0625;
+    result += (D + E + J + I) * 0.125;
+
+    return result;
+}
+
+// [Jimenez14] https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
+float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size, float scale) {
+    float4 A = texture(s, uv + texel_size * float2(-scale,  scale));
+    float4 B = texture(s, uv + texel_size * float2(     0,  scale));
+    float4 C = texture(s, uv + texel_size * float2( scale,  scale));
+
+    float4 D = texture(s, uv + texel_size * float2(-scale,      0));
+    float4 E = texture(s, uv);
+    float4 F = texture(s, uv + texel_size * float2( scale,      0));
+
+    float4 G = texture(s, uv + texel_size * float2(-scale, -scale));
+    float4 H = texture(s, uv + texel_size * float2(     0, -scale));
+    float4 I = texture(s, uv + texel_size * float2( scale, -scale));
+
+    // Apply weighted distribution, by using a 3x3 tent filter:
+    //  1   | 1 2 1 |
+    // -- * | 2 4 2 |
+    // 16   | 1 2 1 |
+    float4 result = E * 4;
+    result += (B + D + F + H) * 2;
+    result += (A + C + G + I);
+    result *= 1 / 16.0;
+
+    return result;
+}
+
 #endif

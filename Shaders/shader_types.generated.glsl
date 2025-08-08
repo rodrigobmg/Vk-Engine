@@ -3,6 +3,11 @@
 #ifndef SHADER_TYPES_GENERATED_GLSL
 #define SHADER_TYPES_GENERATED_GLSL
 
+struct BloomParams {
+    float resolution_factor;
+    float brightness_threshold;
+};
+
 struct Viewpoint {
     float3 position;
     float3 direction;
@@ -26,6 +31,12 @@ struct DirectionalLight {
     Viewpoint shadow_map_viewpoints[4];
 };
 
+struct EntityOutlineParams {
+    float thickness;
+    float covered_alpha;
+    float4 color;
+};
+
 struct ShadowMapParams {
     uint noise_resolution;
     float2 depth_bias_min_max;
@@ -39,9 +50,8 @@ struct FrameInfo {
     uint num_directional_lights;
     uint num_point_lights;
     ShadowMapParams shadow_map_params;
-    float entity_outline_thickness;
-    float entity_outline_covered_alpha;
-    float4 entity_outline_color;
+    BloomParams bloom_params;
+    EntityOutlineParams entity_outline_params;
 };
 
 #define MaterialFlags int

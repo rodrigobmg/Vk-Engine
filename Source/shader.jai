@@ -11,6 +11,8 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="bloom_filter"},
+    .{name="bloom_downsample"},
     .{name="entity_guid"},
     .{name="imgui"},
     .{name="screen_effect"},

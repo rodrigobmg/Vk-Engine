@@ -8,7 +8,7 @@ g_entity_guid_pipeline : GfxGraphicsPipeline;
 g_entity_guid_readback_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
 g_entity_guid_readback_ptrs : [Gfx_Num_Frames_In_Flight]*EntityGUID;
 
-CreateEntityGUIDTexture :: () {
+CreateEntityGUIDTextures :: () {
     if !IsNull(*g_entity_guid_texture) {
         DestroyGfxTexture(*g_entity_guid_texture);
     }

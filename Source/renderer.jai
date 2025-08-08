@@ -13,6 +13,7 @@
 #load "shadow_map.jai";
 #load "skybox.jai";
 #load "entity_selection.jai";
+#load "bloom.jai";
 
 g_linear_clamp_sampler : GfxSampler;
 
@@ -142,9 +143,13 @@ CreateAllPipelines :: () {
     CreateIrradianceMapPipeline();
     CreateEnvironmentMapPipeline();
     CreateEntityGUIDPipeline();
+    CreateBloomFilterPipeline();
+    CreateBloomDownsamplePipeline();
 }
 
 DestroyAllPipelines :: () {
+    DestroyGfxGraphicsPipeline(*g_bloom_downsample_pipeline);
+    DestroyGfxGraphicsPipeline(*g_bloom_filter_pipeline);
     DestroyGfxGraphicsPipeline(*g_entity_guid_pipeline);
     DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
@@ -217,7 +222,8 @@ CreateRenderTargets :: () {
     g_selected_entities_depth_texture = CreateGfxTexture("Selected Entities Depth", texture_desc);
     Assert(!IsNull(*g_selected_entities_depth_texture), "Could not create selected entities depth texture");
 
-    CreateEntityGUIDTexture();
+    CreateEntityGUIDTextures();
+    CreateBloomTextures();
 }
 
 DestroyRenderTargets :: () {
@@ -233,6 +239,8 @@ DestroyRenderTargets :: () {
             DestroyGfxBuffer(it);
         }
     }
+
+    DestroyBloomTextures();
 }
 
 MeshEntity :: struct {
@@ -285,15 +293,20 @@ ShadowMapParams :: struct {
     filter_radius : float;
 } @ShaderType
 
+EntityOutlineParams :: struct {
+    thickness : float = 2;
+    covered_alpha : float = 0.2;
+    color : Vec4f = .{0,0,1,1};
+} @ShaderType
+
 FrameInfo :: struct {
     time : float;
     window_pixel_size : Vec2f;
     num_directional_lights : u32;
     num_point_lights : u32;
     shadow_map_params : ShadowMapParams;
-    entity_outline_thickness : float = 2;
-    entity_outline_covered_alpha : float = 0.2;
-    entity_outline_color : Vec4f = .{0,0,1,1};
+    bloom_params : BloomParams;
+    entity_outline_params : EntityOutlineParams;
 } @ShaderType
 
 DirectionalLight :: struct {
@@ -503,6 +516,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .TransferSrc, .ShaderReadOnly, *g_entity_guid_texture);
 
     AddTextureBarriers(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*g_color_texture, *g_selected_entity_guid_texture]);
+
+    RenderBloom(*ctx, *g_color_texture);
+
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     PostProcessingPass(*ctx);

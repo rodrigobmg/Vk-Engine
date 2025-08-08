@@ -1,7 +1,6 @@
 #include "common.glsl"
 
 DECLARE_PER_FRAME_PARAMS();
-DECLARE_FORWARD_PASS_PARAMS();
 DECLARE_PER_DRAW_CALL_MESH_PARAMS();
 
 layout(location=0) in float3 in_viewpoint_position;
