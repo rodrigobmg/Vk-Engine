@@ -181,14 +181,6 @@ BloomDownsamplePass :: (using ctx : *FrameRenderContext, level : int) {
     AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_bloom_downsample_levels[level - 1]);
     AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *g_bloom_downsample_levels[level]);
 
-    bindings := BloomFilterBindingSet.{
-        texture=.{texture=*g_bloom_downsample_levels[level - 1], sampler=*g_linear_clamp_sampler},
-    };
-    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
-
-    pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *g_bloom_downsample_levels[level]);
-
     w := g_bloom_downsample_texture.desc.width;
     h := g_bloom_downsample_texture.desc.height;
     for 1..level {
@@ -198,9 +190,17 @@ BloomDownsamplePass :: (using ctx : *FrameRenderContext, level : int) {
         h = Max(h, 1);
     }
 
+    bindings := BloomFilterBindingSet.{
+        texture=.{texture=*g_bloom_downsample_levels[level - 1], sampler=*g_linear_clamp_sampler},
+    };
+    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
+
+    pass_desc : GfxRenderPassDesc;
+    AddColorAttachment(*pass_desc, *g_bloom_downsample_levels[level]);
+
     pass := BeginGfxRenderPass(cmd_buffer, "Bloom Downsample", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_bloom_filter_pipeline);
+        BindGraphicsPipeline(*pass, *g_bloom_downsample_pipeline);
         SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
