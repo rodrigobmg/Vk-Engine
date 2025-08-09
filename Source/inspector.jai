@@ -489,6 +489,7 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
     case .FLOAT;
         min, max : float64;
         has_range := false;
+        speed := 0.1;
 
         for notes {
             // @Todo: Use GetNote/ParseNote
@@ -513,27 +514,28 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
 
                 break;
             }
+
+            speed_note, speed_value := ParseNote(it, "Step", float);
+            if speed_note {
+                speed = speed_value;
+            }
         }
 
         if type.runtime_size == 4 {
-            speed := 0.1;
             min32 := cast(float) min;
             max32 := cast(float) max;
             p_min, p_max : *float;
             if has_range {
                 p_min = *min32;
                 p_max = *max32;
-                speed = Abs(max32 - min32) / 20.0;
             }
 
             ImGui.DragScalar(label, .Float, ptr, v_speed=speed, p_min=p_min, p_max=p_max);
         } else {
-            speed := 0.1;
             p_min, p_max : *float64;
             if has_range {
                 p_min = *min;
                 p_max = *max;
-                speed = cast(float) Abs(max - min) / 20.0;
             }
 
             ImGui.DragScalar(label, .Double, ptr, p_min=p_min, p_max=p_max);
@@ -560,7 +562,12 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         state : InteractionState;
         is_vector, vector_T, vector_N := GetVectorTypeInfo(struct_info);
         if is_vector {
-            state = DragVector(label, TypeInfoToImGuiDataType(vector_T), ptr, xx vector_N, 0.01);
+            has_speed, speed := GetNote(notes, "Step", float);
+            if !has_speed {
+                speed = 0.01;
+            }
+
+            state = DragVector(label, TypeInfoToImGuiDataType(vector_T), ptr, xx vector_N, speed);
             state |= ResetButton(ctx, any);
 
             return state;
