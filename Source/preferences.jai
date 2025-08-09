@@ -5,7 +5,7 @@ Preferences :: struct {
 
     environment_map_resolution : u32 = 1024;
     environment_map_num_samples : u32 = 128;
-    irradiance_map_resolution : u32 = 256;
+    irradiance_map_resolution : u32 = 32;
     irradiance_map_sample_delta : float = 0.025;
 }
 

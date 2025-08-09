@@ -21,12 +21,17 @@ void main() {
     float num_samples = 0.0;
     for (float phi = 0; phi < 2 * Pi; phi += Sample_Delta) {
         for (float theta = 0; theta < 0.5 * Pi; theta += Sample_Delta) {
-            float3 tangent_sample = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+            float cost = cos(theta);
+            float sint = sin(theta);
+            float cosp = cos(phi);
+            float sinp = sin(phi);
+
+            float3 tangent_sample = float3(sint * cosp, sint * sinp, cost);
             float3 sample_vector = right * tangent_sample.x + up * tangent_sample.y + ray_direction * tangent_sample.z;
             float2 uv = CartesianToSphericalUV(sample_vector);
 
-            float3 radiance = textureLod(u_texture, uv, 0).rgb;
-            radiance *= cos(theta) * sin(theta);
+            float3 radiance = textureLod(u_texture, uv, 4).rgb;
+            radiance *= cost * sint;
 
             irradiance += radiance;
             num_samples += 1;
