@@ -243,6 +243,8 @@ main :: () {
         HandleShaderHotReloading();
         ProcessDataDirectoryChanges();
 
+        DestroyKilledEntities(*world);
+
         ImGui_SDL.NewFrame();
         ImGui.NewFrame();
 
