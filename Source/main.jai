@@ -1,5 +1,4 @@
-Common :: #import "Common";
-using Common;
+using Common :: #import "Common";
 #poke_name Common operator==;
 
 #import "SDL";
