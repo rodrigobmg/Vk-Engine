@@ -131,7 +131,11 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
     Asset_Type_Filters :: FileBrowserFilter.[
         .{"Meshes", ".mesh"},
         .{"Images", ".png;.jpg;.jpeg;.tga;.hdr"},
+        .{"Images (HDR)", ".hdr"},
         .{"Materials", ".mat"},
+
+        // Additional filters
+        .{"Images (Non HDR)", ".png;.jpg;.jpeg;.tga"},
     ];
 
     g_open_asset_browser_for.asset_type = asset_type;
@@ -149,11 +153,12 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
     if asset_type == {
     case Mesh;
         browser.selected_filter = 0;
-    case EnvironmentMap; #through;
     case Texture2D;
         browser.selected_filter = 1;
-    case Material;
+    case EnvironmentMap;
         browser.selected_filter = 2;
+    case Material;
+        browser.selected_filter = 3;
     case;
         browser.selected_filter = -1;
     }
