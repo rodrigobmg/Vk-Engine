@@ -6,6 +6,9 @@
 struct BloomParams {
     float resolution_factor;
     float brightness_threshold;
+    float brightness_soft_threshold;
+    float blend_intensity;
+    float filter_radius;
 };
 
 struct Viewpoint {

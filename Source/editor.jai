@@ -7,10 +7,11 @@
 
 Log_Editor :: Log_Section.{name="Editor"};
 
-g_show_imgui_demo : bool;
-g_show_world_inspector : bool;
+g_show_imgui_demo := false;
+g_show_world_inspector := false;
 g_show_entity_outliner := true;
 g_show_entity_inspector := true;
+g_show_engine_settings := false;
 g_editor_camera : Camera;
 
 g_editor_selected_entities : [..]EntityGUID;
@@ -262,6 +263,9 @@ UpdateEditor :: (world : *World) {
             if ImGui.MenuItem("Material Editor", selected=g_show_material_editor) {
                 g_show_material_editor = true;
             }
+            if ImGui.MenuItem("Engine Settings", selected=g_show_engine_settings) {
+                g_show_engine_settings = true;
+            }
             if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
                 g_show_imgui_demo = true;
             }
@@ -318,6 +322,7 @@ UpdateEditor :: (world : *World) {
     ShowWorldInspector(world);
     ShowEntityOutliner(world);
     ShowMaterialEditor();
+    ShowEngineSettings();
 
     entity_to_inspect : *Entity;
     if g_editor_selected_entities.count == 1 {
@@ -704,10 +709,7 @@ g_material_editor_selected_material : *Asset(Material);
 OpenMaterialEditor :: (material : *Asset(Material)) {
     g_show_material_editor = true;
 
-    if g_material_editor_selected_material {
-        DerefAsset(*g_material_editor_selected_material);
-    }
-
+    DerefAsset(*g_material_editor_selected_material);
     g_material_editor_selected_material = AddRef(material);
 }
 
@@ -745,4 +747,19 @@ ShowMaterialEditor :: () {
     } else {
         ImGui.Text("No material selected");
     }
+}
+
+ShowEngineSettings :: () {
+    if !g_show_engine_settings {
+        return;
+    }
+
+    defer ImGui.End();
+
+    ImGui.SetNextWindowSize(.{350, 500}, .FirstUseEver);
+    if !ImGui.Begin("Engine Settings", *g_show_engine_settings) {
+        return;
+    }
+
+    ShowInspector("Bloom", cast(*World, null), *g_bloom_params);
 }

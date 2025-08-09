@@ -9,6 +9,7 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 * Cascaded shadow maps
 * Parallax occlusion mapping with self shadowing
 * Simple editor
+* Bloom
 
 ## To explore/implement next:
 * Omnidirectional shadow maps
@@ -17,7 +18,7 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 * Depth prepass
 * Clustered forward rendering
 * GTAO
-* Bloom
+* Compute shaders
 * Subsurface scattering
 * Volumetric clouds
 * Automatic texture transition barriers

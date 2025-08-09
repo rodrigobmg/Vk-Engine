@@ -1,7 +1,8 @@
 PostProcessingBindingSet :: struct {
     color_texture : GfxBindingCombinedTextureSampler; @Binding(0) @FragmentStage
-    entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
-    selected_entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
+    bloom_texture : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
+    entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
+    selected_entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
 } @BindingSet
 
 g_post_processing_pipeline : GfxGraphicsPipeline;
@@ -44,6 +45,7 @@ PostProcessingPass :: (using ctx : *FrameRenderContext) {
 
     bindings := PostProcessingBindingSet.{
         color_texture=.{texture=*g_color_texture, sampler=*g_post_processing_sampler},
+        bloom_texture=.{texture=GetFinalBloomTexture(), sampler=*g_post_processing_sampler},
         entity_guid_texture=.{texture=*g_entity_guid_texture, sampler=*g_entity_guid_sampler},
         selected_entity_guid_texture=.{texture=*g_selected_entity_guid_texture, sampler=*g_entity_guid_sampler},
     };

@@ -4,8 +4,9 @@
 DECLARE_PER_FRAME_PARAMS();
 
 layout(set=1, binding=0) uniform sampler2D u_color_texture;
-layout(set=1, binding=1) uniform usampler2D u_entity_guid_texture;
-layout(set=1, binding=2) uniform usampler2D u_selected_entity_guid_texture;
+layout(set=1, binding=1) uniform sampler2D u_bloom_texture;
+layout(set=1, binding=2) uniform usampler2D u_entity_guid_texture;
+layout(set=1, binding=3) uniform usampler2D u_selected_entity_guid_texture;
 
 layout(location=0) in float2 in_position;
 
@@ -44,6 +45,11 @@ float4 GetEntityOutline(float2 tex_coords, float2 texel_size) {
 void main() {
     // float3 color = texture(u_color_texture, in_position).rgb;
     float3 color = FXAA(u_color_texture, in_position, 1 / u_frame_info.window_pixel_size).rgb;
+
+    int2 bloom_size = textureSize(u_bloom_texture, 0);
+    float4 bloom = SampleBox4(u_bloom_texture, in_position, 1 / float2(bloom_size));
+    color += bloom.rgb * u_frame_info.bloom_params.blend_intensity;
+
     color = ApplyToneMapping(color);
     color = LinearTosRGB(color);
 

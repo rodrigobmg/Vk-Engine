@@ -145,9 +145,11 @@ CreateAllPipelines :: () {
     CreateEntityGUIDPipeline();
     CreateBloomFilterPipeline();
     CreateBloomDownsamplePipeline();
+    CreateBloomUpsamplePipeline();
 }
 
 DestroyAllPipelines :: () {
+    DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_downsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_filter_pipeline);
     DestroyGfxGraphicsPipeline(*g_entity_guid_pipeline);
@@ -477,7 +479,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
             normal_bias=10,
             filter_radius=1,
         },
+        bloom_params=g_bloom_params,
     };
+    frame_info.bloom_params.blend_intensity /= cast(float, Bloom_Num_Downsample_Passes);
     frame_info_offset, frame_info_size := AllocAndPackUniformFrameData(frame_info);
 
     frame_binding_set := FrameBindingSet.{

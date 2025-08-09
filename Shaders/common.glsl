@@ -135,12 +135,20 @@ float3 sRGBToLinear(float3 color) {
     return pow(color, float3(2.2));
 }
 
+float LinearTosRGB(float x) {
+    return pow(x, float(1.0 / 2.2));
+}
+
+float sRGBToLinear(float x) {
+    return pow(x, float(2.2));
+}
+
 float InverseLerp(float a, float b, float t) {
     return (t - a) / (b - a);
 }
 
 float LinearRGBToLuminance(float3 rgb) {
-    return dot(clamp(rgb, 0, 1), float3(0.2126729, 0.7151522, 0.0721750));
+    return dot(rgb, float3(0.2126729, 0.7151522, 0.0721750));
 }
 
 float Random(float seed) {
@@ -218,16 +226,6 @@ float3 SphericalToCartesian(float azimuth, float polar) {
     return float3(sina * cosp, sinp, cosa * cosp);
 }
 
-float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size, float scale) {
-    float4 result;
-    result  = texture(s, uv + float2(-texel_size.x * scale, -texel_size.y * scale));
-    result += texture(s, uv + float2( texel_size.x * scale, -texel_size.y * scale));
-    result += texture(s, uv + float2(-texel_size.x * scale,  texel_size.y * scale));
-    result += texture(s, uv + float2( texel_size.x * scale,  texel_size.y * scale));
-
-    return result / 4.0;
-}
-
 // [Jimenez14] https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
 // . . . . . . .
 // . A . B . C .
@@ -259,19 +257,61 @@ float4 DownsampleBox13(sampler2D s, float2 uv, float2 texel_size) {
     return result;
 }
 
+float KarisAverage(float3 color) {
+    float luma = LinearRGBToLuminance(color) * 0.25;
+
+    return 1 / (1 + luma);
+}
+
+// . . . . . . .
+// . A . B . C .
+// . . D . E . .
+// . F . G . H .
+// . . I . J . .
+// . K . L . M .
+// . . . . . . .
+float4 DownsampleBox13WithKarisAverage(sampler2D s, float2 uv, float2 texel_size) {
+    float4 A = texture(s, uv + texel_size * 2 * float2(-1.0, -1.0));
+    float4 B = texture(s, uv + texel_size * 2 * float2( 0.0, -1.0));
+    float4 C = texture(s, uv + texel_size * 2 * float2( 1.0, -1.0));
+    float4 D = texture(s, uv + texel_size * 2 * float2(-0.5, -0.5));
+    float4 E = texture(s, uv + texel_size * 2 * float2( 0.5, -0.5));
+    float4 F = texture(s, uv + texel_size * 2 * float2(-1.0,  0.0));
+    float4 G = texture(s, uv);
+    float4 H = texture(s, uv + texel_size * 2 * float2( 1.0,  0.0));
+    float4 I = texture(s, uv + texel_size * 2 * float2(-0.5,  0.5));
+    float4 J = texture(s, uv + texel_size * 2 * float2( 0.5,  0.5));
+    float4 K = texture(s, uv + texel_size * 2 * float2(-1.0,  1.0));
+    float4 L = texture(s, uv + texel_size * 2 * float2( 0.0,  1.0));
+    float4 M = texture(s, uv + texel_size * 2 * float2( 1.0,  1.0));
+
+    float4 G1 = (A + B + F + G) * (0.125 / 4);
+    float4 G2 = (B + C + G + H) * (0.125 / 4);
+    float4 G3 = (F + G + K + L) * (0.125 / 4);
+    float4 G4 = (G + H + L + M) * (0.125 / 4);
+    float4 G5 = (D + E + I + J) * (0.5 / 4);
+    G1.rgb *= KarisAverage(G1.rgb);
+    G2.rgb *= KarisAverage(G2.rgb);
+    G3.rgb *= KarisAverage(G3.rgb);
+    G4.rgb *= KarisAverage(G4.rgb);
+    G5.rgb *= KarisAverage(G5.rgb);
+
+    return G1 + G2 + G3 + G4 + G5;
+}
+
 // [Jimenez14] https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
-float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size, float scale) {
-    float4 A = texture(s, uv + texel_size * float2(-scale,  scale));
-    float4 B = texture(s, uv + texel_size * float2(     0,  scale));
-    float4 C = texture(s, uv + texel_size * float2( scale,  scale));
+float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size) {
+    float4 A = texture(s, uv + float2(-texel_size.x,  texel_size.y));
+    float4 B = texture(s, uv + float2(            0,  texel_size.y));
+    float4 C = texture(s, uv + float2( texel_size.x,  texel_size.y));
 
-    float4 D = texture(s, uv + texel_size * float2(-scale,      0));
+    float4 D = texture(s, uv + float2(-texel_size.x,  0));
     float4 E = texture(s, uv);
-    float4 F = texture(s, uv + texel_size * float2( scale,      0));
+    float4 F = texture(s, uv + float2( texel_size.x,  0));
 
-    float4 G = texture(s, uv + texel_size * float2(-scale, -scale));
-    float4 H = texture(s, uv + texel_size * float2(     0, -scale));
-    float4 I = texture(s, uv + texel_size * float2( scale, -scale));
+    float4 G = texture(s, uv + float2(-texel_size.x, -texel_size.y));
+    float4 H = texture(s, uv + float2(            0, -texel_size.y));
+    float4 I = texture(s, uv + float2( texel_size.x, -texel_size.y));
 
     // Apply weighted distribution, by using a 3x3 tent filter:
     //  1   | 1 2 1 |
@@ -283,6 +323,15 @@ float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size, float scale) {
     result *= 1 / 16.0;
 
     return result;
+}
+
+float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size) {
+    float4 A = texture(s, uv + float2(-texel_size.x,  texel_size.y));
+    float4 B = texture(s, uv + float2( texel_size.x,  texel_size.y));
+    float4 C = texture(s, uv + float2(-texel_size.x, -texel_size.y));
+    float4 D = texture(s, uv + float2( texel_size.x, -texel_size.y));
+
+    return (A + B + C + D) * (1 / 4.0);
 }
 
 #endif
