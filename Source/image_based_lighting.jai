@@ -131,6 +131,14 @@ GenerateEnvironmentMaps :: (cmd_buffer : *GfxCommandBuffer) {
         return;
     }
 
+    if IsNull(*g_environment_map_pipeline) {
+        CreateEnvironmentMapPipeline();
+    }
+
+    if IsNull(*g_irradiance_map_pipeline) {
+        CreateIrradianceMapPipeline();
+    }
+
     BeginGfxDebugMarker(cmd_buffer, "Generate Environment Maps");
     defer EndGfxDebugMarker(cmd_buffer);
 
