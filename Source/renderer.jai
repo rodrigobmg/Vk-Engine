@@ -257,8 +257,8 @@ MeshEntity :: struct {
 DirectionalLightEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
-    color : Vec3f = .{1,1,1}; @Serialize(2)
-    intensity : float = 1; @Serialize(3)
+    color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
+    intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
     cast_shadows : bool; @Serialize(4)
     shadow_map : ShadowMap;
 
@@ -270,8 +270,8 @@ DirectionalLightEntity :: struct {
 PointLightEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
-    color : Vec3f = .{1,1,1}; @Serialize(2)
-    intensity : float = 1; @Serialize(3)
+    color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
+    intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
     cast_shadows : bool; @Serialize(4)
 } @Entity
 
