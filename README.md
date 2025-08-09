@@ -5,6 +5,7 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 * Abstraction layer
 * Shader hot reloading
 * Asset hot reloading
+* Highly backward and forward compatible serialization system
 * Physically based opaque surface shading
 * Image based lighting
 * HDR textures
