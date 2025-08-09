@@ -3,13 +3,15 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 
 ## Features:
 * Abstraction layer
-* PBR based opaque surface shading
+* Shader hot reloading
+* Asset hot reloading
+* Physically based opaque surface shading
 * Image based lighting
 * HDR textures
 * Cascaded shadow maps
 * Parallax occlusion mapping with self shadowing
-* Simple editor
 * Bloom
+* Simple editor
 
 ## To explore/implement next:
 * Omnidirectional shadow maps
