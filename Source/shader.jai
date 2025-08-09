@@ -13,6 +13,7 @@ g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
     .{name="bloom_filter"},
     .{name="bloom_downsample"},
+    .{name="bloom_upsample"},
     .{name="entity_guid"},
     .{name="imgui"},
     .{name="screen_effect"},
@@ -145,9 +146,7 @@ ShaderFileChangeCallback :: (watcher : *File_Watcher(void), change : *File_Chang
 
     for * g_shaders {
         if ArrayFindFirst(it.dependencies, filename) != -1 {
-            if !ReloadShader(it) {
-                it.failed_to_reload = true;
-            }
+            ReloadShader(it);
         }
     }
 }
@@ -164,6 +163,8 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
         ArrayFree(*dependencies);
     }
 
+    shader.failed_to_reload = false;
+
     vertex_filename := TPrint("Shaders/%.vert.glsl", shader.name);
     vertex_filename = get_absolute_path(vertex_filename ,, Temp, logger=IgnoreLogger);
     path_overwrite_separators(vertex_filename, #char "/");
@@ -177,6 +178,7 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
 
     if !has_vertex_shader && !has_fragment_shader {
         LogError("No shader file for shader '%'", shader.name);
+        shader.failed_to_reload = true;
         return false;
     }
 
@@ -195,6 +197,7 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
         vertex_shader = LoadGfxShader(TPrint("%.vert", shader.name), extra, dependencies=*dependencies);
 
         if IsNull(*vertex_shader) {
+            shader.failed_to_reload = true;
             return false;
         }
     }
@@ -203,6 +206,7 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
         fragment_shader = LoadGfxShader(TPrint("%.frag", shader.name), extra, dependencies=*dependencies);
 
         if IsNull(*fragment_shader) {
+            shader.failed_to_reload = true;
             return false;
         }
     }
