@@ -55,10 +55,12 @@ FreeMeshBuffer :: (buffer : *MeshBuffer) {
 MakeMeshBufferKey :: (vertex_buffer : *GfxBuffer, index_buffer : *GfxBuffer, material : *Material, depth : float) -> u64 {
     mesh_buffers : [2]*GfxBuffer = .[vertex_buffer, index_buffer];
 
-    textures : [3]*Asset(Texture2D) = .[
+    textures : [5]*Asset(Texture2D) = .[
         material.base_color,
         material.normal_map,
         material.metallic_roughness_map,
+        material.emissive,
+        material.depth_map,
     ];
 
     mesh_buffers_hash := sdbm_hash(*mesh_buffers, size_of(type_of(mesh_buffers)));
