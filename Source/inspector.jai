@@ -209,7 +209,8 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
     }
 
     if IsItemDoubleClicked() {
-        OpenAssetBrowserPopupFor(asset_type, cast(**void, any.value_pointer));
+        allow_create := GetNote(notes, "AllowCreateAsset");
+        OpenAssetBrowserPopupFor(asset_type, cast(**void, any.value_pointer), allow_create);
     }
 
     if ImGui.BeginDragDropSource() {

@@ -95,12 +95,17 @@ UpdateCamera :: (using camera : *Camera) {
 g_open_asset_browser_for : struct {
     asset_type : Type;
     pointer_to_pointer : **void;
+    allow_create : bool;
 };
 
-OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
+OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void, allow_create : bool) {
     Callback :: (browser : *FileBrowser, event : FileBrowserEvent, user_data : *void) {
         if !g_open_asset_browser_for.pointer_to_pointer {
             return;
+        }
+
+        defer if event.kind == .Submit || event.kind == .Cancel {
+            g_open_asset_browser_for = .{};
         }
 
         if event.kind == .Submit {
@@ -111,20 +116,24 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
             RemoveRefDynamic(asset_type, value_ptr.*);
             value_ptr.* = null;
 
-            if StringStartsWith(asset_filename, g_data_directory_absolute_path) {
-                asset_filename = StringAdvance(asset_filename, g_data_directory_absolute_path.count);
-                if asset_filename.count > 0 && asset_filename[0] == #char "/" {
-                    asset_filename = StringAdvance(asset_filename, 1);
-                }
+            if !StringStartsWith(asset_filename, g_data_directory_absolute_path) {
+                LogError("Selected asset filename is not in the Data/ directory");
+                return;
+            }
 
+            asset_filename = StringAdvance(asset_filename, g_data_directory_absolute_path.count);
+            if asset_filename.count > 0 && asset_filename[0] == #char "/" {
+                asset_filename = StringAdvance(asset_filename, 1);
+            }
+
+            if event.exists {
                 value_ptr.* = LoadAssetDynamic(asset_type, asset_filename);
             } else {
-                LogError("Selected asset filename is not in the Data/ directory");
+                value_ptr.* = AllocNewAssetDynamic(asset_type, asset_filename);
+                if value_ptr.* {
+                    SaveAssetDynamic(asset_type, value_ptr.*);
+                }
             }
-        }
-
-        if event.kind == .Submit || event.kind == .Cancel {
-            g_open_asset_browser_for = .{};
         }
     }
 
@@ -140,16 +149,23 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void) {
 
     g_open_asset_browser_for.asset_type = asset_type;
     g_open_asset_browser_for.pointer_to_pointer = pointer_to_pointer;
+    g_open_asset_browser_for.allow_create = allow_create;
 
     OpenFileBrowser("Select Asset", .{
         accept_button_text="Select Asset",
         initial_directory="Data",
         root_directories=.["Data"],
         filters=Asset_Type_Filters,
-        flags=.DisallowNonExisting
     }, Callback);
 
     browser := GetFileBrowser("Select Asset");
+
+    if allow_create {
+        browser.flags &= ~.DisallowNonExisting;
+    } else {
+        browser.flags |= .DisallowNonExisting;
+    }
+
     if asset_type == {
     case Mesh;
         browser.selected_filter = 0;
@@ -242,6 +258,9 @@ UpdateEditor :: (world : *World) {
 
     if ImGui.BeginMainMenuBar() {
         if ImGui.BeginMenu("World") {
+            if ImGui.MenuItem("New") {
+                DestroyWorld(world);
+            }
             if ImGui.MenuItem("Load") {
                 g_editor_requested_load_world = true;
             }
@@ -731,7 +750,7 @@ ShowMaterialEditor :: () {
     }
 
     world : *World;
-    ShowInspector("Selected Material", world, g_material_editor_selected_material);
+    ShowInspector("Selected Material", world, g_material_editor_selected_material, .["AllowCreateAsset"]);
 
     ImGui.Separator();
 

@@ -473,6 +473,22 @@ UnloadAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
 
 #scope_export
 
+AllocNewAssetDynamic :: inline (data_type : Type, name : string, flags : AssetFlags = 0, location := #caller_location) -> *void, is_new : bool  {
+    #insert -> string {
+        builder : StringBuilder;
+
+        Appendln(*builder, "if data_type == {");
+        for Asset_Types {
+            Appendln(*builder, "case %1; asset, is_new := AllocNewAsset(%1, name, flags, location); return asset, is_new;", it);
+        }
+        Appendln(*builder, "case; LogError(\"AllocNewAssetDynamic does not handle asset type \%\", data_type);");
+        Appendln(*builder, "}");
+        Appendln(*builder, "return null, false;");
+
+        return StringBuilderBuild(*builder);
+    }
+}
+
 AllocNewAsset :: inline ($T : Type, name : string, flags : AssetFlags = 0, location := #caller_location) -> *Asset(T), is_new : bool  {
     cache := #insert #run SPrint("*g_%_asset_cache;", T);
     asset, is_new := AllocNewAsset(cache, name, flags, location);

@@ -122,6 +122,7 @@ FileBrowserEvent :: struct {
 
     kind : Kind;
     filename : string;
+    exists : bool;
 }
 
 FileBrowserCallback :: #type (browser : *FileBrowser, event : FileBrowserEvent, user_data : *void);
@@ -353,10 +354,14 @@ GetSelectedFile :: (using browser : *FileBrowser) -> string {
     }
 
     result := StringJoin(current_directory, "/", filename_input ,, Temp);
-    result = get_absolute_path(result ,, Temp);
-    path_overwrite_separators(result, #char "/");
+    absolute := get_absolute_path(result ,, Temp, logger=IgnoreLogger);
+    if !absolute {
+        absolute = result;
+    }
 
-    return result;
+    path_overwrite_separators(absolute, #char "/");
+
+    return absolute;
 }
 
 SetSelectedFile :: (using browser : *FileBrowser, filename : string) {
@@ -623,11 +628,13 @@ FileBrowserPopup :: (using browser : *FileBrowser) {
 
     accept_text := ifx selected_file == current_directory
         then CTPrint("% (current)", MakeString(accept_button_text))
+        else ifx !exists && MakeString(browser.filename_text_buffer.data).count > 0
+        then CTPrint("% (new)", MakeString(accept_button_text))
         else accept_button_text;
     if ImGui.Button(accept_text) || (can_submit && should_submit) {
         submitted_filename := StringClone(selected_file ,, Temp);
         if callback {
-            callback(browser, .{kind=.Submit, filename=submitted_filename}, user_data);
+            callback(browser, .{kind=.Submit, filename=submitted_filename, exists=exists}, user_data);
         }
 
         ImGui.CloseCurrentPopup();
