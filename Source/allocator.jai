@@ -1,5 +1,5 @@
 // Thread safe, lock free frame data allocator
-Frame_Data_Capacity :: 1024 * 1024;
+Frame_Data_Capacity :: 10 * 1024 * 1024;
 
 FrameDataAllocator :: struct {
     buffer : GfxBuffer;
