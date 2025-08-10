@@ -1080,10 +1080,10 @@ SaveWorldToDirectory :: (world : *World, output_directory : string) {
 
     saved_entities := 0;
 
-    serializer : Serializer;
-    serializer.builder.allocator = Temp;
-
     for :AllEntities world {
+        serializer : Serializer;
+        serializer.builder.allocator = Temp;
+
         SerializeEntity(*serializer, it);
 
         filename := TPrint("%/%_%.entity", output_directory, it.guid, GetEntityType(it.index));
@@ -1093,6 +1093,18 @@ SaveWorldToDirectory :: (world : *World, output_directory : string) {
         } else {
             saved_entities += 1;
         }
+    }
+
+    serializer : Serializer;
+    serializer.builder.allocator = Temp;
+
+    SerializeAny(*serializer, world);
+
+    world_filename := TPrint("%/%.world", output_directory, path_basename(output_directory));
+
+    ok := write_entire_file(world_filename, *serializer.builder);
+    if !ok {
+        LogContentError("Could not save world to file '%'", world_filename);
     }
 
     end_time := Basic.current_time_monotonic();
