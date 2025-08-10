@@ -99,7 +99,8 @@ void main() {
     base_color *= sRGBToLinear(mesh.material.base_color_tint);
 
     float3 emissive = texture(u_emissive_texture, tex_coords).rgb;
-    emissive *= sRGBToLinear(mesh.material.emissive_tint) * mesh.material.emissive_strength;
+    emissive *= sRGBToLinear(mesh.material.emissive_tint);
+    emissive *= mesh.material.emissive_strength;
 
     float metallic, roughness;
     if ((mesh.material.flags & MaterialFlags_HasMetallicRoughness) != 0) {
