@@ -77,12 +77,15 @@ float ParallaxOcclusionSelfShadow(sampler2D depth_map, float height_scale, float
 void main() {
     MeshInstance mesh = u_mesh_instances[in_instance_index];
 
-    float3x3 TBN = float3x3(in_tangent, in_bitangent, in_normal);
-
-    float3 tangent_view_dir = TBN * normalize(in_viewpoint_position - in_position);
+    float3x3 TBN = float3x3(
+        normalize(in_tangent),
+        normalize(in_bitangent),
+        normalize(in_normal)
+    );
 
     float2 tex_coords = in_tex_coords;
     if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
+        float3 tangent_view_dir = TBN * normalize(in_viewpoint_position - in_position);
         tex_coords = ParallaxOcclusionMapping(u_depth_map_texture, mesh.material.depth_map_scale, in_tex_coords, tangent_view_dir);
     }
 
