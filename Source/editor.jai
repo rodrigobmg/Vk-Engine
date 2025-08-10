@@ -7,6 +7,12 @@
 
 Log_Editor :: Log_Section.{name="Editor"};
 
+EditorSettings :: struct {
+    entity_outline : EntityOutlineParams; @ShowInInspector @InspectorNoTree
+}
+
+g_editor_settings : EditorSettings;
+
 g_show_imgui_demo := false;
 g_show_world_inspector := false;
 g_show_entity_outliner := true;
@@ -786,5 +792,12 @@ ShowEngineSettings :: () {
         return;
     }
 
-    ShowInspector("Bloom", cast(*World, null), *g_bloom_params);
+    ShowInspector("Editor", cast(*World, null), *g_editor_settings);
+
+    if ImGui.TreeNodeEx("Graphics") {
+        ImGui.SeparatorText("Bloom");
+        ShowInspector("", cast(*World, null), *g_bloom_params, .["InspectorNoTree"]);
+
+        ImGui.TreePop();
+    }
 }

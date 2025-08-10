@@ -296,9 +296,9 @@ ShadowMapParams :: struct {
 } @ShaderType
 
 EntityOutlineParams :: struct {
-    thickness : float = 2;
-    covered_alpha : float = 0.2;
-    color : Vec4f = .{0,0,1,1};
+    thickness : float = 2; @ShowInInspector @FloatRange(1,5)
+    covered_alpha : float = 0.2; @ShowInInspector @FloatRange(0,1)
+    color : Vec4f = .{0,0,1,1}; @ShowInInspector @ColorEdit
 } @ShaderType
 
 FrameInfo :: struct {
@@ -475,6 +475,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         num_point_lights=xx num_point_lights,
         num_directional_lights=xx num_directional_lights,
         skybox_light_intensity=world.skybox_light_intensity,
+        entity_outline_params=g_editor_settings.entity_outline,
         shadow_map_params=.{
             noise_resolution=Shadow_Map_Noise_Size,
             depth_bias_min_max=.{1, 5},
