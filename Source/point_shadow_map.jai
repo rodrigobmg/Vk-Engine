@@ -1,4 +1,4 @@
-Default_Point_Shadow_Map_Resolution :: 512;
+Default_Point_Shadow_Map_Resolution :: 1024;
 Point_Shadow_Map_Clip_Near :: 0.01;
 Point_Shadow_Map_Clip_Far :: 30.0;
 

@@ -6,6 +6,8 @@
 #define Num_Shadow_Map_Cascades 4
 #define Num_Shadow_Map_Sqrt_Samples 8
 #define Num_Shadow_Map_Samples (Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples)
+#define Num_Point_Shadow_Map_Cbrt_Samples 3
+#define Num_Point_Shadow_Map_Samples (Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples)
 
 int GetShadowCascadeIndex(ShadowMapParams params, DirectionalLight light, float3 position, float3 normal, out float3 coords) {
     float3 normal_offset = normal / float(light.shadow_map_resolution) * params.normal_bias;
@@ -90,18 +92,43 @@ float SampleShadowMap(
 float SamplePointShadowMap(
     ShadowMapParams params,
     PointLight light,
+    sampler2DArray noise_texture,
     samplerCube shadow_map_texture,
-    float3 world_position, float3 world_normal
+    float3 world_position, float3 world_normal,
+    float2 screen_position
 ) {
-    float3 light_space_position = world_position - light.position;
+    float2 shadow_map_texel_size = 1 / float2(light.shadow_map_resolution / 6);
+    float2 noise_texel_size = 1 / float2(params.noise_resolution);
 
-    float current_depth = length(light_space_position);
+    float filter_radius = shadow_map_texel_size.x * params.filter_radius / 10;
 
-    float closest_depth = texture(shadow_map_texture, light_space_position).r;
-    closest_depth *= light.shadow_map_viewpoints[0].z_far;
+    float3 L = world_position - light.position;
+    float current_depth = length(L);
+    L /= current_depth;
 
-    float bias = 0.05;
-    float shadow = float(current_depth - bias > closest_depth);
+    float NdotL = dot(world_normal, -L);
+    float bias_factor = clamp(1.0 - NdotL, 0.0, 1.0);
+    float depth_bias = lerp(params.depth_bias_min_max.x, params.depth_bias_min_max.y, bias_factor);
+    depth_bias *= shadow_map_texel_size.x;
+
+    float shadow = 0;
+    for (int x = 0; x < Num_Point_Shadow_Map_Cbrt_Samples; x += 1) {
+        for (int y = 0; y < Num_Point_Shadow_Map_Cbrt_Samples; y += 1) {
+            for (int z = 0; z < Num_Point_Shadow_Map_Cbrt_Samples; z += 1) {
+                float3 noise_coords = float3(screen_position * noise_texel_size, x * Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples + y * Num_Point_Shadow_Map_Cbrt_Samples + z);
+
+                float3 offset = texture(noise_texture, noise_coords).xyz;
+                offset *= filter_radius;
+
+                float closest_depth = texture(shadow_map_texture, L + offset).r;
+                closest_depth *= light.shadow_map_viewpoints[0].z_far;
+
+                shadow += float(current_depth - depth_bias > closest_depth);
+            }
+        }
+    }
+
+    shadow /= float(Num_Point_Shadow_Map_Samples);
 
     return shadow;
 }

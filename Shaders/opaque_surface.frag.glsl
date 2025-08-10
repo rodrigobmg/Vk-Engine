@@ -148,7 +148,7 @@ void main() {
 
         float shadow;
         if (light.shadow_map_index >= 0) {
-            shadow = 1 - SamplePointShadowMap(u_frame_info.shadow_map_params, light, u_point_shadow_maps[light.shadow_map_index], in_position, N);
+            shadow = 1 - SamplePointShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_point_shadow_maps[light.shadow_map_index], in_position, N, gl_FragCoord.xy);
 
             // float3 light_space_position = in_position - light.position;
             // float closest_depth = texture(u_point_shadow_maps[light.shadow_map_index], light_space_position).r;
