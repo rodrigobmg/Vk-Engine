@@ -1071,7 +1071,7 @@ SaveWorldToDirectory :: (world : *World, output_directory : string) {
 
         files := file_list(output_directory ,, Temp);
         for files {
-            if path_extension(it) == "entity" {
+            if path_extension(it) == "entity" || path_extension(it) == "world" {
                 file_delete(it);
             }
         }
@@ -1095,6 +1095,10 @@ SaveWorldToDirectory :: (world : *World, output_directory : string) {
             saved_entities += 1;
         }
     }
+
+    old_dir := world.loaded_from_directory; // Just in case output_directory.data == world.loaded_from_directory.data
+    world.loaded_from_directory = StringClone(output_directory);
+    Free(old_dir.data);
 
     serializer : Serializer;
     serializer.builder.allocator = Temp;
