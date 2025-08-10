@@ -585,7 +585,8 @@ ShowEntityOutliner :: (world : *World) {
                 ImGui.EndDisabled();
 
                 if ImGui.MenuItem("Duplicate") {
-                    DuplicateEntity(world, entity);
+                    entity = DuplicateEntity(world, entity);
+                    SelectEntity(entity.guid);
                 }
 
                 if ImGui.MenuItem("Delete") {
@@ -684,7 +685,7 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
     ImGui.SameLine();
 
     if ImGui.Button("Duplicate") {
-        DuplicateEntity(world, entity);
+        entity = DuplicateEntity(world, entity);
         SelectEntity(entity.guid);
     }
 
