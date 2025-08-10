@@ -11,6 +11,7 @@
 #load "forward_pass.jai";
 #load "post_processing.jai";
 #load "shadow_map.jai";
+#load "point_shadow_map.jai";
 #load "skybox.jai";
 #load "entity_selection.jai";
 #load "bloom.jai";
@@ -273,12 +274,18 @@ PointLightEntity :: struct {
     color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
     intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
     cast_shadows : bool; @Serialize(4)
+    shadow_map : PointShadowMap;
+
+    OnDespawn :: (world : *World, light : *PointLightEntity) {
+        DestroyShadowMap(*light.shadow_map);
+    }
 } @Entity
 
 EmptyBindingSet :: struct {
 } @BindingSet
 
 Max_Shadow_Maps :: 2;
+Max_Point_Shadow_Maps :: 20;
 
 FrameBindingSet :: struct {
     frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
@@ -316,7 +323,7 @@ DirectionalLight :: struct {
     direction : Vec3f;
     color : Vec3f;
     intensity : float;
-    cast_shadows : bool;
+    shadow_map_index : s32;
     shadow_map_resolution : u32;
     shadow_map_cascade_sizes : [Num_Shadow_Map_Cascades]float = Shadow_Map_Cascade_Sizes;
     shadow_map_viewpoints : [Num_Shadow_Map_Cascades]Viewpoint;
@@ -326,9 +333,12 @@ PointLight :: struct {
     position : Vec3f;
     color : Vec3f;
     intensity : float;
+    shadow_map_index : s32;
+    shadow_map_resolution : u32;
+    shadow_map_viewpoints : [6]Viewpoint;
 } @ShaderType
 
-Max_Viewpoints :: 4;
+Max_Viewpoints :: 6;
 
 Viewpoint :: struct {
     position : Vec3f;
@@ -341,7 +351,14 @@ Viewpoint :: struct {
     view_projection : Mat4f;
     viewport_size : Vec2f;
     fov : float;
+    z_near : float;
+    z_far : float;
 } @ShaderType
+
+ViewpointsData :: struct {
+    num_viewpoints : u32 = 1;
+    viewpoints : [Max_Viewpoints]Viewpoint;
+}
 
 FrameRenderContext :: struct {
     world : *World;
@@ -364,7 +381,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     frustum := MakePerspectiveFrustum(camera.transform, camera.fov_in_degrees, w / cast(float, h), camera.z_near, camera.z_far);
     for * world.MeshEntity_storage {
-        if !it.mesh || !it.material {
+        if !it.mesh {
             continue;
         }
 
@@ -377,10 +394,12 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
+        material := ifx it.material then it.material else g_default_material;
+
         position := TranslationVector(it.world_transform);
         depth := TransformPoint(camera.view, position).z;
-        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, it.material, depth);
-        PushMesh(*g_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, it.material);
+        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
+        PushMesh(*g_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
     }
 
     SortMeshBuffer(*g_mesh_buffer);
@@ -394,7 +413,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        if !it.mesh || !it.material {
+        if !it.mesh {
             continue;
         }
 
@@ -407,10 +426,12 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
+        material := ifx it.material then it.material else g_default_material;
+
         position := TranslationVector(it.world_transform);
         depth := TransformPoint(camera.view, position).z;
-        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, it.material, depth);
-        PushMesh(*g_selected_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, it.material);
+        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
+        PushMesh(*g_selected_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
     }
 
     SortMeshBuffer(*g_selected_mesh_buffer);
@@ -419,6 +440,12 @@ RenderFrame :: (world : *World, camera : *Camera) {
     for * world.DirectionalLightEntity_storage {
         if it.cast_shadows {
             PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(it.world_transform), camera.transform);
+        }
+    }
+
+    for * world.PointLightEntity_storage {
+        if it.cast_shadows {
+            PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(it.world_transform));
         }
     }
 
@@ -435,6 +462,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     num_directional_lights : u64 = xx world.DirectionalLightEntity_storage.count;
     directional_lights_size := GLSLStd430Size(DirectionalLight) * num_directional_lights;
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
+    shadow_map_index : s32 = 0;
     for * world.DirectionalLightEntity_storage {
         if it.cast_shadows && it.shadow_map.resolution == 0 {
             InitShadowMap(*it.shadow_map, Default_Shadow_Map_Resolution);
@@ -444,7 +472,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             direction=ForwardVector(it.world_transform),
             color=it.color,
             intensity=it.intensity,
-            cast_shadows=it.cast_shadows,
+            shadow_map_index=ifx it.cast_shadows then shadow_map_index else -1,
             shadow_map_resolution=it.shadow_map.resolution,
         };
 
@@ -452,6 +480,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
             for * viewpoint : directional_light.shadow_map_viewpoints {
                 viewpoint.* = GetShadowMapViewpoint(*it.shadow_map, directional_light.direction, camera.transform, it_index);
             }
+
+            shadow_map_index += 1;
         }
 
         directional_lights_ptr += PackToGLSLStd(directional_light, directional_lights_ptr, .Std430);
@@ -460,12 +490,28 @@ RenderFrame :: (world : *World, camera : *Camera) {
     num_point_lights : u64 = xx world.PointLightEntity_storage.count;
     point_lights_size := GLSLStd430Size(PointLight) * num_point_lights;
     point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
+    point_shadow_map_index : s32 = 0;
     for world.PointLightEntity_storage {
+        if it.cast_shadows && it.shadow_map.resolution == 0 {
+            InitShadowMap(*it.shadow_map, Default_Point_Shadow_Map_Resolution);
+        }
+
         point_light := PointLight.{
             position=TranslationVector(it.world_transform),
             color=it.color,
             intensity=it.intensity,
+            shadow_map_index=ifx it.cast_shadows then point_shadow_map_index else -1,
+            shadow_map_resolution=it.shadow_map.resolution,
         };
+
+        if it.cast_shadows {
+            for * viewpoint : point_light.shadow_map_viewpoints {
+                viewpoint.* = GetShadowMapViewpoint(*it.shadow_map, point_light.position, xx it_index);
+            }
+
+            point_shadow_map_index += 1;
+        }
+
         point_lights_ptr += PackToGLSLStd(point_light, point_lights_ptr, .Std430);
     }
 
@@ -504,6 +550,12 @@ RenderFrame :: (world : *World, camera : *Camera) {
     for * world.DirectionalLightEntity_storage {
         if it.cast_shadows {
             ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(it.world_transform), camera);
+        }
+    }
+
+    for * world.PointLightEntity_storage {
+        if it.cast_shadows {
+            PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(it.world_transform));
         }
     }
 

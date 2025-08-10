@@ -21,12 +21,13 @@
 #include "shader_types.generated.glsl"
 
 #define Max_Shadow_Maps 2
+#define Max_Point_Shadow_Maps 20
 
 #define DECLARE_STATIC_VERTEX_ATTRIBUTES() \
-    layout(location=0) in float3 v_position; \
-    layout(location=1) in float3 v_normal; \
-    layout(location=2) in float4 v_tangent; \
-    layout(location=3) in float2 v_tex_coords
+    layout(location=0) in float3 in_position; \
+    layout(location=1) in float3 in_normal; \
+    layout(location=2) in float4 in_tangent; \
+    layout(location=3) in float2 in_tex_coords
 
 #ifdef SHADER_STAGE_VERTEX
 #define DECLARE_PER_FRAME_PARAMS() \
@@ -50,11 +51,12 @@
     layout(set=0, binding=4) uniform sampler2DArray u_shadow_map_noise_texture
 #endif
 
-#define Max_Viewpoints 4
+#define Max_Viewpoints 6
 
 #ifdef SHADER_STAGE_VERTEX
 #define DECLARE_FORWARD_PASS_PARAMS() \
     layout(set=1, binding=0) uniform Viewpoints { \
+        uint u_num_viewpoints; \
         Viewpoint u_viewpoints[Max_Viewpoints]; \
     }
 #endif
@@ -62,11 +64,13 @@
 #ifdef SHADER_STAGE_FRAGMENT
 #define DECLARE_FORWARD_PASS_PARAMS() \
     layout(set=1, binding=0) uniform Viewpoints { \
+        uint u_num_viewpoints; \
         Viewpoint u_viewpoints[Max_Viewpoints]; \
     }; \
     layout(set=1, binding=1) uniform sampler2DArrayShadow u_shadow_maps[Max_Shadow_Maps]; \
-    layout(set=1, binding=2) uniform sampler2D u_irradiance_map; \
-    layout(set=1, binding=3) uniform sampler2D u_environment_map
+    layout(set=1, binding=2) uniform samplerCube u_point_shadow_maps[Max_Point_Shadow_Maps]; \
+    layout(set=1, binding=3) uniform sampler2D u_irradiance_map; \
+    layout(set=1, binding=4) uniform sampler2D u_environment_map
 #endif
 
 #ifdef SHADER_STAGE_VERTEX
@@ -332,6 +336,10 @@ float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size) {
     float4 D = texture(s, uv + float2( texel_size.x, -texel_size.y));
 
     return (A + B + C + D) * (1 / 4.0);
+}
+
+float LinearizeDepth(float d, float z_near, float z_far) {
+    return z_near * z_far / (z_far + d * (z_near - z_far));
 }
 
 #endif

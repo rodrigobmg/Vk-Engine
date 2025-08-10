@@ -86,8 +86,8 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
 
     w, h := GetWindowPixelSize(g_window);
 
-    viewpoints : [Max_Viewpoints]Viewpoint;
-    viewpoints[0] = .{
+    viewpoints : ViewpointsData;
+    viewpoints.viewpoints[0] = .{
         position=camera.position,
         right=RightVector(camera.transform),
         up=UpVector(camera.transform),

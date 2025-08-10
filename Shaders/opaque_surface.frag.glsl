@@ -120,7 +120,12 @@ void main() {
         DirectionalLight light = u_directional_lights[i];
         float3 light_color = sRGBToLinear(light.color);
 
-        float shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[i], in_position, N, gl_FragCoord.xy);
+        float shadow;
+        if (light.shadow_map_index >= 0) {
+            shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[light.shadow_map_index], in_position, N, gl_FragCoord.xy);
+        } else {
+            shadow = 1;
+        }
         float3 L = -light.direction;
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
@@ -141,7 +146,18 @@ void main() {
         float distance = sqrt(distance_sqrd);
         L /= distance;
 
-        float shadow = 1;
+        float shadow;
+        if (light.shadow_map_index >= 0) {
+            shadow = 1 - SamplePointShadowMap(u_frame_info.shadow_map_params, light, u_point_shadow_maps[light.shadow_map_index], in_position, N);
+
+            // float3 light_space_position = in_position - light.position;
+            // float closest_depth = texture(u_point_shadow_maps[light.shadow_map_index], light_space_position).r;
+
+            // out_color = float4(closest_depth, closest_depth, closest_depth, 1);
+            // return;
+        } else {
+            shadow = 1;
+        }
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
             float3 tangent_light_dir = TBN * L;

@@ -1,0 +1,9 @@
+@_ 1:
+  @guid 1: 0xea34f9657b2209341ae2a240c45dc67e
+  @name 2: "Z+"
+  @local_position 3: [0, 0, 1]
+  @local_rotation 4: [-0.707107, 0, 0, 0.707107]
+  @local_scale 5: [1, 1, 1]
+  @parent 6: 0x00000000000000000000000000000000
+@mesh 2: "Meshes/Z+.mesh"
+@cast_shadows 4: true

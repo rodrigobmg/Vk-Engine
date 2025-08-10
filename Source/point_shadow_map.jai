@@ -1,0 +1,221 @@
+Default_Point_Shadow_Map_Resolution :: 512;
+Point_Shadow_Map_Clip_Near :: 0.01;
+Point_Shadow_Map_Clip_Far :: 30.0;
+
+PointShadowMap :: struct {
+    resolution : u32;
+    mesh_buffers : [6]MeshBuffer;
+    depth_texture : GfxTexture;
+    depth_texture_faces : [6]GfxTexture;
+}
+
+CubeMapFace :: enum {
+    PositiveX;
+    NegativeX;
+    PositiveY;
+    NegativeY;
+    PositiveZ;
+    NegativeZ;
+}
+
+Cube_Map_Face_Orientations :: Quatf.[
+    #run QuatfLookAt(.{ 1, 0, 0}, .{ 0, 1, 0}), // PositiveX
+    #run QuatfLookAt(.{-1, 0, 0}, .{ 0, 1, 0}), // NegativeX
+    #run QuatfLookAt(.{ 0, 1, 0}, .{ 0, 0,-1}), // PositiveY
+    #run QuatfLookAt(.{ 0,-1, 0}, .{ 0, 0, 1}), // NegativeY
+    #run QuatfLookAt(.{ 0, 0, 1}, .{ 0, 1, 0}), // PositiveZ
+    #run QuatfLookAt(.{ 0, 0,-1}, .{ 0, 1, 0}), // NegativeZ
+];
+
+InitShadowMap :: (shadow_map : *PointShadowMap, resolution : u32) {
+    shadow_map.resolution = resolution;
+
+    desc : GfxTextureDesc;
+    desc.type = .TextureCube;
+    desc.pixel_format = .Depth32Float;
+    desc.usage = .DepthStencilAttachment | .Sampled;
+    desc.width = resolution;
+    desc.height = resolution;
+
+    shadow_map.depth_texture = CreateGfxTexture("Point Shadow Map", desc);
+    Assert(!IsNull(*shadow_map.depth_texture), "Could not create point shadow map texture");
+
+    for i : 0..5 {
+        desc : GfxTextureViewDesc;
+        desc.type = .Texture2D;
+        desc.pixel_format = .Depth32Float;
+        desc.first_array_layer = xx i;
+
+        shadow_map.depth_texture_faces[i] = CreateGfxTextureView(TPrint("Point Shadow Map, %", cast(CubeMapFace, i)), desc, *shadow_map.depth_texture);
+        Assert(!IsNull(*shadow_map.depth_texture_faces[i]), "Could not create point shadow map texture view for face %", cast(CubeMapFace, i));
+    }
+}
+
+DestroyShadowMap :: (shadow_map : *PointShadowMap) {
+    QueueDestroyGfxTexture(*shadow_map.depth_texture);
+    for * shadow_map.depth_texture_faces {
+        QueueDestroyGfxTextureView(it);
+    }
+
+    for * shadow_map.mesh_buffers {
+        FreeMeshBuffer(it);
+    }
+}
+
+GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) -> Viewpoint {
+    right := RightVector(Cube_Map_Face_Orientations[face]);
+    up := UpVector(Cube_Map_Face_Orientations[face]);
+    forward := ForwardVector(Cube_Map_Face_Orientations[face]);
+
+    viewpoint : Viewpoint;
+    viewpoint.projection = Mat4fPerspectiveProjection(90, 1, Point_Shadow_Map_Clip_Near, Point_Shadow_Map_Clip_Far);
+
+    viewpoint.transform = Mat4fFromRightUpForwardOrigin(right, up, forward, light_position);
+    viewpoint.position = light_position;
+    viewpoint.right = right;
+    viewpoint.up = up;
+    viewpoint.direction = forward;
+    viewpoint.view = Inverse(viewpoint.transform);
+    viewpoint.view_projection = viewpoint.projection * viewpoint.view;
+    viewpoint.viewport_size = .{xx shadow_map.resolution, xx shadow_map.resolution};
+    viewpoint.z_near = Point_Shadow_Map_Clip_Near;
+    viewpoint.z_far = Point_Shadow_Map_Clip_Far;
+
+    return viewpoint;
+}
+
+GetShadowMapFrustum :: (shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) -> Frustum {
+    right := RightVector(Cube_Map_Face_Orientations[face]);
+    up := UpVector(Cube_Map_Face_Orientations[face]);
+    forward := ForwardVector(Cube_Map_Face_Orientations[face]);
+
+    transform := Mat4fFromRightUpForwardOrigin(right, up, forward, light_position);;
+
+    return MakePerspectiveFrustum(transform, 90, 1, Point_Shadow_Map_Clip_Near, Point_Shadow_Map_Clip_Far);
+}
+
+PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) {
+    mesh_buffer := *shadow_map.mesh_buffers[face];
+
+    ClearMeshBuffer(mesh_buffer);
+
+    frustum := GetShadowMapFrustum(shadow_map, light_position, face);
+    viewpoint := GetShadowMapViewpoint(shadow_map, light_position, face);
+
+    for * world.MeshEntity_storage {
+        if !it.cast_shadows {
+            continue;
+        }
+
+        if !it.mesh {
+            continue;
+        }
+
+        if IsNull(*it.mesh.vertex_buffer) || IsNull(*it.mesh.index_buffer) {
+            continue;
+        }
+
+        // aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
+        // if !AABBIsInFrustum(aabb, frustum) {
+        //     continue;
+        // }
+
+        material := ifx it.material then it.material else g_default_material;
+
+        position := TranslationVector(it.world_transform);
+        depth := TransformPoint(viewpoint.view, position).z;
+        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
+        PushMesh(mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
+    }
+
+    SortMeshBuffer(mesh_buffer);
+    AllocDrawData(mesh_buffer);
+}
+
+PopulateShadowMapMeshBuffers :: (world : *World, shadow_map : *PointShadowMap, light_position : Vec3f) {
+    for i : 0..5 {
+        PopulateShadowMapMeshBuffer(world, shadow_map, light_position, xx i);
+    }
+}
+
+PointShadowMapPassBindingSet :: struct {
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
+} @BindingSet
+
+g_point_shadow_map_pipeline : GfxGraphicsPipeline;
+
+CreatePointShadowMapPipeline :: () {
+    desc : GfxGraphicsPipelineDesc;
+    desc.vertex_shader = GetVertexShader("mesh_geometry");
+    desc.fragment_shader = GetFragmentShader("point_shadow_map");
+    desc.depth_format = .Depth32Float;
+    desc.depth_state = .{test_enabled=true, write_enabled=true};
+
+    desc.vertex_input = MakeVertexInputDesc(StaticVertex, 0);
+
+    desc.layout.binding_sets = .[
+        g_binding_set_layouts.FrameBindingSet,
+        g_binding_set_layouts.PointShadowMapPassBindingSet,
+        g_binding_set_layouts.MeshBindingSet,
+    ];
+
+    ok := CreateGfxGraphicsPipeline(*g_point_shadow_map_pipeline, "Point Shadow Map", desc);
+    Assert(ok, "Could not create shadow map pipeline");
+}
+
+PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) {
+    viewpoints : ViewpointsData;
+    viewpoints.viewpoints[0] = GetShadowMapViewpoint(shadow_map, light_position, xx face);
+
+    viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
+
+    pass_bindings := PointShadowMapPassBindingSet.{
+        viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
+    };
+    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
+
+    pass_desc : GfxRenderPassDesc;
+    AddDepthAttachment(*pass_desc, *shadow_map.depth_texture_faces[face]);
+    ClearDepth(*pass_desc, 1);
+
+    pass := BeginGfxRenderPass(cmd_buffer, TPrint("Point Shadow Map, %", face), pass_desc);
+    {
+        BindGraphicsPipeline(*pass, *g_point_shadow_map_pipeline);
+        SetViewport(*pass, .{width=xx shadow_map.resolution, height=xx shadow_map.resolution});
+        SetScissor(*pass, .{w=xx shadow_map.resolution, h=xx shadow_map.resolution});
+
+        BindGraphicsBindingSet(*pass, 1, *binding_set);
+
+        for shadow_map.mesh_buffers[face].draw_calls {
+            BindGraphicsBindingSet(*pass, 2, *it.binding_set);
+            BindVertexBuffer(*pass, 0, it.vertex_buffer);
+            BindIndexBuffer(*pass, .UInt32, it.index_buffer);
+
+            DrawIndexed(*pass, it.index_count, it.instance_count * Num_Shadow_Map_Cascades);
+        }
+    }
+    EndGfxRenderPass(*pass);
+
+}
+
+PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShadowMap, light_position : Vec3f) {
+    if IsNull(*g_point_shadow_map_pipeline) {
+        CreatePointShadowMapPipeline();
+    }
+
+    if IsNull(*shadow_map.depth_texture) {
+        InitShadowMap(shadow_map, Default_Point_Shadow_Map_Resolution);
+    }
+
+    BeginGfxDebugMarker(cmd_buffer, "Point Shadow Map");
+
+    AddTextureBarrier(cmd_buffer, .Undefined, .DepthStencilAttachment, *shadow_map.depth_texture);
+
+    for i : 0..5 {
+        PointShadowMapPass(ctx, shadow_map, light_position, xx i);
+    }
+
+    AddTextureBarrier(cmd_buffer, .DepthStencilAttachment, .ShaderReadOnly, *shadow_map.depth_texture);
+
+    EndGfxDebugMarker(cmd_buffer);
+}

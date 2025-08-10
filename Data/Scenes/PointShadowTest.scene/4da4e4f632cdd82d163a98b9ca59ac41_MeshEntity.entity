@@ -1,0 +1,9 @@
+@_ 1:
+  @guid 1: 0x4da4e4f632cdd82d163a98b9ca59ac41
+  @name 2: "Y+"
+  @local_position 3: [0, 1, 0]
+  @local_rotation 4: [1, 0, 0, -0]
+  @local_scale 5: [1, 1, 1]
+  @parent 6: 0x00000000000000000000000000000000
+@mesh 2: "Meshes/Y+.mesh"
+@cast_shadows 4: true

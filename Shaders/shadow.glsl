@@ -87,4 +87,23 @@ float SampleShadowMap(
     return shadow_value / float(Num_Shadow_Map_Samples);
 }
 
+float SamplePointShadowMap(
+    ShadowMapParams params,
+    PointLight light,
+    samplerCube shadow_map_texture,
+    float3 world_position, float3 world_normal
+) {
+    float3 light_space_position = world_position - light.position;
+
+    float current_depth = length(light_space_position);
+
+    float closest_depth = texture(shadow_map_texture, light_space_position).r;
+    closest_depth *= light.shadow_map_viewpoints[0].z_far;
+
+    float bias = 0.05;
+    float shadow = float(current_depth - bias > closest_depth);
+
+    return shadow;
+}
+
 #endif

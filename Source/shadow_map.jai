@@ -120,6 +120,8 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, light_direction : Vec3f, view
     viewpoint.view = Inverse(viewpoint.transform);
     viewpoint.view_projection = viewpoint.projection * viewpoint.view;
     viewpoint.viewport_size = .{xx shadow_map.resolution, xx shadow_map.resolution};
+    viewpoint.z_near = -depth * 0.5;
+    viewpoint.z_far = depth * 0.5;
 
     return viewpoint;
 }
@@ -154,7 +156,11 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_d
     }
 
     for * world.MeshEntity_storage {
-        if !it.mesh || !it.material {
+        if !it.cast_shadows {
+            continue;
+        }
+
+        if !it.mesh {
             continue;
         }
 
@@ -173,10 +179,12 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_d
         }
 
         if is_inside_frustum {
+            material := ifx it.material then it.material else g_default_material;
+
             position := TranslationVector(it.world_transform);
             depth := TransformPoint(viewpoints[0].view, position).z;
-            key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, it.material, depth);
-            PushMesh(*shadow_map.mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, it.material);
+            key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
+            PushMesh(*shadow_map.mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
         }
     }
 
@@ -192,7 +200,7 @@ g_shadow_map_pipeline : GfxGraphicsPipeline;
 
 CreateShadowMapPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("shadow_map_mesh_geometry");
+    desc.vertex_shader = GetVertexShader("mesh_geometry");
     desc.depth_format = g_depth_texture.desc.pixel_format;
     desc.depth_state = .{test_enabled=true, write_enabled=true};
 
@@ -219,9 +227,10 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, ligh
 
     AddTextureBarrier(cmd_buffer, .Undefined, .DepthStencilAttachment, *shadow_map.depth_texture);
 
-    viewpoints : [Max_Viewpoints]Viewpoint = ---;
+    viewpoints : ViewpointsData;
+    viewpoints.num_viewpoints = Num_Shadow_Map_Cascades;
     for i : 0..Num_Shadow_Map_Cascades - 1 {
-        viewpoints[i] = GetShadowMapViewpoint(shadow_map, light_direction, camera.transform, i);
+        viewpoints.viewpoints[i] = GetShadowMapViewpoint(shadow_map, light_direction, camera.transform, i);
     }
 
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);

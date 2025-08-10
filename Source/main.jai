@@ -59,6 +59,7 @@ g_default_normal_map : *Asset(Texture2D);
 g_default_metallic_roughness_map : *Asset(Texture2D);
 g_default_emissive : *Asset(Texture2D);
 g_default_environment_map : *Asset(EnvironmentMap);
+g_default_material : *Asset(Material);
 
 g_avg_frame_time : float = 1 / 60.0;
 g_min_frame_time : float = 1 / 60.0;
@@ -70,6 +71,7 @@ LoadDefaultAssets :: () {
     g_default_metallic_roughness_map = LoadAsset(Texture2D, "Default_MetallicRoughness.png");
     g_default_emissive = LoadAsset(Texture2D, "Default_Emissive.png");
     g_default_environment_map = LoadAsset(EnvironmentMap, "Default_EnvironmentMap.png");
+    g_default_material = LoadAsset(Material, "Default_Material.mat");
 }
 
 UnloadDefaultAssets :: () {
@@ -78,6 +80,7 @@ UnloadDefaultAssets :: () {
     DerefAsset(*g_default_metallic_roughness_map);
     DerefAsset(*g_default_emissive);
     DerefAsset(*g_default_environment_map);
+    DerefAsset(*g_default_material);
 }
 
 main :: () {

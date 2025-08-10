@@ -11,6 +11,7 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="point_shadow_map"},
     .{name="bloom_filter"},
     .{name="bloom_downsample"},
     .{name="bloom_upsample"},
@@ -24,7 +25,6 @@ g_shaders := LoadedShader.[
     .{name="brdf_lut"},
     .{name="post_processing"},
     .{name="mesh_geometry"},
-    .{name="shadow_map_mesh_geometry"},
     .{name="opaque_surface"},
 ];
 

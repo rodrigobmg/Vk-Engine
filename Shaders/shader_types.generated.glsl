@@ -22,13 +22,15 @@ struct Viewpoint {
     float4x4 view_projection;
     float2 viewport_size;
     float fov;
+    float z_near;
+    float z_far;
 };
 
 struct DirectionalLight {
     float3 direction;
     float3 color;
     float intensity;
-    bool cast_shadows;
+    int shadow_map_index;
     uint shadow_map_resolution;
     float shadow_map_cascade_sizes[4];
     Viewpoint shadow_map_viewpoints[4];
@@ -87,6 +89,9 @@ struct PointLight {
     float3 position;
     float3 color;
     float intensity;
+    int shadow_map_index;
+    uint shadow_map_resolution;
+    Viewpoint shadow_map_viewpoints[6];
 };
 
 #endif

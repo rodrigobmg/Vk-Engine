@@ -1,8 +1,9 @@
 ForwardPassBindingSet :: struct {
     viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
     shadow_maps : [Max_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage @AllowNull
-    irradiance_map : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
-    environment_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
+    point_shadow_maps : [Max_Point_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage @AllowNull
+    irradiance_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
+    environment_map : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
 } @BindingSet
 
 g_forward_pipeline : GfxGraphicsPipeline;
@@ -34,8 +35,8 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     w, h := GetWindowPixelSize(g_window);
 
-    viewpoints : [Max_Viewpoints]Viewpoint;
-    viewpoints[0] = .{
+    viewpoints : ViewpointsData;
+    viewpoints.viewpoints[0] = .{
         position=camera.position,
         right=RightVector(camera.transform),
         up=UpVector(camera.transform),
@@ -46,6 +47,8 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
         view_projection=camera.projection * camera.view,
         fov=ToRads(camera.fov_in_degrees),
         viewport_size=.{xx w, xx h},
+        z_near=camera.z_near,
+        z_far=camera.z_far,
     };
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
 
@@ -65,7 +68,6 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     shadow_map_index := 0;
     for * world.DirectionalLightEntity_storage {
-        defer shadow_map_index += 1;
 
         if shadow_map_index >= Max_Shadow_Maps {
             break;
@@ -76,6 +78,22 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
         }
 
         pass_bindings.shadow_maps[shadow_map_index] = .{texture=*it.shadow_map.depth_texture, sampler=*g_shadow_map_sampler};
+        shadow_map_index += 1;
+    }
+
+    point_shadow_map_index := 0;
+    for * world.PointLightEntity_storage {
+
+        if point_shadow_map_index >= Max_Point_Shadow_Maps {
+            break;
+        }
+
+        if !it.cast_shadows {
+            continue;
+        }
+
+        pass_bindings.point_shadow_maps[point_shadow_map_index] = .{texture=*it.shadow_map.depth_texture, sampler=*g_shadow_map_sampler};
+        point_shadow_map_index += 1;
     }
 
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
