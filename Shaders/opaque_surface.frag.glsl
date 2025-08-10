@@ -164,12 +164,14 @@ void main() {
         irradiance_uv.y = 1 - irradiance_uv.y;
     #endif
     float3 irradiance = textureLod(u_irradiance_map, irradiance_uv, 0).rgb;
+    irradiance *= u_frame_info.skybox_light_intensity;
 
     float2 environment_uv = CartesianToSphericalUV(R);
     #ifndef TEXTURE_ORIGIN_BOTTOM_LEFT
         environment_uv.y = 1 - environment_uv.y;
     #endif
     float3 environment = textureLod(u_environment_map, environment_uv, roughness * (Num_Environment_Map_Levels - 1)).rgb;
+    environment *= u_frame_info.skybox_light_intensity;
 
     float3 ambient = CalculateAmbientBRDF(base_color, metallic, roughness, N, V, irradiance, environment, u_brdf_lut);
     float3 color = ambient + Lo + emissive;

@@ -52,6 +52,7 @@ struct FrameInfo {
     float2 window_pixel_size;
     uint num_directional_lights;
     uint num_point_lights;
+    float skybox_light_intensity;
     ShadowMapParams shadow_map_params;
     BloomParams bloom_params;
     EntityOutlineParams entity_outline_params;

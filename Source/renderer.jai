@@ -306,6 +306,7 @@ FrameInfo :: struct {
     window_pixel_size : Vec2f;
     num_directional_lights : u32;
     num_point_lights : u32;
+    skybox_light_intensity := 1.0;
     shadow_map_params : ShadowMapParams;
     bloom_params : BloomParams;
     entity_outline_params : EntityOutlineParams;
@@ -473,6 +474,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         window_pixel_size=.{xx w, xx h},
         num_point_lights=xx num_point_lights,
         num_directional_lights=xx num_directional_lights,
+        skybox_light_intensity=world.skybox_light_intensity,
         shadow_map_params=.{
             noise_resolution=Shadow_Map_Noise_Size,
             depth_bias_min_max=.{1, 5},
