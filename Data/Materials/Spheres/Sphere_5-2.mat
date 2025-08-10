@@ -1,0 +1,7 @@
+@type 1: Opaque
+@base_color_tint 2: [1, 0, 0]
+@metallic 5: 1
+@roughness 6: 0.4
+@emissive_tint 8: [1, 1, 1]
+@emissive_strength 10: 0
+@depth_map_scale 12: 0
