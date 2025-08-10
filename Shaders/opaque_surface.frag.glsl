@@ -111,6 +111,7 @@ void main() {
         metallic = mesh.material.metallic;
         roughness = mesh.material.roughness;
     }
+    metallic = clamp(metallic, 0, 1);
     roughness = clamp(roughness, 0, 1);
 
     float3 Lo = float3(0);
