@@ -1,1 +1,2 @@
-@skybox 1: "Sky/DeepDusk_Color.png"
+@skybox 1: "Sky/CitrusOrchardRoad.hdr"
+@skybox_light_intensity 2: 0.1
