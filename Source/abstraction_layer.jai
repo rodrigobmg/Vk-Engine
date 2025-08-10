@@ -433,7 +433,7 @@ GfxShaderStageFlags :: enum_flags u8 {
     Fragment;
 }
 
-MakeVkShaderStageFlags :: (stages : GfxShaderStageFlags) -> VkShaderStageFlags {
+MakeVkShaderStageFlags :: inline (stages : GfxShaderStageFlags) -> VkShaderStageFlags {
     result : VkShaderStageFlags;
     if stages & .Vertex {
         result |= .VERTEX_BIT;
