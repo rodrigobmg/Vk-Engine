@@ -26,3 +26,4 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 * Volumetric clouds
 * Automatic texture transition barriers
 * Texture viewer
+* Variance shadow maps
