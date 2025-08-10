@@ -8,9 +8,8 @@
 
 // See: Kawase blur filter
 
-// @Todo:
-// Additionally, we can apply a single pass gaussian blur to each downsample level to get less fireflies and an overall more
-// qualitative result
+// Additionally, we could apply a single pass gaussian blur to each downsample level to get less fireflies and maybe
+// an overall more qualitative result
 
 BloomParams :: struct {
     resolution_factor := Bloom_Resolution_Factor;
