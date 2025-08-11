@@ -6,5 +6,5 @@
   @local_scale 5: [10.0, 10.0, 10.0]
   @parent 6: 0x301786fe33594d208962a752debb56e8
 @mesh 2: "Meshes/ParallaxTestPlanes.mesh"
-@material 3: "Pebbles.mat"
+@material 3: "Materials/Pebbles.mat"
 @cast_shadows 4: True
