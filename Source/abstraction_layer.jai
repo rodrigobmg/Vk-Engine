@@ -414,7 +414,7 @@ DestroyGfxShader :: (shader : *GfxShader) {
 // Additionally, in Metal and D3D12, a "descriptor" encapsulates all the parameters needed to create an object
 // (e.g. MTLTextureDescriptor, D3D12_RESOURCE_DESC). This is basically the CreateInfo structures in Vulkan.
 // We inherited that terminology, although we use the abbreviation "desc" to actually mean "description" more than
-// "descriptor" because I think that term is more accurate. Hence we prefer the term shader binding set.
+// "descriptor" because I think that term is more accurate. Hence we prefer the term binding set.
 
 // While high end graphics cards can support 32 bound descriptor sets, a lot of lower end graphics devices only
 // support a maximum of 4 different descriptors sets.
