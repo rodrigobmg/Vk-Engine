@@ -8,3 +8,4 @@
 @mesh 2: "Sponza/Meshes/sponza_ornament.mesh"
 @material 3: "Sponza/Materials/ornament_01.mat"
 @cast_shadows 4: true
+@cast_point_shadows 5: false

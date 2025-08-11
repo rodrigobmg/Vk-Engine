@@ -8,3 +8,4 @@
 @mesh 2: "Sponza/Meshes/walls_floor_03.001.mesh"
 @material 3: "Sponza/Materials/arch_stone_wall_01.001.mat"
 @cast_shadows 4: true
+@cast_point_shadows 5: false

@@ -8,3 +8,4 @@
 @mesh 2: "Sponza/Meshes/master_material.004.mesh"
 @material 3: "Sponza/Materials/stone_trims_01.mat"
 @cast_shadows 4: true
+@cast_point_shadows 5: false

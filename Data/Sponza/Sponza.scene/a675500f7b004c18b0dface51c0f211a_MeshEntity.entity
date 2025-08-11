@@ -8,3 +8,4 @@
 @mesh 2: "Sponza/Meshes/ornament_door_2ndfloor_14.004.mesh"
 @material 3: "Sponza/Materials/metal_door.mat"
 @cast_shadows 4: true
+@cast_point_shadows 5: false

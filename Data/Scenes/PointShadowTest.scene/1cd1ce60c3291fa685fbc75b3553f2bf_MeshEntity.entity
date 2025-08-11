@@ -7,3 +7,4 @@
   @parent 6: 0x00000000000000000000000000000000
 @mesh 2: "Meshes/Y-.mesh"
 @cast_shadows 4: true
+@cast_point_shadows 5: true

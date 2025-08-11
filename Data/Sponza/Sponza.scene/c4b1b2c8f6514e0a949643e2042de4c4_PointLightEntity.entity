@@ -7,4 +7,4 @@
   @parent 6: 0x313e1c00abe648df9bdf97c38f8de5b7
 @color 2: [1, 0.456014, 0.114014]
 @intensity 3: 1
-@cast_shadows 4: false
+@cast_shadows 4: true

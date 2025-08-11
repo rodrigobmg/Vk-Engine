@@ -8,3 +8,4 @@
 @mesh 2: "Sponza/Meshes/orn_windows_02.003.mesh"
 @material 3: "Sponza/Materials/metal_door.001.mat"
 @cast_shadows 4: true
+@cast_point_shadows 5: false

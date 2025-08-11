@@ -8,3 +8,4 @@
 @mesh 2: "Sponza/Meshes/wooden_parts.mesh"
 @material 3: "Sponza/Materials/wood_01.mat"
 @cast_shadows 4: true
+@cast_point_shadows 5: false
