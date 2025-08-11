@@ -1,9 +1,11 @@
+// @Todo: allow all shadow map passes to run concurrently (currently EndGfxRenderPass puts execution barriers for correctness)
+
 Default_Point_Shadow_Map_Resolution :: 1024;
-Point_Shadow_Map_Clip_Near :: 0.01;
-Point_Shadow_Map_Clip_Far :: 30.0;
 
 PointShadowMap :: struct {
     resolution : u32;
+    z_near := 0.01;
+    z_far := 30.0;
     mesh_buffers : [6]MeshBuffer;
     depth_texture : GfxTexture;
     depth_texture_faces : [6]GfxTexture;
@@ -62,13 +64,17 @@ DestroyShadowMap :: (shadow_map : *PointShadowMap) {
     }
 }
 
+UpdatePointShadowMapFarPlane :: (light : *PointLightEntity, intensity_threshold := Global_Point_Light_Intensity_Threshold) {
+    light.shadow_map.z_far = GetPointLightAttenuationDistance(light.intensity, light.intensity * intensity_threshold);
+}
+
 GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) -> Viewpoint {
     right := RightVector(Cube_Map_Face_Orientations[face]);
     up := UpVector(Cube_Map_Face_Orientations[face]);
     forward := ForwardVector(Cube_Map_Face_Orientations[face]);
 
     viewpoint : Viewpoint;
-    viewpoint.projection = Mat4fPerspectiveProjection(90, 1, Point_Shadow_Map_Clip_Near, Point_Shadow_Map_Clip_Far);
+    viewpoint.projection = Mat4fPerspectiveProjection(90, 1, shadow_map.z_near, shadow_map.z_far);
 
     viewpoint.transform = Mat4fFromRightUpForwardOrigin(right, up, forward, light_position);
     viewpoint.position = light_position;
@@ -78,8 +84,8 @@ GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, 
     viewpoint.view = Inverse(viewpoint.transform);
     viewpoint.view_projection = viewpoint.projection * viewpoint.view;
     viewpoint.viewport_size = .{xx shadow_map.resolution, xx shadow_map.resolution};
-    viewpoint.z_near = Point_Shadow_Map_Clip_Near;
-    viewpoint.z_far = Point_Shadow_Map_Clip_Far;
+    viewpoint.z_near = shadow_map.z_near;
+    viewpoint.z_far = shadow_map.z_far;
 
     return viewpoint;
 }
@@ -91,7 +97,7 @@ GetShadowMapFrustum :: (shadow_map : *PointShadowMap, light_position : Vec3f, fa
 
     transform := Mat4fFromRightUpForwardOrigin(right, up, forward, light_position);;
 
-    return MakePerspectiveFrustum(transform, 90, 1, Point_Shadow_Map_Clip_Near, Point_Shadow_Map_Clip_Far);
+    return MakePerspectiveFrustum(transform, 90, 1, shadow_map.z_near, shadow_map.z_far);
 }
 
 PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) {

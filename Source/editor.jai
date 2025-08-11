@@ -361,6 +361,10 @@ UpdateEditor :: (world : *World) {
 
     ShowEntityInspector(world, entity_to_inspect);
 
+    for :AllEntities entity : world {
+        EntityCallback(world, entity, "OnDebugDraw");
+    }
+
     if g_editor_requested_save_world {
         Callback :: (browser : *FileBrowser, event : FileBrowserEvent, user_data : *void) {
             if event.kind == .Submit {

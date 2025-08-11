@@ -123,7 +123,7 @@ float SamplePointShadowMap(
                 float closest_depth = texture(shadow_map_texture, L + offset).r;
                 closest_depth *= light.shadow_map_viewpoints[0].z_far;
 
-                shadow += float(current_depth - depth_bias > closest_depth);
+                shadow += float(closest_depth < light.shadow_map_viewpoints[0].z_far && current_depth - depth_bias > closest_depth);
             }
         }
     }

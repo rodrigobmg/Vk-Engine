@@ -11,6 +11,7 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="debug_line"},
     .{name="point_shadow_map"},
     .{name="bloom_filter"},
     .{name="bloom_downsample"},

@@ -15,6 +15,7 @@
 #load "skybox.jai";
 #load "entity_selection.jai";
 #load "bloom.jai";
+#load "debug_draw.jai";
 
 g_linear_clamp_sampler : GfxSampler;
 
@@ -147,9 +148,11 @@ CreateAllPipelines :: () {
     CreateBloomFilterPipeline();
     CreateBloomDownsamplePipeline();
     CreateBloomUpsamplePipeline();
+    CreateDebugLinesPipeline();
 }
 
 DestroyAllPipelines :: () {
+    DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_downsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_filter_pipeline);
@@ -263,10 +266,32 @@ DirectionalLightEntity :: struct {
     cast_shadows : bool; @Serialize(4)
     shadow_map : ShadowMap;
 
+    OnDebugDraw :: (world : *World, light : *DirectionalLightEntity) {
+        if true { // EntityIsSelected(light.guid) {
+            position := TranslationVector(light.world_transform);
+            right := RightVector(light.world_transform);
+            up := UpVector(light.world_transform);
+            direction := ForwardVector(light.world_transform);
+
+            p0 := position + right * 0.3;
+            p1 := position - right * 0.3;
+            p2 := position + up * 0.3;
+            p3 := position - up * 0.3;
+
+            DebugDrawCircleOutline(.{1,1,1,1}, position, right, up, 0.3);
+            DebugDrawLine(.{1,1,1,1}, p0, p0 + direction);
+            DebugDrawLine(.{1,1,1,1}, p1, p1 + direction);
+            DebugDrawLine(.{1,1,1,1}, p2, p2 + direction);
+            DebugDrawLine(.{1,1,1,1}, p3, p3 + direction);
+        }
+    }
+
     OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
         DestroyShadowMap(*light.shadow_map);
     }
 } @Entity
+
+Global_Point_Light_Intensity_Threshold :: 0.01;
 
 PointLightEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
@@ -276,10 +301,29 @@ PointLightEntity :: struct {
     cast_shadows : bool; @Serialize(4)
     shadow_map : PointShadowMap;
 
+    OnDebugDraw :: (world : *World, light : *PointLightEntity) {
+        if EntityIsSelected(light.guid) {
+            position := TranslationVector(light.world_transform);
+            distance := GetPointLightAttenuationDistance(light.intensity, light.intensity * Global_Point_Light_Intensity_Threshold);
+            DebugDrawSphereOutline(.{0,1,0,1}, position, distance);
+        }
+    }
+
     OnDespawn :: (world : *World, light : *PointLightEntity) {
         DestroyShadowMap(*light.shadow_map);
     }
 } @Entity
+
+GetPointLightAttenuationDistance :: (intensity : float, intensity_threshold : float) -> float {
+    // Light intensity at distance D for base intensity I is I/D^2
+    // Solve for I/D^2 < T
+    //   I/D^2 < T
+    //   I < T*D^2
+    //   0 < T*D^2-I
+    //   T*D^2-I > 0
+
+    return (4 * intensity * intensity_threshold) / (2 * intensity_threshold);
+}
 
 EmptyBindingSet :: struct {
 } @BindingSet
@@ -445,6 +489,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     for * world.PointLightEntity_storage {
         if it.cast_shadows {
+            UpdatePointShadowMapFarPlane(it);
             PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(it.world_transform));
         }
     }
@@ -563,6 +608,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
+    DebugLinesPass(*ctx, camera);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
 
     EntityGUIDPass(*ctx, *g_entity_guid_texture, *g_depth_texture, camera, *g_mesh_buffer);
