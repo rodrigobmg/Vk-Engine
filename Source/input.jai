@@ -357,3 +357,5 @@ SDLMouseButtonToMouseButton :: (button : u8) -> MouseButton {
 
     return .Invalid;
 }
+
+SDL_GetWindowSizeInPixels :: (win: *SDL_Window, w: *s32, h: *s32) #foreign SDL2;

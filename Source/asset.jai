@@ -65,7 +65,7 @@ AssetCommonData :: struct {
 
 Asset :: struct (DataType : Type) {
     #as using _ : AssetCommonData; @Serialize(1)
-    asset_cache : *AssetCache(DataType);
+    asset_cache : *AssetCache(DataType); // @Todo: remove this since we only ever have one cache per type we can access the cache using the type
     #as using asset_data : DataType;
 
     #if Track_Asset_Reference_Locations {

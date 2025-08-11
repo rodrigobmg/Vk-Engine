@@ -42,8 +42,6 @@ Vulkan_Break_On_Error :: true;
 Append   :: StringBuilderAppend;
 Appendln :: StringBuilderAppendLine;
 
-SDL_GetWindowSizeInPixels :: (win: *SDL_Window, w: *s32, h: *s32) #foreign SDL2;
-
 g_window : *SDL_Window;
 
 g_preferences : Preferences;
