@@ -27,3 +27,6 @@ Toy engine project to learn Vulkan and advanced rendering techniques.
 * Automatic texture transition barriers
 * Texture viewer
 * Variance shadow maps
+
+## Goals
+* Sponza running at 155 FPS with all point lights casting shadows
