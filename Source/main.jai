@@ -151,16 +151,6 @@ main :: () {
 
     defer DestroyAllAssetCaches();
 
-    LoadDefaultAssets();
-    defer UnloadDefaultAssets();
-
-    world : World;
-    defer DestroyWorld(*world);
-
-    if g_preferences.startup_scene {
-        LoadWorldFromDirectory(*world, g_preferences.startup_scene);
-    }
-
     ImGui.CreateContext();
     defer ImGui.DestroyContext();
 
@@ -172,6 +162,16 @@ main :: () {
 
     InitImGuiRenderer();
     defer DestroyImGuiRenderer();
+
+    LoadDefaultAssets();
+    defer UnloadDefaultAssets();
+
+    world : World;
+    defer DestroyWorld(*world);
+
+    if g_preferences.startup_scene {
+        LoadWorldFromDirectory(*world, g_preferences.startup_scene);
+    }
 
     defer WaitForGPUIdle(); // Before destroying anything, we need to ensure all work is done
 
