@@ -121,10 +121,10 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *PointShadowMap, li
             continue;
         }
 
-        // aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
-        // if !AABBIsInFrustum(aabb, frustum) {
-        //     continue;
-        // }
+        aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
+        if !AABBIsInFrustum(aabb, frustum) {
+            continue;
+        }
 
         material := ifx it.material then it.material else g_default_material;
 
