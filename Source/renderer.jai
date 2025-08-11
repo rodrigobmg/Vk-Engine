@@ -255,6 +255,7 @@ MeshEntity :: struct {
     mesh : *Asset(Mesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
+    cast_point_shadows := false; @Serialize(5)
     aabb : AABB;
 } @Entity
 
