@@ -659,6 +659,10 @@ AllocGfxBindingSet :: (pool : *GfxBindingPool, layout : *GfxBindingSetLayout) ->
     return .{set=set}, .Success;
 }
 
+// Generates VkDescriptorBufferInfo, VkDescriptorImageInfo and VkWriteDescriptorSet then calls vkUpdateDescriptorSets automatically
+// @AllowNull bindings are handled using the partially bound feature, so it is expected that when the binding is null it
+// is not accessed in the shader. It is not the same thing as the null descriptor feature and failure to comply to this
+// will result in crashes!
 UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
     #insert -> string {
         AppendBufferInfo :: (builder : *StringBuilder, name : string) {
