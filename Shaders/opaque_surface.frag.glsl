@@ -16,7 +16,7 @@ layout(location=6) in float2 in_tex_coords;
 
 layout(location=0) out float4 out_color;
 
-#define Min_Parallax_Layers 1
+#define Min_Parallax_Layers 20
 #define Max_Parallax_Layers 60
 
 // https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
