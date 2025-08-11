@@ -120,20 +120,26 @@ void main() {
         DirectionalLight light = u_directional_lights[i];
         float3 light_color = sRGBToLinear(light.color);
 
+        float3 L = -light.direction;
+        float NdotL = max(dot(N, L), 0.0);
+
         float shadow;
         if (light.shadow_map_index >= 0) {
             shadow = 1 - SampleShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_shadow_maps[light.shadow_map_index], in_position, N, gl_FragCoord.xy);
         } else {
             shadow = 1;
         }
-        float3 L = -light.direction;
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
             float3 tangent_light_dir = TBN * L;
-            shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+            // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
+            if (dot(in_normal, L) < 0) {
+                shadow = 0;
+            } else {
+                shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+            }
         }
 
-        float NdotL = max(dot(L, N), 0.0);
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * light.intensity * shadow);
     }
 
@@ -146,15 +152,11 @@ void main() {
         float distance = sqrt(distance_sqrd);
         L /= distance;
 
+        float intensity = light.intensity / distance_sqrd;
+
         float shadow;
         if (light.shadow_map_index >= 0) {
             shadow = 1 - SamplePointShadowMap(u_frame_info.shadow_map_params, light, u_shadow_map_noise_texture, u_point_shadow_maps[light.shadow_map_index], in_position, N, gl_FragCoord.xy);
-
-            // float3 light_space_position = in_position - light.position;
-            // float closest_depth = texture(u_point_shadow_maps[light.shadow_map_index], light_space_position).r;
-
-            // out_color = float4(closest_depth, closest_depth, closest_depth, 1);
-            // return;
         } else {
             shadow = 1;
         }
@@ -162,16 +164,20 @@ void main() {
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
             float3 tangent_light_dir = TBN * L;
 
-            // Because we use in_position to calculate the light direction, the shadow is not 100% correct
-            // and it changes when the view position changes, because the view position affects tex_coords
-            // Ideally we would have a way to modify the vertex position based on the result of parallax mapping,
-            // and I am not sure there is a simple performant way to do so
-            // Of course in addition to the shadow, it makes any light calculation a bit off, though it is more
-            // visible with self shadowing
-            shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+            // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
+            if (dot(in_normal, L) < 0) {
+                shadow = 0;
+            } else {
+                // Because we use in_position to calculate the light direction, the shadow is not 100% correct
+                // and it changes when the view position changes, because the view position affects tex_coords
+                // Ideally we would have a way to modify the vertex position based on the result of parallax mapping,
+                // and I am not sure there is a simple performant way to do so
+                // Of course in addition to the shadow, it makes any light calculation a bit off, though it is more
+                // visible with self shadowing
+                shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+            }
         }
 
-        float intensity = light.intensity / distance_sqrd;
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * intensity * shadow);
     }
 
