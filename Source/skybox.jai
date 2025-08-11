@@ -46,18 +46,7 @@ SkyboxPass :: (using ctx : *FrameRenderContext, camera : *Camera, skybox_texture
 
     w, h := GetWindowPixelSize(g_window);
 
-    viewpoint := Viewpoint.{
-        position=camera.position,
-        right=RightVector(camera.transform),
-        up=UpVector(camera.transform),
-        direction=ForwardVector(camera.transform),
-        transform=camera.transform,
-        view=camera.view,
-        projection=camera.projection,
-        view_projection=camera.projection * camera.view,
-        fov=ToRads(camera.fov_in_degrees),
-        viewport_size=.{xx w, xx h},
-    };
+    viewpoint := MakeViewpoint(camera);
     viewpoint_offset, viewpoint_size := AllocAndPackUniformFrameData(viewpoint);
 
     pass_bindings := SkyboxBindingSet.{

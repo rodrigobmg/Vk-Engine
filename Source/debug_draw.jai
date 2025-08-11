@@ -261,20 +261,7 @@ DebugLinesPass :: (using ctx : *FrameRenderContext, camera : *Camera) {
 
     w, h := GetWindowPixelSize(g_window);
 
-    viewpoint := Viewpoint.{
-        position=camera.position,
-        right=RightVector(camera.transform),
-        up=UpVector(camera.transform),
-        direction=ForwardVector(camera.transform),
-        transform=camera.transform,
-        view=camera.view,
-        projection=camera.projection,
-        view_projection=camera.projection * camera.view,
-        fov=ToRads(camera.fov_in_degrees),
-        viewport_size=.{xx w, xx h},
-        z_near=camera.z_near,
-        z_far=camera.z_far,
-    };
+    viewpoint := MakeViewpoint(camera);
     viewpoint_offset, viewpoint_size := AllocAndPackUniformFrameData(viewpoint);
 
     lines_offset, lines_size := AllocAndPackStorageFrameData(g_debug_lines);

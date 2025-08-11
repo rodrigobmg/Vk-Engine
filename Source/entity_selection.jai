@@ -87,18 +87,7 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
     w, h := GetWindowPixelSize(g_window);
 
     viewpoints : ViewpointsData;
-    viewpoints.viewpoints[0] = .{
-        position=camera.position,
-        right=RightVector(camera.transform),
-        up=UpVector(camera.transform),
-        direction=ForwardVector(camera.transform),
-        transform=camera.transform,
-        view=camera.view,
-        projection=camera.projection,
-        view_projection=camera.projection * camera.view,
-        fov=ToRads(camera.fov_in_degrees),
-        viewport_size=.{xx w, xx h},
-    };
+    viewpoints.viewpoints[0] = MakeViewpoint(camera);
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
 
     pass_bindings := EntityGUIDPassBindingSet.{

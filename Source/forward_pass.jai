@@ -36,20 +36,7 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
     w, h := GetWindowPixelSize(g_window);
 
     viewpoints : ViewpointsData;
-    viewpoints.viewpoints[0] = .{
-        position=camera.position,
-        right=RightVector(camera.transform),
-        up=UpVector(camera.transform),
-        direction=ForwardVector(camera.transform),
-        transform=camera.transform,
-        view=camera.view,
-        projection=camera.projection,
-        view_projection=camera.projection * camera.view,
-        fov=ToRads(camera.fov_in_degrees),
-        viewport_size=.{xx w, xx h},
-        z_near=camera.z_near,
-        z_far=camera.z_far,
-    };
+    viewpoints.viewpoints[0] = MakeViewpoint(camera);
     viewpoints_offset, viewpoints_size := AllocAndPackUniformFrameData(viewpoints);
 
     pass_bindings := ForwardPassBindingSet.{
