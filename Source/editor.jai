@@ -13,6 +13,12 @@ EditorSettings :: struct {
 
 g_editor_settings : EditorSettings;
 
+EntityOutlineParams :: struct {
+    thickness : float = 2; @ShowInInspector @FloatRange(1,5)
+    covered_alpha : float = 0.2; @ShowInInspector @FloatRange(0,1)
+    color : Vec4f = .{1,1,1,1}; @ShowInInspector @ColorEdit
+} @ShaderType
+
 g_show_imgui_demo := false;
 g_show_world_inspector := false;
 g_show_entity_outliner := true;
@@ -519,8 +525,15 @@ ShowEntityOutliner :: (world : *World) {
     if ImGui.BeginCombo("###create_new_entity", "Create New Entity") {
         for i : 1..Entity_Types.count - 1 {
             type_id := cast(EntityTypeId, i);
+            name := TPrint("%", type_id);
+            if StringEndsWith(name, "Entity") {
+                name.count -= "Entity".count;
+                if name.count > 0 && name[name.count - 1] == #char "_" {
+                    name.count -= 1;
+                }
+            }
 
-            if ImGui.MenuItem(CTPrint("%", type_id)) {
+            if ImGui.MenuItem(CStringClone(name ,, Temp)) {
                 entity := SpawnEntity(world, type_id);
                 SelectEntity(entity.guid);
             }

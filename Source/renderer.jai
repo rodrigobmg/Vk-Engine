@@ -344,12 +344,6 @@ ShadowMapParams :: struct {
     filter_radius : float;
 } @ShaderType
 
-EntityOutlineParams :: struct {
-    thickness : float = 2; @ShowInInspector @FloatRange(1,5)
-    covered_alpha : float = 0.2; @ShowInInspector @FloatRange(0,1)
-    color : Vec4f = .{0,0,1,1}; @ShowInInspector @ColorEdit
-} @ShaderType
-
 FrameInfo :: struct {
     time : float;
     window_pixel_size : Vec2f;
