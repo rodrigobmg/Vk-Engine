@@ -2897,6 +2897,11 @@ VulkanDebugCallback :: (
     callback_data : *VkDebugUtilsMessengerCallbackDataEXT,
     user_data : *void
 ) -> VkBool32 #c_call {
+    if callback_data.messageIdNumber == {
+    case 0xc81ad50e; // WARNING-Shader-OutputNotConsumed
+        return VK_FALSE;
+    }
+
     ctx := cast(*#Context, user_data).*;
     push_context,defer_pop ctx;
 
@@ -2906,7 +2911,7 @@ VulkanDebugCallback :: (
     msg=, spec, verbose := MakeVulkanDebugMessageLessVerbose(msg);
 
     if verbose {
-        LogMessage("%", verbose, flags=.VERBOSE_ONLY);
+        LogMessage("messageId=0x%, %", FormatIntHex(callback_data.messageIdNumber), verbose, flags=.VERBOSE_ONLY);
     }
 
     if severity & .ERROR_BIT_EXT {

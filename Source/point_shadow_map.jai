@@ -30,6 +30,18 @@ Cube_Map_Face_Orientations :: Quatf.[
 ];
 
 InitShadowMap :: (shadow_map : *PointShadowMap, resolution : u32) {
+    if !IsNull(*shadow_map.depth_texture) && shadow_map.resolution == resolution {
+        return;
+    }
+
+    if !IsNull(*shadow_map.depth_texture) {
+        for * shadow_map.depth_texture_faces {
+            QueueDestroyGfxTextureView(it);
+        }
+
+        QueueDestroyGfxTexture(*shadow_map.depth_texture);
+    }
+
     shadow_map.resolution = resolution;
 
     desc : GfxTextureDesc;
@@ -54,10 +66,11 @@ InitShadowMap :: (shadow_map : *PointShadowMap, resolution : u32) {
 }
 
 DestroyShadowMap :: (shadow_map : *PointShadowMap) {
-    QueueDestroyGfxTexture(*shadow_map.depth_texture);
     for * shadow_map.depth_texture_faces {
         QueueDestroyGfxTextureView(it);
     }
+
+    QueueDestroyGfxTexture(*shadow_map.depth_texture);
 
     for * shadow_map.mesh_buffers {
         FreeMeshBuffer(it);

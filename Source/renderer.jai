@@ -138,6 +138,7 @@ CreateAllPipelines :: () {
     CreateForwardPipeline();
     CreatePostProcessingPipeline();
     CreateShadowMapPipeline();
+    CreatePointShadowMapPipeline();
     CreateSkyboxPipeline();
     CreateIrradianceMapPipeline();
     CreateEnvironmentMapPipeline();
@@ -158,6 +159,7 @@ DestroyAllPipelines :: () {
     DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_skybox_pipeline);
     DestroyGfxGraphicsPipeline(*g_forward_pipeline);
+    DestroyGfxGraphicsPipeline(*g_point_shadow_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
 
     DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
@@ -547,7 +549,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     point_lights_size := GLSLStd430Size(PointLight) * num_point_lights;
     point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
     point_shadow_map_index : s32 = 0;
-    for world.PointLightEntity_storage {
+    for * world.PointLightEntity_storage {
         if it.cast_shadows && it.shadow_map.resolution == 0 {
             InitShadowMap(*it.shadow_map, Default_Point_Shadow_Map_Resolution);
         }
