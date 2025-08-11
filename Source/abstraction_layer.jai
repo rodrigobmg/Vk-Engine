@@ -823,31 +823,42 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
     vkUpdateDescriptorSets(g_gfx_context.device, xx writes.count, writes.data, 0, null);
 }
 
-// To help reduce error prone boilerplate code for layout creation and param set allocation, we provide
+// To help reduce error prone boilerplate code for layout creation and binding set allocation, we provide
 // these types below. You can define a struct containing these members, and that struct can be used to both
-// create a param set layout as well as allocate a param set.
-// This is a simple solution that simplifies layout and param set creation without using reflection (although
+// create a binding set layout as well as allocate a binding set.
+// This is a simple solution that simplifies layout and binding set creation without using reflection (although
 // reflection would probably simplify even more that process, and in particular would not require us to know
-// the binding point indices on the CPU side)
+// the binding point indices on the CPU side).
+// I am sure most engines use reflection to make this automatic. I don't believe this is a good design choice because
+// the programmer has to setup the descriptor sets in the source code anyway, so it makes more sense to define the layouts
+// in the source code too (though to be fair without code generation and type information this is maybe the only solution).
+// Furthermore, your shaders cannot work if the bindings are not setup properly CPU side, so your ability to add new bindings
+// in the shader and hot-reload is limited or even non-existent.
 
-/* Example:
+/* Example (not 1:1 with how you actually use the API):
 
 MyParamSet :: struct {
-    a_buffer : GfxBindingUniformBuffer; @Binding(0)
-    a_texture : GfxBindingTexture; @Binding(1)
-    many_textures : [10]GfxBindingTexture; @Binding(2)
+    a_buffer : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
+    a_texture : GfxBindingTexture; @Binding(1) @AllowNull @FragmentStage
+    many_textures : [10]GfxBindingTexture; @Binding(2) @FragmentStage
+    a_sampler : GfxBindingSampler; @Binding(3) @FragmentStage
 }
 
 set_layout := CreateGfxBindingSetLayout(MyParamSet);
 
-params : MyParamSet;
-params.a_buffer = .{buffer=my_buffer, offset=0};
-params.a_texture = my_texture;
-for params.many_textures {
-    params.many_textures = GetTexture(it_index);
+bindings : MyParamSet;
+bindings.a_buffer = .{buffer=my_buffer, offset=0};
+bindings.a_texture = null;
+for bindings.many_textures {
+    bindings.many_textures = GetTexture(it_index);
 }
+bindings.a_sample = my_sampler;
 
-param_set = AllocGfxBindingSet(set_layout, params);
+binding_set := CreateGfxBindingSet(*set_layout, bindings);
+
+...
+
+BindGraphicsBindingSet(*pass, 0, *binding_set);
 
 */
 
