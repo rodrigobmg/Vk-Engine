@@ -1,6 +1,8 @@
 # Vulkan Based Rendering Engine
 Toy engine project to learn Vulkan and advanced rendering techniques.
 
+Supports Linux and Windows.
+
 ## Features:
 * Abstraction layer
 * Shader hot reloading
