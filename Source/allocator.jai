@@ -41,6 +41,13 @@ DestroyFrameDataAllocator :: (allocator : *FrameDataAllocator) {
     allocator.* = .{};
 }
 
+InitFrameDataAllocators :: () {
+    for * g_frame_data_allocators {
+        ok := InitFrameDataAllocator(it, TPrint("Frame Data %", it_index), Frame_Data_Capacity);
+        Assert(ok, "Could not initialize frame data allocator");
+    }
+}
+
 FrameDataBuffer :: () -> *GfxBuffer {
     using allocator := *g_frame_data_allocators[g_gfx_context.frame_in_flight];
 

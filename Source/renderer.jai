@@ -24,7 +24,7 @@ InitRenderer :: () {
         Basic.exit(1);
     }
 
-    CreateRenderTargets();
+    CreateRenderTargets(); // This must be first because some functions use e.g. g_color_texture.desc
 
     CreateAllBindingSetLayouts();
 
@@ -34,10 +34,7 @@ InitRenderer :: () {
 
     CreateGlobalShadowMapObjects();
 
-    for * g_frame_data_allocators {
-        InitFrameDataAllocator(it, TPrint("Frame Data %", it_index), Frame_Data_Capacity);
-    }
-
+    InitFrameDataAllocators();
     InitBindingSetAllocators();
 
     sampler_desc : GfxSamplerDesc;
@@ -268,7 +265,7 @@ DirectionalLightEntity :: struct {
     shadow_map : ShadowMap;
 
     OnDebugDraw :: (world : *World, light : *DirectionalLightEntity) {
-        if true { // EntityIsSelected(light.guid) {
+        if  EntityIsSelected(light.guid) {
             position := TranslationVector(light.world_transform);
             right := RightVector(light.world_transform);
             up := UpVector(light.world_transform);
