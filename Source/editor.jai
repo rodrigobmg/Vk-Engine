@@ -499,6 +499,22 @@ DuplicateEntity :: (world : *World, entity : *Entity, location := #caller_locati
     return new_entity;
 }
 
+GetNiceEntityTypeName :: inline (entity : *Entity) -> string {
+    return GetNiceEntityTypeName(GetEntityTypeId(entity.index));
+}
+
+GetNiceEntityTypeName :: (type_id : EntityTypeId) -> string {
+    name := type_info(EntityTypeId).names[type_id];
+    if StringEndsWith(name, "Entity") {
+        name.count -= "Entity".count;
+        if name.count > 0 && name[name.count - 1] == #char "_" {
+            name.count -= 1;
+        }
+    }
+
+    return name;
+}
+
 ShowEntityOutliner :: (world : *World) {
     if !g_show_entity_outliner {
         return;
@@ -525,13 +541,7 @@ ShowEntityOutliner :: (world : *World) {
     if ImGui.BeginCombo("###create_new_entity", "Create New Entity") {
         for i : 1..Entity_Types.count - 1 {
             type_id := cast(EntityTypeId, i);
-            name := TPrint("%", type_id);
-            if StringEndsWith(name, "Entity") {
-                name.count -= "Entity".count;
-                if name.count > 0 && name[name.count - 1] == #char "_" {
-                    name.count -= 1;
-                }
-            }
+            name := GetNiceEntityTypeName(type_id);
 
             if ImGui.MenuItem(CStringClone(name ,, Temp)) {
                 entity := SpawnEntity(world, type_id);
@@ -573,7 +583,7 @@ ShowEntityOutliner :: (world : *World) {
 
         label := ifx entity.name
             then CStringClone(entity.name ,, Temp)
-            else CTPrint("<%>##%", GetEntityTypeId(entity.index), entity.guid);
+            else CTPrint("<%>##%", GetNiceEntityTypeName(entity), entity.guid);
 
         flags := ImGui.TreeNodeFlags.OpenOnArrow | .SpanFullWidth;
         if entity.children.count == 0 {
@@ -586,16 +596,16 @@ ShowEntityOutliner :: (world : *World) {
 
         filter := MakeString(g_editor_entity_filter_text.data);
         pass_filter := FilterTest(g_editor_entity_filter_case_sensitive, entity.name, filter);
-        pass_filter ||= FilterTest(g_editor_entity_filter_case_sensitive, TPrint("%", GetEntityTypeId(entity.index)), filter);
+        pass_filter ||= FilterTest(g_editor_entity_filter_case_sensitive, TPrint("%", GetNiceEntityTypeName(entity)), filter);
         pass_filter ||= FilterTest(g_editor_entity_filter_case_sensitive, TPrint("%", entity.guid), filter);
 
         opened : bool;
         if pass_filter {
             opened = ImGui.TreeNodeEx(label, flags);
             if entity.name {
-                ImGui.SetItemTooltip("<%> % %", GetEntityTypeId(entity.index), entity.name, entity.guid);
+                ImGui.SetItemTooltip("<%> % %", GetNiceEntityTypeName(entity), entity.name, entity.guid);
             } else {
-                ImGui.SetItemTooltip("<%> %", GetEntityTypeId(entity.index), entity.guid);
+                ImGui.SetItemTooltip("<%> %", GetNiceEntityTypeName(entity), entity.guid);
             }
 
             if ImGui.BeginPopupContextItem(CTPrint("%##context_menu", label)) {
@@ -630,9 +640,9 @@ ShowEntityOutliner :: (world : *World) {
 
             if ImGui.BeginDragDropSource() {
                 if entity.name {
-                    ImGui.Text("<%> % %", GetEntityTypeId(entity.index), entity.name, entity.guid);
+                    ImGui.Text("<%> % %", GetNiceEntityTypeName(entity), entity.name, entity.guid);
                 } else {
-                    ImGui.Text("<%> %", GetEntityTypeId(entity.index), entity.guid);
+                    ImGui.Text("<%> %", GetNiceEntityTypeName(entity), entity.guid);
                 }
 
                 ImGui.SetDragDropPayload("EntityGUID", *entity.guid, size_of(EntityGUID));
@@ -712,7 +722,7 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
         SelectEntity(entity.guid);
     }
 
-    ImGui.LabelText("Type", "%", GetEntityTypeId(entity.index));
+    ImGui.LabelText("Type", "%", GetNiceEntityTypeName(entity));
 
     name_buffer : [200]u8 = ---;
     name_len := Min(name_buffer.count - 1, entity.name.count);
