@@ -18,6 +18,7 @@ Basic :: #import "Basic"()(MEMORY_DEBUGGER=false);
 using,only(.["+","-","*","/","<",">","=="]) Basic;
 
 ImGui :: #import "ImGui";
+ImGui_Ext :: #import "ImGuiExt";
 ImGui_SDL :: #import "ImGui/Impl/SDL";
 
 #if OS == .WINDOWS {

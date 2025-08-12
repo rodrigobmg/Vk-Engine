@@ -11,6 +11,7 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="gizmo"},
     .{name="debug_line"},
     .{name="point_shadow_map"},
     .{name="bloom_filter"},
@@ -155,6 +156,8 @@ ShaderFileChangeCallback :: (watcher : *File_Watcher(void), change : *File_Chang
 ReloadShader :: (shader : *LoadedShader) -> bool {
     LogSectionScope(*Log_Shaders);
 
+    WaitForGPUIdle();
+
     dependencies : [..]string;
     defer {
         for dependencies {
@@ -232,7 +235,7 @@ CreateGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline, name : string, de
     }
 
     callback : ShaderReloadCallback;
-    callback.proc = (shader, pipeline) => { WaitForGPUIdle(); DestroyGfxGraphicsPipeline(pipeline); };
+    callback.proc = (shader, pipeline) => { DestroyGfxGraphicsPipeline(pipeline); };
     callback.data = pipeline;
 
     AddShaderReloadCallback(desc.vertex_shader, callback);

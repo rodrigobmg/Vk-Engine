@@ -16,6 +16,7 @@
 #load "entity_selection.jai";
 #load "bloom.jai";
 #load "debug_draw.jai";
+#load "gizmo_draw.jai";
 
 g_linear_clamp_sampler : GfxSampler;
 
@@ -147,9 +148,11 @@ CreateAllPipelines :: () {
     CreateBloomDownsamplePipeline();
     CreateBloomUpsamplePipeline();
     CreateDebugLinesPipeline();
+    CreateGizmoPipeline();
 }
 
 DestroyAllPipelines :: () {
+    DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_downsample_pipeline);
@@ -229,9 +232,11 @@ CreateRenderTargets :: () {
 
     CreateEntityGUIDTextures();
     CreateBloomTextures();
+    CreateGizmoTextures(*g_gizmo_ctx);
 }
 
 DestroyRenderTargets :: () {
+    DestroyGfxTexture(*g_gizmo_ctx.depth_texture);
     DestroyGfxTexture(*g_final_texture);
     DestroyGfxTexture(*g_color_texture);
     DestroyGfxTexture(*g_depth_texture);
@@ -640,6 +645,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     PostProcessingPass(*ctx);
     DebugLinesPass(*ctx, camera);
+    GizmoPass(*ctx, *g_gizmo_ctx);
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);

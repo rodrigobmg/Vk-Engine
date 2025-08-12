@@ -16,6 +16,8 @@ Mesh :: struct {
     index_buffer : GfxBuffer;
 
     static_bounds : AABB;
+
+    triangles : []MeshTriangle; // For collision, not generated unless needed
 } @Asset
 
 MeshFileFlags :: enum_flags u32 {
@@ -132,6 +134,7 @@ LoadMeshFromMemory :: (mesh : *Mesh, data : []u8, name : string) -> bool {
 }
 
 DestroyMesh :: (using mesh : *Mesh) {
+    Free(triangles.data);
     Free(vertices.data);
     Free(indices.data);
     QueueDestroyGfxBuffer(*vertex_buffer);
@@ -210,5 +213,30 @@ CalculateTangents :: (using mesh : *Mesh) {
 
         vert.tangent.xyz = Normalized(Reject(t, n));
         vert.tangent.w = ifx Dot(Cross(t, b), n) > 0 then 1.0 else -1.0;
+    }
+}
+
+MeshTriangle :: struct {
+    p0, p1, p2 : Vec3f;
+    normal : Vec3f;
+}
+
+BuildTriangleList :: (mesh : *Mesh) {
+    num_triangles := mesh.indices.count / 3;
+    mesh.triangles = AllocArray(MeshTriangle, num_triangles);
+    for i : 0..num_triangles - 1 {
+        i0 := mesh.indices[i * 3 + 0];
+        i1 := mesh.indices[i * 3 + 1];
+        i2 := mesh.indices[i * 3 + 2];
+        v0 := mesh.vertices[i0];
+        v1 := mesh.vertices[i1];
+        v2 := mesh.vertices[i2];
+
+        mesh.triangles[i].p0 = v0.position;
+        mesh.triangles[i].p1 = v1.position;
+        mesh.triangles[i].p2 = v2.position;
+        ab := Normalized(mesh.triangles[i].p1 - mesh.triangles[i].p0);
+        ac := Normalized(mesh.triangles[i].p2 - mesh.triangles[i].p0);
+        mesh.triangles[i].normal = Cross(ab, ac);
     }
 }

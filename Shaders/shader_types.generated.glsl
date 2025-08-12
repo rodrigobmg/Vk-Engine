@@ -66,6 +66,25 @@ struct FrameInfo {
     EntityOutlineParams entity_outline_params;
 };
 
+#define GizmoMesh int
+#define GizmoMesh_Cube 0
+#define GizmoMesh_Sphere 1
+#define GizmoMesh_SphereQuarter 2
+#define GizmoMesh_Plane 3
+#define GizmoMesh_Arrow 4
+#define GizmoMesh_SquareArrow 5
+#define GizmoMesh_RotateFullThin 6
+#define GizmoMesh_RotateFull 7
+#define GizmoMesh_RotateHalf 8
+#define GizmoMesh_RotateQuarter 9
+
+struct GizmoWidget {
+    uint id;
+    GizmoMesh mesh_id;
+    float4 color;
+    float4x4 transform;
+};
+
 #define MaterialFlags int
 #define MaterialFlags_HasMetallicRoughness 1
 #define MaterialFlags_HasDepthMap 2

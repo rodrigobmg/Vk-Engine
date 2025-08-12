@@ -50,7 +50,6 @@ CreateEntityGUIDTextures :: () {
         it.* = CreateGfxBuffer(TPrint("Entity GUID Readback %", it_index), buffer_desc);
         Assert(!IsNull(it), "Could not create entity GUID readback buffer");
 
-
         alloc_info : VmaAllocationInfo;
         vmaGetAllocationInfo(g_gfx_context.allocator, it.allocation, *alloc_info);
         Assert(alloc_info.pMappedData != null);

@@ -4,6 +4,7 @@
 #load "material_design_icons.jai";
 #load "inspector.jai";
 #load "file_browser.jai";
+#load "gizmo.jai";
 
 Log_Editor :: Log_Section.{name="Editor"};
 
@@ -24,7 +25,6 @@ g_show_world_inspector := false;
 g_show_entity_outliner := true;
 g_show_entity_inspector := true;
 g_show_engine_settings := false;
-g_editor_camera : Camera;
 
 g_editor_selected_entities : [..]EntityGUID;
 g_editor_last_copied_entity_guid : EntityGUID;
@@ -45,6 +45,9 @@ Camera :: struct {
     transform : Mat4f;
     view : Mat4f;
     projection : Mat4f;
+    inv_projection : Mat4f;
+    ortho_projection : Mat4f;
+    inv_ortho_projection : Mat4f;
 
     speed_mult := 1.0;
     base_speed := 0.1;
@@ -53,10 +56,13 @@ Camera :: struct {
     rotation_smoothing := 0.3;
 }
 
+g_editor_camera : Camera;
+
 UpdateCamera :: (using camera : *Camera) {
     is_moving_camera := IsMouseButtonDown(.Right);
     is_moving_camera &= !ImGui.GetIO().WantCaptureMouse;
     is_moving_camera &= !ImGui.GetIO().WantCaptureKeyboard;
+    is_moving_camera &= g_gizmo_ctx.active_id == 0;
     if is_moving_camera {
         SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -102,6 +108,42 @@ UpdateCamera :: (using camera : *Camera) {
 
     aspect := w / cast(float, h);
     projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_near, z_far);
+    inv_projection = Inverse(projection);
+
+    ortho_projection = Mat4fOrthographicProjection(0, xx w, xx h, 0, -1, 1);
+    inv_ortho_projection = Inverse(ortho_projection);
+}
+
+RayFromScreenPoint :: (camera : *Camera, point : Vec2f) -> origin : Vec3f, direction : Vec3f {
+    clip_space := (camera.ortho_projection * Vec4f.{point.x , point.y, 0, 1}).xy;
+
+    view_space := camera.inv_projection * Vec4f.{xy=clip_space,z=0,w=1};
+    view_space.z = 1;
+    view_space.w = 0;
+
+    origin := TranslationVector(camera.transform);
+    direction := Normalized((camera.transform * view_space).xyz);
+
+    return origin, direction;
+}
+
+RayFromMouse :: inline (camera : *Camera) -> origin : Vec3f, direction : Vec3f {
+    mouse_x, mouse_y := GetMousePointPosition(g_window);
+    origin, direction := RayFromScreenPoint(camera, .{xx mouse_x, xx mouse_y});
+
+    return origin, direction;
+}
+
+WorldToCamera :: (camera : *Camera, point : Vec3f) -> is_behind : bool, Vec2f {
+    proj := camera.projection * camera.view * Vec4f.{xyz=point,w=1};
+    if proj.w < 0 {
+        return true, .{};
+    }
+
+    proj /= proj.w;
+    proj = camera.inv_ortho_projection * proj;
+
+    return false, proj.xy;
 }
 
 g_open_asset_browser_for : struct {
@@ -195,6 +237,9 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void, all
 InitEditor :: () {
     LogSectionScope(*Log_Editor);
 
+    InitGizmoContext(*g_gizmo_ctx);
+    SetCamera(*g_gizmo_ctx, *g_editor_camera);
+
     io := ImGui.GetIO();
 
     ImGui.StyleColorsDark();
@@ -247,26 +292,45 @@ InitEditor :: () {
 CleanupEditor :: () {
     LogSectionScope(*Log_Editor);
 
+    DestroyGizmoContext(*g_gizmo_ctx);
     DerefAsset(*g_material_editor_selected_material);
+}
+
+ShowGizmoControls :: (ctx : *GizmoContext) {
+    if ImGui.MenuItem(CTPrint("%##gizmo_none", Icon_Select_MDI), selected=ctx.gizmo_type == .None) {
+        ctx.gizmo_type = .None;
+    }
+
+    ImGui.SetItemTooltip("No gizmo");
+
+    if ImGui.MenuItem(CTPrint("%##gizmo_translate", Icon_Cursor_Move_MDI), selected=ctx.gizmo_type == .Translate) {
+        ctx.gizmo_type = .Translate;
+    }
+
+    ImGui.SetItemTooltip("Translate");
+
+    if ImGui.MenuItem(CTPrint("%##gizmo_rotate", Icon_Rotate_Orbit_MDI), selected=ctx.gizmo_type == .Rotate) {
+        ctx.gizmo_type = .Rotate;
+    }
+
+    ImGui.SetItemTooltip("Rotate");
+
+    if ImGui.MenuItem(CTPrint("%##gizmo_scale", Icon_Resize_MDI), selected=ctx.gizmo_type == .Scale) {
+        ctx.gizmo_type = .Scale;
+    }
+
+    ImGui.SetItemTooltip("Scale");
+
+    ImGui.Separator();
+
+    ImGui.Checkbox("Local", *ctx.gizmo_local);
+
+    ImGui.SetNextItemWidth(80);
+    ImGui_Ext.EnumCombo("Pivot", *ctx.gizmo_pivot);
 }
 
 UpdateEditor :: (world : *World) {
     LogSectionScope(*Log_Editor);
-
-    // Entity selection
-    if !ImGui.GetIO().WantCaptureMouse && IsMouseButtonPressed(.Left) && !IsMouseButtonDown(.Right) {
-        x, y := GetMousePixelPosition(g_window);
-        entity := GetEntityAtPoint(world, x, y);
-        if entity {
-            if EntityIsSelected(entity.guid) {
-                DeselectEntity(entity.guid);
-            } else {
-                SelectEntity(entity.guid, add_to_selection=IsKeyDown(.Shift));
-            }
-        } else if !IsKeyDown(.Shift) {
-            ArrayClear(*g_editor_selected_entities);
-        }
-    }
 
     if ImGui.BeginMainMenuBar() {
         if ImGui.BeginMenu("World") {
@@ -315,6 +379,9 @@ UpdateEditor :: (world : *World) {
         }
 
         ImGui.Separator();
+        ShowGizmoControls(*g_gizmo_ctx);
+
+        ImGui.Separator();
         ImGui.Text("FPS: %/%/% (min/avg/max)", cast(int, 1 / g_max_frame_time), cast(int, 1 / g_avg_frame_time), cast(int, 1 / g_min_frame_time));
 
         shader_failed_to_reload := 0;
@@ -355,6 +422,26 @@ UpdateEditor :: (world : *World) {
     }
 
     UpdateCamera(*g_editor_camera);
+    // Update after camera, because this is where we check for mouse interaction
+    UpdateGizmos(world, *g_gizmo_ctx);
+
+    EntityGizmo(world, *g_gizmo_ctx);
+
+    // Entity selection
+    if !ImGui.GetIO().WantCaptureMouse && !GizmoHasMouse(*g_gizmo_ctx) && !IsMouseButtonDown(.Right) && IsMouseButtonPressed(.Left) {
+        x, y := GetMousePixelPosition(g_window);
+        entity := GetEntityAtPoint(world, x, y);
+        if entity {
+            if EntityIsSelected(entity.guid) {
+                DeselectEntity(entity.guid);
+            } else {
+                SelectEntity(entity.guid, add_to_selection=IsKeyDown(.Shift));
+            }
+        } else if !IsKeyDown(.Shift) {
+            ArrayClear(*g_editor_selected_entities);
+        }
+    }
+
     ShowWorldInspector(world);
     ShowEntityOutliner(world);
     ShowMaterialEditor();
@@ -820,6 +907,7 @@ ShowEngineSettings :: () {
     }
 
     ShowInspector("Editor", cast(*World, null), *g_editor_settings);
+    ShowInspector("Gizmo", cast(*World, null), *g_gizmo_style);
 
     if ImGui.TreeNodeEx("Graphics") {
         ImGui.SeparatorText("Bloom");
