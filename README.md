@@ -17,7 +17,7 @@ Supports Linux and Windows.
 * Parallax occlusion mapping with self shadowing
 * Bloom
 * Omnidirectional shadow maps
-* Simple editor
+* Simple editor with gizmos
 
 ## To explore/implement next:
 * Global illumination
