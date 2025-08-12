@@ -306,6 +306,7 @@ GizmoWidget :: struct {
     mesh_id : GizmoMesh;
     color : Vec4f;
     transform : Mat4f;
+    shaded : bool;
 } @ShaderType
 
 GetGizmoID :: (ctx : *GizmoContext, str : string, hash_with_id_stack := true) -> u32 {
@@ -355,8 +356,8 @@ PopGizmoTransform :: (ctx : *GizmoContext) {
     ArrayPop(*ctx.transform_stack);
 }
 
-AddGizmoWidget :: (ctx : *GizmoContext, id : u32, mesh_id : GizmoMesh, color : Vec4f, transform : Mat4f) {
-    ArrayPush(*ctx.widgets, GizmoWidget.{id, mesh_id, color, transform});
+AddGizmoWidget :: (ctx : *GizmoContext, id : u32, mesh_id : GizmoMesh, color : Vec4f, transform : Mat4f, shaded := false) {
+    ArrayPush(*ctx.widgets, GizmoWidget.{id, mesh_id, color, transform, shaded});
 }
 
 // @Todo: control thickness
@@ -694,7 +695,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         size := widget_size * g_gizmo_style.translation_view_circle_size;
         widget_transform := Mat4fTranslate(translation.*) * rotation * Mat4fScale(.{size,size,size});
 
-        AddGizmoWidget(ctx, view_id, .Cube, color, widget_transform);
+        AddGizmoWidget(ctx, view_id, .Cube, color, widget_transform, shaded=true);
     }
 
     for i : 0..2 {
@@ -777,7 +778,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
         origin := translation.* + axis * (widget_size * g_gizmo_style.translation_view_circle_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,widget_size,widget_size});
-        AddGizmoWidget(ctx, id, .Arrow, color, widget_transform);
+        AddGizmoWidget(ctx, id, .Arrow, color, widget_transform, shaded=true);
     }
 
     return result_state;
@@ -1209,7 +1210,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
         origin := translation + axis * (widget_size * g_gizmo_style.scale_all_inner_circle_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,axis_widget_size,widget_size});
-        AddGizmoWidget(ctx, id, .SquareArrow, color, widget_transform);
+        AddGizmoWidget(ctx, id, .SquareArrow, color, widget_transform, shaded=true);
     }
 
     ignore_all := flags & .NoViewAxis != 0;
@@ -1294,7 +1295,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         size := widget_size * g_gizmo_style.scale_all_inner_circle_size;
         widget_transform := Mat4fTranslate(translation) * transform * Mat4fScale(.{size,size,size});
 
-        AddGizmoWidget(ctx, all_id, .Cube, color, widget_transform);
+        AddGizmoWidget(ctx, all_id, .Cube, color, widget_transform, shaded=true);
     }
 
     return result_state;

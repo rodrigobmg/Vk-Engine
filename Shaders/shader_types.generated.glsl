@@ -83,6 +83,7 @@ struct GizmoWidget {
     GizmoMesh mesh_id;
     float4 color;
     float4x4 transform;
+    bool shaded;
 };
 
 #define MaterialFlags int
