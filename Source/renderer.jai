@@ -643,9 +643,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
+    GizmoPass(*ctx, *g_gizmo_ctx);
+
     PostProcessingPass(*ctx);
     DebugLinesPass(*ctx, camera);
-    GizmoPass(*ctx, *g_gizmo_ctx);
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);

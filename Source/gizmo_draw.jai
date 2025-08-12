@@ -1,6 +1,6 @@
 GizmoBindingSet :: struct {
     viewpoint : GfxBindingUniformBuffer; @Binding(0) @VertexStage
-    instances : GfxBindingStorageBuffer; @Binding(1) @VertexStage
+    instances : GfxBindingStorageBuffer; @Binding(1) @VertexStage @AllowNull
 } @BindingSet
 
 g_gizmo_pipeline : GfxGraphicsPipeline;
@@ -13,7 +13,7 @@ CreateGizmoPipeline :: () {
     desc.blend_states[0] = .{enabled=true};
     desc.depth_state = .{test_enabled=true, write_enabled=true};
 
-    AddColorAttachment(*desc, g_final_texture.desc.pixel_format);
+    AddColorAttachment(*desc, .RGBA8UNorm);
     desc.depth_format = .Depth32Float;
 
     desc.vertex_input = MakeVertexInputDesc(StaticVertex, 0);
@@ -28,6 +28,9 @@ CreateGizmoPipeline :: () {
 }
 
 CreateGizmoTextures :: (ctx : *GizmoContext) {
+    if !IsNull(*ctx.color_texture) {
+        DestroyGfxTexture(*ctx.color_texture);
+    }
     if !IsNull(*ctx.depth_texture) {
         DestroyGfxTexture(*ctx.depth_texture);
     }
@@ -36,9 +39,15 @@ CreateGizmoTextures :: (ctx : *GizmoContext) {
 
     desc : GfxTextureDesc;
     desc.type = .Texture2D;
-    desc.pixel_format = .Depth32Float;
+    desc.pixel_format = .RGBA8UNorm;
     desc.width = xx w;
     desc.height = xx h;
+    desc.usage = .ColorAttachment | .Sampled;
+
+    ctx.color_texture = CreateGfxTexture("Gizmo Color", desc);
+    Assert(!IsNull(*ctx.color_texture), "Could not create gizmo color texture");
+
+    desc.pixel_format = .Depth32Float;
     desc.usage = .DepthStencilAttachment;
 
     ctx.depth_texture = CreateGfxTexture("Gizmo Depth", desc);
@@ -52,9 +61,8 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
         CreateGizmoPipeline();
     }
 
-    if gizmo_ctx.widgets.count <= 0 {
-        return;
-    }
+    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *gizmo_ctx.color_texture);
+    AddTextureBarrier(cmd_buffer, .Undefined, .DepthStencilAttachment, *gizmo_ctx.depth_texture);
 
     w, h := GetWindowPixelSize(g_window);
 
@@ -69,8 +77,9 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 
     pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *g_final_texture);
+    AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture);
     AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture, store_op=.DontCare);
+    ClearColor(*pass_desc, 0, Vec4f.{0,0,0,0});
     ClearDepth(*pass_desc, 1);
 
     pass := BeginGfxRenderPass(cmd_buffer, "Gizmo", pass_desc);
@@ -94,4 +103,6 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
         }
     }
     EndGfxRenderPass(*pass);
+
+    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *gizmo_ctx.color_texture);
 }

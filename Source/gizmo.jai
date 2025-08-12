@@ -110,6 +110,7 @@ GizmoContext :: struct {
         all : [10]*Asset(Mesh);
     };
 
+    color_texture : GfxTexture;
     depth_texture : GfxTexture;
 }
 
@@ -254,6 +255,7 @@ InitGizmoContext :: (ctx : *GizmoContext) {
 }
 
 DestroyGizmoContext :: (ctx : *GizmoContext) {
+    QueueDestroyGfxTexture(*ctx.color_texture);
     QueueDestroyGfxTexture(*ctx.depth_texture);
 
     for * ctx.meshes.all {

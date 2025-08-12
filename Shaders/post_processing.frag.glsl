@@ -7,6 +7,7 @@ layout(set=1, binding=0) uniform sampler2D u_color_texture;
 layout(set=1, binding=1) uniform sampler2D u_bloom_texture;
 layout(set=1, binding=2) uniform usampler2D u_entity_guid_texture;
 layout(set=1, binding=3) uniform usampler2D u_selected_entity_guid_texture;
+layout(set=1, binding=4) uniform sampler2D u_gizmo_texture;
 
 layout(location=0) in float2 in_position;
 
@@ -54,7 +55,10 @@ void main() {
     color = LinearTosRGB(color);
 
     float4 entity_outline = GetEntityOutline(in_position, 1 / u_frame_info.window_pixel_size);
-    color = lerp(color, entity_outline.rgb, entity_outline.a);
+    color = lerp(color, entity_outline.rgb * entity_outline.a, entity_outline.a);
+
+    float4 gizmo = FXAA(u_gizmo_texture, in_position, 1 / u_frame_info.window_pixel_size);
+    color = lerp(color, gizmo.rgb, gizmo.a);
 
     out_color = float4(color, 1);
 }
