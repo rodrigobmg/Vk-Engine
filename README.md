@@ -1,4 +1,6 @@
 # Vulkan Based Rendering Engine
+*Warning*: you might not be able to clone the project if all my GitHub LFS bandwidth has been used. I have to find a solution to put assets outside of the main repository.
+
 Toy engine project to learn Vulkan and advanced rendering techniques.
 
 Supports Linux and Windows.
