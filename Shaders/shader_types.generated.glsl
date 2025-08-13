@@ -71,12 +71,13 @@ struct FrameInfo {
 #define GizmoMesh_Sphere 1
 #define GizmoMesh_SphereQuarter 2
 #define GizmoMesh_Plane 3
-#define GizmoMesh_Arrow 4
-#define GizmoMesh_SquareArrow 5
-#define GizmoMesh_RotateFullThin 6
-#define GizmoMesh_RotateFull 7
-#define GizmoMesh_RotateHalf 8
-#define GizmoMesh_RotateQuarter 9
+#define GizmoMesh_TranslatePlane 4
+#define GizmoMesh_Arrow 5
+#define GizmoMesh_SquareArrow 6
+#define GizmoMesh_RotateFullThin 7
+#define GizmoMesh_RotateFull 8
+#define GizmoMesh_RotateHalf 9
+#define GizmoMesh_RotateQuarter 10
 
 struct GizmoWidget {
     uint id;
