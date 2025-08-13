@@ -10,7 +10,7 @@ layout(location=5) in float in_shaded;
 layout(location=0) out float4 out_color;
 
 void main() {
-    float3 light_dir = normalize(float3(1));
+    float3 light_dir = normalize(float3(-1));
 
     float light_intensity = max(dot(-light_dir, in_normal), 0);
     light_intensity = lerp(0.7, 1, light_intensity);

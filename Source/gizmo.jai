@@ -1,3 +1,4 @@
+// @Todo: negative scaling
 // @Todo: allow drawing meshes that are generated on the fly
 // @Todo: use a different method to draw gizmo lines as we want to control the thickness
 
@@ -111,6 +112,7 @@ GizmoContext :: struct {
     };
 
     color_texture : GfxTexture;
+    color_resolve : GfxTexture;
     depth_texture : GfxTexture;
 }
 
@@ -256,6 +258,7 @@ InitGizmoContext :: (ctx : *GizmoContext) {
 
 DestroyGizmoContext :: (ctx : *GizmoContext) {
     QueueDestroyGfxTexture(*ctx.color_texture);
+    QueueDestroyGfxTexture(*ctx.color_resolve);
     QueueDestroyGfxTexture(*ctx.depth_texture);
 
     for * ctx.meshes.all {

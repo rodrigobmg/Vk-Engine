@@ -1,3 +1,7 @@
+// @Todo: ensure we don't use more samples than what is allowed on the machine
+// @Todo: do not do multisampling and create resolve texture when num samples == 1
+Gizmo_Texture_Num_Samples :: 8;
+
 GizmoBindingSet :: struct {
     viewpoint : GfxBindingUniformBuffer; @Binding(0) @VertexStage
     instances : GfxBindingStorageBuffer; @Binding(1) @VertexStage @AllowNull
@@ -9,7 +13,7 @@ CreateGizmoPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
     desc.vertex_shader = GetVertexShader("gizmo");
     desc.fragment_shader = GetFragmentShader("gizmo");
-    desc.rasterizer_state.cull_face = .None;
+    desc.rasterizer_state = .{cull_face=.None, num_samples=Gizmo_Texture_Num_Samples};
     desc.blend_states[0] = .{enabled=true};
     desc.depth_state = .{test_enabled=true, write_enabled=true};
 
@@ -31,6 +35,9 @@ CreateGizmoTextures :: (ctx : *GizmoContext) {
     if !IsNull(*ctx.color_texture) {
         DestroyGfxTexture(*ctx.color_texture);
     }
+    if !IsNull(*ctx.color_resolve) {
+        DestroyGfxTexture(*ctx.color_resolve);
+    }
     if !IsNull(*ctx.depth_texture) {
         DestroyGfxTexture(*ctx.depth_texture);
     }
@@ -43,6 +50,11 @@ CreateGizmoTextures :: (ctx : *GizmoContext) {
     desc.width = xx w;
     desc.height = xx h;
     desc.usage = .ColorAttachment | .Sampled;
+
+    ctx.color_resolve = CreateGfxTexture("Gizmo Color Resolve", desc);
+    Assert(!IsNull(*ctx.color_resolve), "Could not create gizmo color texture");
+
+    desc.num_samples = Gizmo_Texture_Num_Samples;
 
     ctx.color_texture = CreateGfxTexture("Gizmo Color", desc);
     Assert(!IsNull(*ctx.color_texture), "Could not create gizmo color texture");
@@ -62,6 +74,7 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
     }
 
     AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *gizmo_ctx.color_texture);
+    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *gizmo_ctx.color_resolve);
     AddTextureBarrier(cmd_buffer, .Undefined, .DepthStencilAttachment, *gizmo_ctx.depth_texture);
 
     w, h := GetWindowPixelSize(g_window);
@@ -77,7 +90,7 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 
     pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture);
+    AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture, resolve_texture=*gizmo_ctx.color_resolve);
     AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture, store_op=.DontCare);
     ClearColor(*pass_desc, 0, Vec4f.{0,0,0,0});
     ClearDepth(*pass_desc, 1);
@@ -104,5 +117,5 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
     }
     EndGfxRenderPass(*pass);
 
-    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *gizmo_ctx.color_texture);
+    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *gizmo_ctx.color_resolve);
 }

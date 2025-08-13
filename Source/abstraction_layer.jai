@@ -1246,6 +1246,7 @@ GfxRasterizerStateDesc :: struct {
     fill_mode : GfxFillMode = .Fill;
     cull_face : GfxPolygonFace = .Back;
     winding_order : GfxWindingOrder = .CounterClockwise;
+    num_samples : u32 = 1;
 }
 
 GfxCompareOp :: enum u8 {
@@ -1543,7 +1544,17 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
 
     multisample_state : VkPipelineMultisampleStateCreateInfo;
     multisample_state.sampleShadingEnable = VK_FALSE;
-    multisample_state.rasterizationSamples = ._1_BIT;
+
+    if desc.rasterizer_state.num_samples == {
+    case 1;  multisample_state.rasterizationSamples = ._1_BIT;
+    case 2;  multisample_state.rasterizationSamples = ._2_BIT;
+    case 4;  multisample_state.rasterizationSamples = ._4_BIT;
+    case 8;  multisample_state.rasterizationSamples = ._8_BIT;
+    case 16; multisample_state.rasterizationSamples = ._16_BIT;
+    case 32; multisample_state.rasterizationSamples = ._32_BIT;
+    case 64; multisample_state.rasterizationSamples = ._64_BIT;
+    case; Panic("Invalid sample count % for texture (expected 1, 2, 4, 8, 16, 32 or 64)", desc.rasterizer_state.num_samples);
+    }
 
     blend_states : [Gfx_Max_Color_Attachments]VkPipelineColorBlendAttachmentState;
     for desc.blend_states {
@@ -2215,6 +2226,7 @@ MakeVkAttachmentStoreOp :: inline (op : GfxAttachmentStoreOp) -> VkAttachmentSto
 
 GfxAttachment :: struct {
     texture : *GfxTexture;
+    resolve_texture : *GfxTexture;
     load_op : GfxAttachmentLoadOp = .Load;
     store_op : GfxAttachmentStoreOp = .Store;
 }
@@ -2250,35 +2262,43 @@ GfxRenderPassDesc :: struct {
 AddColorAttachment :: (
     pass_desc : *GfxRenderPassDesc,
     texture : *GfxTexture,
+    resolve_texture : *GfxTexture = null,
     load_op : GfxAttachmentLoadOp = .Load,
     store_op : GfxAttachmentStoreOp = .Store
 ) {
     Assert(pass_desc.num_color_attachments < Gfx_Max_Color_Attachments, "Too many color attachments");
 
-    pass_desc.color_attachments[pass_desc.num_color_attachments] = .{texture=texture, load_op=load_op, store_op=store_op};
+    pass_desc.color_attachments[pass_desc.num_color_attachments] = .{
+        texture=texture,
+        resolve_texture=resolve_texture,
+        load_op=load_op,
+        store_op=store_op
+    };
     pass_desc.num_color_attachments += 1;
 }
 
 AddDepthAttachment :: (
     pass_desc : *GfxRenderPassDesc,
     texture : *GfxTexture,
+    resolve_texture : *GfxTexture = null,
     load_op : GfxAttachmentLoadOp = .Load,
     store_op : GfxAttachmentStoreOp = .Store
 ) {
     Assert(pass_desc.depth_attachment.texture == null, "Depth attachment is already set");
 
-    pass_desc.depth_attachment = .{texture=texture, load_op=load_op, store_op=store_op};
+    pass_desc.depth_attachment = .{texture=texture, resolve_texture=resolve_texture, load_op=load_op, store_op=store_op};
 }
 
 AddStencilAttachment :: (
     pass_desc : *GfxRenderPassDesc,
     texture : *GfxTexture,
+    resolve_texture : *GfxTexture,
     load_op : GfxAttachmentLoadOp = .Load,
     store_op : GfxAttachmentStoreOp = .Store
 ) {
     Assert(pass_desc.depth_attachment.texture == null, "Stencil attachment is already set");
 
-    pass_desc.stencil_attachment = .{texture=texture, load_op=load_op, store_op=store_op};
+    pass_desc.stencil_attachment = .{texture=texture, resolve_texture=resolve_texture, load_op=load_op, store_op=store_op};
 }
 
 ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4f) {
@@ -2343,6 +2363,13 @@ BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : Gfx
 
             color_attachments[i].imageView = desc.color_attachments[i].texture.image_view;
             color_attachments[i].imageLayout = .ATTACHMENT_OPTIMAL_KHR;
+
+            if !IsNull(desc.color_attachments[i].resolve_texture) {
+                color_attachments[i].resolveMode = .AVERAGE_BIT;
+                color_attachments[i].resolveImageView = desc.color_attachments[i].resolve_texture.image_view;
+                color_attachments[i].resolveImageLayout = .ATTACHMENT_OPTIMAL_KHR;
+            }
+
             color_attachments[i].loadOp = MakeVkAttachmentLoadOp(desc.color_attachments[i].load_op);
             color_attachments[i].storeOp = MakeVkAttachmentStoreOp(desc.color_attachments[i].store_op);
             color_attachments[i].clearValue.color.int32[0] = desc.color_attachments[i].clear_value.int4[0];
@@ -2359,6 +2386,13 @@ BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : Gfx
 
         depth_attachment.imageView = desc.depth_attachment.texture.image_view;
         depth_attachment.imageLayout = .ATTACHMENT_OPTIMAL_KHR;
+
+        if !IsNull(desc.depth_attachment.resolve_texture) {
+            depth_attachment.resolveMode = .AVERAGE_BIT;
+            depth_attachment.resolveImageView = desc.depth_attachment.resolve_texture.image_view;
+            depth_attachment.resolveImageLayout = .ATTACHMENT_OPTIMAL_KHR;
+        }
+
         depth_attachment.loadOp = MakeVkAttachmentLoadOp(desc.depth_attachment.load_op);
         depth_attachment.storeOp = MakeVkAttachmentStoreOp(desc.depth_attachment.store_op);
         depth_attachment.clearValue.depthStencil.depth = desc.depth_attachment.clear_value;
@@ -2371,6 +2405,13 @@ BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : Gfx
 
         stencil_attachment.imageView = desc.stencil_attachment.texture.image_view;
         stencil_attachment.imageLayout = .ATTACHMENT_OPTIMAL_KHR;
+
+        if !IsNull(desc.stencil_attachment.resolve_texture) {
+            stencil_attachment.resolveMode = .AVERAGE_BIT;
+            stencil_attachment.resolveImageView = desc.stencil_attachment.resolve_texture.image_view;
+            stencil_attachment.resolveImageLayout = .ATTACHMENT_OPTIMAL_KHR;
+        }
+
         stencil_attachment.loadOp = MakeVkAttachmentLoadOp(desc.stencil_attachment.load_op);
         stencil_attachment.storeOp = MakeVkAttachmentStoreOp(desc.stencil_attachment.store_op);
         stencil_attachment.clearValue.depthStencil.stencil = desc.stencil_attachment.clear_value;

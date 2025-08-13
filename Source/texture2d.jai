@@ -1,3 +1,5 @@
+// @Todo: limit the number of uploads per frame
+
 Texture2D :: struct {
     // This needs to be the first member, because we want to cast *Texture2D to *GfxTexture
     #as texture : GfxTexture;

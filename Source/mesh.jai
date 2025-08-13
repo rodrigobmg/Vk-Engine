@@ -1,3 +1,5 @@
+// @Todo: set buffers to use host memory and upload using intermediate buffer
+
 StaticVertex :: struct {
     position : Vec3f;
     normal : Vec3f;

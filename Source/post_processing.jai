@@ -49,7 +49,7 @@ PostProcessingPass :: (using ctx : *FrameRenderContext) {
         bloom_texture=.{texture=GetFinalBloomTexture(), sampler=*g_post_processing_sampler},
         entity_guid_texture=.{texture=*g_entity_guid_texture, sampler=*g_entity_guid_sampler},
         selected_entity_guid_texture=.{texture=*g_selected_entity_guid_texture, sampler=*g_entity_guid_sampler},
-        gizmo_texture=.{texture=*g_gizmo_ctx.color_texture, sampler=*g_post_processing_sampler},
+        gizmo_texture=.{texture=*g_gizmo_ctx.color_resolve, sampler=*g_post_processing_sampler},
     };
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 
