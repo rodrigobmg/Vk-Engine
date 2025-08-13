@@ -22,6 +22,8 @@ Default_Plugins :: string.[
 ];
 
 Bindings_To_Generate :: string.[
+    "Modules/ImGui",
+    "Source/Modules/Vulkan",
 ];
 
 Append   :: StringBuilderAppend;
@@ -164,7 +166,7 @@ JAI
                     Append(*builder, "    {\n");
                     Append(*builder, "        log_section := Log_Section.{\"Tests/%\"};\n", it);
                     Append(*builder, "        LogSectionScope(*log_section);\n");
-                    Append(*builder, "        % (%);\n", it, g_verbose_tests);
+                    Append(*builder, "        %(%);\n", it, g_verbose_tests);
                     Append(*builder, "    }\n");
                 }
 
@@ -175,8 +177,6 @@ JAI
 
                 ArrayClear(*g_tests_to_execute);
             }
-        } else if phase.phase == .READY_FOR_CUSTOM_LINK_COMMAND {
-            ExecuteLinker(phase);
         }
 
     case .COMPLETE;
@@ -278,8 +278,12 @@ Build :: () {
     options.stack_trace = true;
     options.text_output_flags = 0;
 
-    #if OS == .WINDOWS {
-        options.use_custom_link_command = false;
+    #if OS == .LINUX {
+        #import "POSIX";
+
+        options.additional_linker_arguments = .[
+            TPrint("-L%/lib", MakeString(getenv("VULKAN_SDK"))),
+        ];
     }
 
     set_build_options(options, ws);
@@ -336,48 +340,6 @@ Build :: () {
             it.shutdown(it);
         }
     }
-}
-
-ExecuteLinker :: (msg : *Message_Phase) {
-    options := get_build_options(msg.workspace);
-    command : [..]string;
-
-    ArrayPush(*command, "link");
-
-    ArrayPush(*command, TPrint("/OUT:%.exe", options.output_executable_name));
-    ArrayPush(*command, "/NODEFAULTLIB");
-    ArrayPush(*command, "/NOLOGO");
-    ArrayPush(*command, "/MACHINE:X64");
-    ArrayPush(*command, "/INCREMENTAL:NO");
-    ArrayPush(*command, "/DEBUG");
-    ArrayPush(*command, TPrint("/IMPLIB:%/%.lib", options.intermediate_path, options.output_executable_name));
-
-    for msg.compiler_generated_object_files {
-        ArrayPush(*command, it);
-    }
-    for msg.support_object_files {
-        ArrayPush(*command, it);
-    }
-    for msg.system_libraries {
-        ArrayPush(*command, it);
-    }
-    for msg.user_libraries {
-        ArrayPush(*command, it);
-    }
-
-    if options.text_output_flags & .OUTPUT_LINK_LINE {
-        LogMessage("%", join(..command, separator=" "));
-    }
-
-    result, stdout, stderr := run_command(..command, capture_and_return_output=true);
-    if result.exit_code != 0 {
-        compiler_report(TPrint("Linker failed with exit code %", result.exit_code), mode=.ERROR_CONTINUABLE);
-        compiler_report(TPrint("Linker command: %", join(..command, separator=" ")), mode=.INFO);
-        compiler_report(TPrint("Linker output:\n%\n%", stdout, stderr), mode=.INFO);
-        Basic.exit(1);
-    }
-
-    compiler_custom_link_command_is_complete(msg.workspace);
 }
 
 #run, stallable Build(); // If plugins have assertions, they may stall
