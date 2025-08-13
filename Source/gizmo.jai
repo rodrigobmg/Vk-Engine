@@ -698,7 +698,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         size := widget_size * g_gizmo_style.translation_view_circle_size;
         widget_transform := Mat4fTranslate(translation.*) * rotation * Mat4fScale(.{size,size,size});
 
-        AddGizmoWidget(ctx, view_id, .Cube, color, widget_transform, shaded=true);
+        AddGizmoWidget(ctx, view_id, .Cube, color, widget_transform, shaded=ctx.hovered_id != view_id && ctx.active_id != view_id);
     }
 
     for i : 0..2 {
@@ -781,7 +781,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
         origin := translation.* + axis * (widget_size * g_gizmo_style.translation_view_circle_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,widget_size,widget_size});
-        AddGizmoWidget(ctx, id, .Arrow, color, widget_transform, shaded=true);
+        AddGizmoWidget(ctx, id, .Arrow, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
     }
 
     return result_state;
@@ -1213,7 +1213,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
         origin := translation + axis * (widget_size * g_gizmo_style.scale_all_inner_circle_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,axis_widget_size,widget_size});
-        AddGizmoWidget(ctx, id, .SquareArrow, color, widget_transform, shaded=true);
+        AddGizmoWidget(ctx, id, .SquareArrow, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
     }
 
     ignore_all := flags & .NoViewAxis != 0;
@@ -1298,7 +1298,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         size := widget_size * g_gizmo_style.scale_all_inner_circle_size;
         widget_transform := Mat4fTranslate(translation) * transform * Mat4fScale(.{size,size,size});
 
-        AddGizmoWidget(ctx, all_id, .Cube, color, widget_transform, shaded=true);
+        AddGizmoWidget(ctx, all_id, .Cube, color, widget_transform, shaded=ctx.hovered_id != all_id && ctx.active_id != all_id);
     }
 
     return result_state;
