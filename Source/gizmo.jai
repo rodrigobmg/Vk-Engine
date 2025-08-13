@@ -640,7 +640,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
 
     ignore_view := flags & .NoViewAxis != 0;
     ignore_view ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != 0;
-    ignore_view ||= ctx.active_id != view_id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+    ignore_view ||= ctx.active_id != view_id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
 
     if !ignore_view {
         drag_state : InteractionState;
@@ -710,7 +710,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         id := axes_ids[i];
         ignore_axis := ignore_axes[i];
         ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << i);
-        ignore_axis ||= ctx.active_id != id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+        ignore_axis ||= ctx.active_id != id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
 
         if ignore_axis {
             continue;
@@ -795,8 +795,8 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         axis2 := (i + 2) % 3;
         id := planes_ids[i];
         ignore_axis := ignore_axes[axis0] || ignore_axes[axis1];
-        ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << i);
-        ignore_axis ||= ctx.active_id != id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+        ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << axis0) && ctx.keyboard_interaction_flags != xx (1 << axis1);
+        ignore_axis ||= ctx.active_id != id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
 
         if ignore_axis {
             continue;
