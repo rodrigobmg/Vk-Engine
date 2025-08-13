@@ -100,6 +100,7 @@ GizmoContext :: struct {
         sphere : *Asset(Mesh);
         sphere_quarter : *Asset(Mesh);
         plane : *Asset(Mesh);
+        translate_plane : *Asset(Mesh);
         arrow : *Asset(Mesh);
         square_arrow : *Asset(Mesh);
         rotate_full_thin : *Asset(Mesh);
@@ -108,7 +109,7 @@ GizmoContext :: struct {
         rotate_quarter : *Asset(Mesh);
 
         #place cube;
-        all : [10]*Asset(Mesh);
+        all : [11]*Asset(Mesh);
     };
 
     color_texture : GfxTexture;
@@ -165,6 +166,8 @@ GizmoStyle :: struct {
         translation_arrow_aspect_ratio := 0.5; @ShowInInspector
         translation_view_circle_size := 0.3; @ShowInInspector
         translation_view_circle_thickness := 3.5; @ShowInInspector
+        translation_plane_distance := 0.5; @ShowInInspector
+        translation_plane_size := 0.5; @ShowInInspector
     }; @ShowInInspector
 
     using rotation : struct {
@@ -229,6 +232,7 @@ GizmoMesh :: enum u8 {
     Sphere;
     SphereQuarter;
     Plane;
+    TranslatePlane;
     Arrow;
     SquareArrow;
     RotateFullThin;
@@ -244,6 +248,7 @@ InitGizmoContext :: (ctx : *GizmoContext) {
     sphere = LoadAsset(Mesh, "Editor/Gizmos/Sphere.mesh");
     sphere_quarter = LoadAsset(Mesh, "Editor/Gizmos/SphereQuarter.mesh");
     plane = LoadAsset(Mesh, "Editor/Gizmos/Plane.mesh");
+    translate_plane = LoadAsset(Mesh, "Editor/Gizmos/TranslatePlane.mesh");
     arrow = LoadAsset(Mesh, "Editor/Gizmos/Arrow.mesh");
     square_arrow = LoadAsset(Mesh, "Editor/Gizmos/SquareArrow.mesh");
     rotate_full_thin = LoadAsset(Mesh, "Editor/Gizmos/RotateFullThin.mesh");
@@ -380,7 +385,7 @@ DraggingBehavior :: (ctx : *GizmoContext, id : u32, interaction : GizmoInteracti
     }
 
     if ctx.active_id == id {
-        if !(state & .Started) && IsKeyPressed(.Escape) {
+        if !(state & .Started) && (IsKeyPressed(.Escape) || IsMouseButtonPressed(.Right)) {
             ctx.active_id = 0;
             state |= .Cancelled;
         } else if IsMouseButtonDown(.Left) {
@@ -635,7 +640,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
 
     ignore_view := flags & .NoViewAxis != 0;
     ignore_view ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != 0;
-    ignore_view ||= ctx.active_id != view_id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+    ignore_view ||= ctx.active_id != view_id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
 
     if !ignore_view {
         drag_state : InteractionState;
@@ -705,7 +710,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         id := axes_ids[i];
         ignore_axis := ignore_axes[i];
         ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << i);
-        ignore_axis ||= ctx.active_id != id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+        ignore_axis ||= ctx.active_id != id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
 
         if ignore_axis {
             continue;
@@ -782,6 +787,103 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         origin := translation.* + axis * (widget_size * g_gizmo_style.translation_view_circle_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,widget_size,widget_size});
         AddGizmoWidget(ctx, id, .Arrow, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
+    }
+
+    for i : 0..2 {
+        axis0 := i;
+        axis1 := (i + 1) % 3;
+        axis2 := (i + 2) % 3;
+        id := planes_ids[i];
+        ignore_axis := ignore_axes[axis0] || ignore_axes[axis1];
+        ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << axis0) && ctx.keyboard_interaction_flags != xx (1 << axis1);
+        ignore_axis ||= ctx.active_id != id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
+
+        if ignore_axis {
+            continue;
+        }
+
+        drag_state : InteractionState;
+        if !kb_state {
+            drag_state = DraggingBehavior(ctx, id, .TranslationPlane, translation.*);
+        } else if ctx.keyboard_interaction_flags == xx (1 << axis0 | 1 << axis1) {
+            drag_state = kb_state;
+        }
+
+        if drag_state {
+            result_state = drag_state;
+        }
+
+        if drag_state & .Cancelled {
+            result = ctx.drag_start_translation;
+        }
+
+        if drag_state & .Interacting {
+            ctx.active_interaction = .TranslationPlane;
+
+            if drag_state & .Started {
+                ctx.drag_start_translation = translation.*;
+            }
+
+            origin := ctx.drag_start_translation;
+            ray_origin, ray_dir := RayFromMouse(ctx.camera);
+            intersects, point := RayIntersectsPlane(ray_origin, ray_dir, F32_Inf, origin, axes_vectors[axis2]);
+
+            if intersects {
+                if drag_state & .Started {
+                    ctx.drag_start_translation_offset = translation.* - point;
+                }
+
+                proj_point : Vec2f;
+                _, proj_point.x = ProjectPointOnLine(point, origin, axes_vectors[axis0]);
+                _, proj_point.y = ProjectPointOnLine(point, origin, axes_vectors[axis1]);
+
+                if IsKeyDown(.Ctrl) {
+                    proj_point.x = Snap(proj_point.x, g_gizmo_style.translation_snap_grid_size);
+                    proj_point.y = Snap(proj_point.y, g_gizmo_style.translation_snap_grid_size);
+                }
+
+                point = origin + proj_point.x * axes_vectors[axis0] + proj_point.y * axes_vectors[axis1];
+
+                result = point + ctx.drag_start_translation_offset;
+            }
+
+            // _, proj_center := WorldToCamera(ctx.camera, ctx.drag_start_translation);
+            // DrawText(
+            //     tprint("X: % Y: % Z: %", result.x, result.y, result.z),
+            //     proj_center + .{10, 10},
+            //     g_gizmo_style.colors[StyleColor.Text],
+            //     g_gizmo_style.colors[StyleColor.TextShadow]
+            // );
+        }
+
+        color := ifx ctx.hovered_id == id || ctx.active_id == id
+            then axes_active_colors[axis2] else axes_colors[axis2];
+
+        if drag_state & .Interacting {
+            GizmoDrawLine(
+                ctx,
+                axes_guide_colors[axis0].rgb,
+                translation.* - axes_vectors[axis0] * 500,
+                translation.* + axes_vectors[axis0] * 500,
+                g_gizmo_style.guide_line_thickness
+            );
+            GizmoDrawLine(
+                ctx,
+                axes_guide_colors[axis1].rgb,
+                translation.* - axes_vectors[axis1] * 500,
+                translation.* + axes_vectors[axis1] * 500,
+                g_gizmo_style.guide_line_thickness
+            );
+        }
+
+        axis := axes_vectors[axis2];
+        tangent := axes_vectors[axis0];
+        bitangent := axes_vectors[axis1];
+        rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
+        origin := translation.* + (tangent + bitangent) * widget_size * g_gizmo_style.translation_plane_distance;
+        size := Vec3f.{widget_size,widget_size,widget_size} * g_gizmo_style.translation_plane_size;
+        widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
+        AddGizmoWidget(ctx, id, .TranslatePlane, color, widget_transform);
     }
 
     return result_state;
