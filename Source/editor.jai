@@ -73,9 +73,7 @@ UpdateCamera :: (using camera : *Camera) {
             movement_input.z = GetKeyAxisValue(.S, .W);
             movement_input = Normalized(movement_input);
 
-            speed := ifx IsKeyDown(.Shift)
-                then fast_speed
-                else base_speed;
+            speed := ifx IsKeyDown(.Shift) then fast_speed else base_speed;
 
             speed *= speed_mult;
 

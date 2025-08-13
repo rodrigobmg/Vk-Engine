@@ -385,7 +385,7 @@ DraggingBehavior :: (ctx : *GizmoContext, id : u32, interaction : GizmoInteracti
     }
 
     if ctx.active_id == id {
-        if !(state & .Started) && IsKeyPressed(.Escape) {
+        if !(state & .Started) && (IsKeyPressed(.Escape) || IsMouseButtonPressed(.Right)) {
             ctx.active_id = 0;
             state |= .Cancelled;
         } else if IsMouseButtonDown(.Left) {
