@@ -8,9 +8,6 @@
 
 // See: Kawase blur filter
 
-// Additionally, we could apply a single pass gaussian blur to each downsample level to get less fireflies and maybe
-// an overall more qualitative result
-
 BloomParams :: struct {
     resolution_factor := Bloom_Resolution_Factor;
     brightness_threshold := 1.4; @ShowInInspector @FloatRange(0,10) @Step(0.01)
