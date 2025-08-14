@@ -1,3 +1,6 @@
+ImGui_Background_Blur_Iterations :: 4;
+ImGui_Background_Blur_Resolution_Factor :: 0.75;
+
 ImGuiRenderer :: struct {
     jai_context : *#Context;
     font_texture : GfxTexture;
@@ -163,8 +166,7 @@ InitImGuiPipeline :: () {
     AddColorAttachment(*pipeline_desc, g_imgui_color_texture.desc.pixel_format);
     pipeline_desc.blend_states[0] = .{
         enabled=true,
-        src_alpha_factor=.One,
-        dst_alpha_factor=.One,
+        src_alpha_factor=.One, dst_alpha_factor=.One
     };
 
     pipeline_desc.rasterizer_state = .{cull_face=.None};
@@ -306,6 +308,7 @@ ImGuiPass :: (cmd_buffer : *GfxCommandBuffer, draw_data : *ImGui.ImDrawData) {
 
     pass_desc : GfxRenderPassDesc;
     AddColorAttachment(*pass_desc, *g_imgui_color_texture);
+    ClearColor(*pass_desc, 0, Vec4f.{0,0,0,0});
 
     global_vtx_offset := 0;
     global_idx_offset := 0;

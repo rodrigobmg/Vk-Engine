@@ -184,6 +184,8 @@ GizmoStyle :: struct {
         scale_all_inner_circle_size := 0.3; @ShowInInspector
         scale_all_outer_circle_size := 1.23; @ShowInInspector
         scale_all_handle_thickness := 3.5; @ShowInInspector
+        scale_plane_distance := 0.5; @ShowInInspector
+        scale_plane_size := 0.5; @ShowInInspector
     }; @ShowInInspector
 
     using cursor : struct {
@@ -1168,6 +1170,11 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         GetGizmoID(ctx, "scale_z"),
         all_id,
     ];
+    planes_ids := u32.[
+        GetGizmoID(ctx, "scale_xy"),
+        GetGizmoID(ctx, "scale_yz"),
+        GetGizmoID(ctx, "scale_zx"),
+    ];
 
     axes_vectors := Vec3f.[
         .{1,0,0},
@@ -1187,6 +1194,27 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
     }
 
     for * local_axes_vectors {
+        it.* = TransformVector(transform, it.*);
+    }
+
+    plane_vectors := Vec3f.[
+        .{1,1,0},
+        .{0,1,1},
+        .{1,0,1},
+    ];
+    local_plane_vectors := Vec3f.[
+        .{1,1,0},
+        .{0,1,1},
+        .{1,0,1},
+    ];
+
+    if !(flags & .GlobalSpace) {
+        for * plane_vectors {
+            it.* = TransformVector(transform, it.*);
+        }
+    }
+
+    for * local_plane_vectors {
         it.* = TransformVector(transform, it.*);
     }
 
@@ -1218,14 +1246,11 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
     for i : 0..2 {
         id := axes_ids[i];
         ignore_axis := ignore_axes[i];
-        ignore_axis ||= ctx.active_id != id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+        ignore_axis ||= ctx.active_id != id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
         ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << i);
         if ignore_axis {
             continue;
         }
-
-        start := translation + widget_size * axes_vectors[i] * g_gizmo_style.scale_all_inner_circle_size;
-        end := translation + widget_size * axes_vectors[i];
 
         drag_state : InteractionState;
         if !kb_state {
@@ -1318,9 +1343,133 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         AddGizmoWidget(ctx, id, .SquareArrow, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
     }
 
+    for i : 0..2 {
+        axis0 := i;
+        axis1 := (i + 1) % 3;
+        axis2 := (i + 2) % 3;
+        id := planes_ids[i];
+        ignore_axis := ignore_axes[axis0] || ignore_axes[axis1];
+        ignore_axis ||= ctx.active_id != id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
+        ignore_axis ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != xx (1 << axis0) && ctx.keyboard_interaction_flags != xx (1 << axis1);
+        if ignore_axis {
+            continue;
+        }
+
+        drag_state : InteractionState;
+        if !kb_state {
+            drag_state = DraggingBehavior(ctx, id, .ScalePlane, translation);
+        } else if ctx.keyboard_interaction_flags == xx (1 << axis0 | 1 << axis1) {
+            drag_state = kb_state;
+        }
+
+        if drag_state {
+            result_state = drag_state;
+        }
+
+        if drag_state & .Cancelled {
+            result = ctx.drag_start_scale;
+        }
+
+        axis_widget_size := Vec2f.{widget_size,widget_size};
+
+        if drag_state & .Interacting {
+            if drag_state & .Started {
+                ctx.drag_start_scale = ProjectScale(ThreeAxes.{axes=local_plane_vectors} * scale.*, .{axes=plane_vectors});
+                ctx.drag_start_scale_axis = plane_vectors[i];
+            }
+
+            is_behind, proj_center := WorldToCamera(ctx.camera, translation);
+            if !is_behind {
+                t1 := Distance(proj_center, ctx.mouse_drag_start);
+                t2 := Distance(proj_center, ctx.mouse_position);
+
+                if IsKeyDown(.Shift) {
+                    t2 = t1 + (t2 - t1) * g_gizmo_style.sensitivity_slow_factor;
+                }
+
+                s := Vec2f.{
+                    Sign(ctx.drag_start_scale.n[axis0]),
+                    Sign(ctx.drag_start_scale.n[axis1]),
+                };
+
+                center_to_start := Normalized(ctx.mouse_drag_start - proj_center);
+                center_to_curr := Normalized(ctx.mouse_position - proj_center);
+
+                if Dot(center_to_start, center_to_curr) < 0 {
+                    s = -s;
+                }
+
+                ratio := t2 / t1;
+                additional_scale := Vec2f.{
+                    s.x * Abs(ctx.drag_start_scale.n[axis0]) * ratio - ctx.drag_start_scale.n[axis0],
+                    s.y * Abs(ctx.drag_start_scale.n[axis1]) * ratio - ctx.drag_start_scale.n[axis1],
+                };
+
+                if IsKeyDown(.Ctrl) {
+                    additional_scale.x = Snap(additional_scale.x, g_gizmo_style.scale_snap_grid_size);
+                    additional_scale.y = Snap(additional_scale.y, g_gizmo_style.scale_snap_grid_size);
+                }
+
+                scale_axes := ThreeAxes.{
+                    axes_vectors[0] * ctx.drag_start_scale.n[0],
+                    axes_vectors[1] * ctx.drag_start_scale.n[1],
+                    axes_vectors[2] * ctx.drag_start_scale.n[2],
+                };
+                scale_axes.axes[axis0] += axes_vectors[axis0] * additional_scale.x;
+                scale_axes.axes[axis1] += axes_vectors[axis1] * additional_scale.y;
+                scale_on_axis := Vec2f.{
+                    ctx.drag_start_scale.n[axis0] + additional_scale.x,
+                    ctx.drag_start_scale.n[axis1] + additional_scale.y,
+                };
+
+                result = ProjectScale(scale_axes, .{axes=local_plane_vectors});
+
+                axis_widget_size.x *= s.x * ratio;
+                axis_widget_size.y *= s.y * ratio;
+
+                // XYZ :: string.["X","Y","Z"];
+                // DrawText(
+                //     tprint("%: %", XYZ[i], scale_on_axis),
+                //     proj_center + .{10, 10},
+                //     g_gizmo_style.colors[StyleColor.Text],
+                //     g_gizmo_style.colors[StyleColor.TextShadow]
+                // );
+            }
+        }
+
+        color := ifx ctx.hovered_id == id || ctx.active_id == id
+            then axes_active_colors[axis2] else axes_colors[axis2];
+
+        if drag_state & .Interacting {
+            GizmoDrawLine(
+                ctx,
+                axes_guide_colors[axis0].rgb,
+                translation - axes_vectors[axis0] * 500,
+                translation + axes_vectors[axis0] * 500,
+                g_gizmo_style.guide_line_thickness
+            );
+            GizmoDrawLine(
+                ctx,
+                axes_guide_colors[axis1].rgb,
+                translation - axes_vectors[axis1] * 500,
+                translation + axes_vectors[axis1] * 500,
+                g_gizmo_style.guide_line_thickness
+            );
+        }
+
+        axis := axes_vectors[axis2];
+        tangent := axes_vectors[axis0];
+        bitangent := axes_vectors[axis1];
+        rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
+        origin := translation + (tangent + bitangent) * widget_size * g_gizmo_style.scale_plane_distance;
+        size := Vec3f.{axis_widget_size.x,widget_size,axis_widget_size.y} * g_gizmo_style.scale_plane_size;
+        widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
+        AddGizmoWidget(ctx, id, .Plane, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
+    }
+
     ignore_all := flags & .NoViewAxis != 0;
     ignore_all ||= ctx.active_id == gizmo_id && ctx.keyboard_interaction_flags != 0;
-    ignore_all ||= ctx.active_id != all_id && ArrayFindFirst(axes_ids, ctx.active_id) != -1;
+    ignore_all ||= ctx.active_id != all_id && (ArrayFindFirst(axes_ids, ctx.active_id) != -1 || ArrayFindFirst(planes_ids, ctx.active_id) != -1);
 
     if !ignore_all {
         drag_state : InteractionState;

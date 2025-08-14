@@ -9,6 +9,7 @@ layout(set=1, binding=2) uniform usampler2D u_entity_guid_texture;
 layout(set=1, binding=3) uniform usampler2D u_selected_entity_guid_texture;
 layout(set=1, binding=4) uniform sampler2D u_gizmo_texture;
 layout(set=1, binding=5) uniform sampler2D u_imgui_texture;
+layout(set=1, binding=6) uniform sampler2D u_blurred_color_texture;
 
 layout(location=0) in float2 in_position;
 
@@ -45,7 +46,6 @@ float4 GetEntityOutline(float2 tex_coords, float2 texel_size) {
 }
 
 void main() {
-    // float3 color = texture(u_color_texture, in_position).rgb;
     float3 color = FXAA(u_color_texture, in_position, 1 / u_frame_info.window_pixel_size).rgb;
 
     int2 bloom_size = textureSize(u_bloom_texture, 0);
@@ -62,8 +62,14 @@ void main() {
     float4 gizmo = texture(u_gizmo_texture, in_position);
     color = lerp(color, gizmo.rgb, gizmo.a);
 
+    float3 blurred_color = texture(u_blurred_color_texture, in_position).rgb;
+    blurred_color = ApplyToneMapping(blurred_color);
+    blurred_color = LinearTosRGB(blurred_color);
+
     float4 imgui = texture(u_imgui_texture, in_position);
-    color = lerp(color, imgui.rgb, imgui.a);
+    if (imgui.a > 0) {
+        color = lerp(blurred_color, imgui.rgb, imgui.a);
+    }
 
     out_color = float4(color, 1);
 }

@@ -17,6 +17,7 @@
 #load "bloom.jai";
 #load "debug_draw.jai";
 #load "gizmo_draw.jai";
+#load "kawase_blur.jai";
 
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
@@ -160,6 +161,17 @@ CreateAllPipelines :: () {
 }
 
 DestroyAllPipelines :: () {
+    for * g_kawase_blur_downsample_pipeline {
+        if !IsNull(it) {
+            DestroyGfxGraphicsPipeline(it);
+        }
+    }
+    for * g_kawase_blur_upsample_pipeline {
+        if !IsNull(it) {
+            DestroyGfxGraphicsPipeline(it);
+        }
+    }
+
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
@@ -189,6 +201,8 @@ g_final_texture : GfxTexture;
 g_color_texture : GfxTexture;
 g_depth_texture : GfxTexture;
 g_selected_entities_depth_texture : GfxTexture;
+
+g_blurred_color : KawaseBlur;
 
 CreateRenderTargets :: () {
     WaitForGPUIdle();
@@ -228,6 +242,8 @@ CreateRenderTargets :: () {
     g_color_texture = CreateGfxTexture("Color", texture_desc);
     Assert(!IsNull(*g_color_texture), "Could not create color texture");
 
+    CreateKawaseBlurTextures(*g_blurred_color, ImGui_Background_Blur_Iterations, texture_desc, ImGui_Background_Blur_Resolution_Factor);
+
     texture_desc.pixel_format = .Depth32Float;
     texture_desc.usage = .DepthStencilAttachment;
 
@@ -244,6 +260,7 @@ CreateRenderTargets :: () {
 }
 
 DestroyRenderTargets :: () {
+    DestroyKawaseBlur(*g_blurred_color);
     DestroyGfxTexture(*g_imgui_color_texture);
     DestroyGfxTexture(*g_gizmo_ctx.depth_texture);
     DestroyGfxTexture(*g_final_texture);
@@ -653,8 +670,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     GizmoPass(*ctx, *g_gizmo_ctx);
-
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
+    RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
 
     PostProcessingPass(*ctx);
     DebugLinesPass(*ctx, camera);

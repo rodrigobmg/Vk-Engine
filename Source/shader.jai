@@ -11,6 +11,8 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="kawase_blur_downsample"},
+    .{name="kawase_blur_upsample"},
     .{name="gizmo"},
     .{name="debug_line"},
     .{name="point_shadow_map"},

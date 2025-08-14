@@ -497,7 +497,7 @@ RenderFrameExt :: (min : Vec2f, max : Vec2f, fill_col : u32, border := true, rou
 }
 @NoProfile
 
-SetStyleBasic :: () {
+SetEditorStyleBasic :: () {
     style := ImGui.GetStyle();
     style.Constructor(style);
 
@@ -523,7 +523,7 @@ SetStyleBasic :: () {
 
 // Based on Moonlight style by deathsu/madam-herta
 // https://github.com/Madam-Herta/Moonlight/
-SetStyleMoonlight :: () {
+SetEditorStyleMoonlight :: () {
     style := ImGui.GetStyle();
     style.Constructor(style);
 
@@ -596,4 +596,26 @@ SetStyleMoonlight :: () {
     style.Colors[ImGui.Col.NavWindowingHighlight] = .{0.498, 0.513, 1, 1};
     style.Colors[ImGui.Col.NavWindowingDimBg] = .{0.196, 0.176, 0.545, 0.501};
     style.Colors[ImGui.Col.ModalWindowDimBg] = .{0.239, 0.233, 0.342, 0.501};
+}
+
+SetEditorStyleForBlurredBackground :: () {
+    style := ImGui.GetStyle();
+
+    style.Colors[ImGui.Col.WindowBg].a = 0.78;
+    style.Colors[ImGui.Col.ChildBg].a = 0.04;
+    style.Colors[ImGui.Col.PopupBg].a = 0.59;
+    style.Colors[ImGui.Col.FrameBg].a = 0.20;
+    style.Colors[ImGui.Col.FrameBgHovered].a = 0.39;
+    style.Colors[ImGui.Col.FrameBgActive].a = 0.59;
+    style.Colors[ImGui.Col.TitleBg].a = 0.39;
+    style.Colors[ImGui.Col.TitleBgActive].a = 0.59;
+    style.Colors[ImGui.Col.TitleBgCollapsed].a = 0.39;
+    style.Colors[ImGui.Col.MenuBarBg].a = 0.39;
+    style.Colors[ImGui.Col.Button].a = 0.39;
+    style.Colors[ImGui.Col.ButtonHovered].a = 0.39;
+    style.Colors[ImGui.Col.ButtonActive].a = 0.39;
+    style.Colors[ImGui.Col.Header].a = 0.20;
+    style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
+    style.Colors[ImGui.Col.HeaderActive].a = 0.39;
+    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.39;
 }

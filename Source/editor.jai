@@ -16,7 +16,7 @@ g_editor_settings : EditorSettings;
 
 EntityOutlineParams :: struct {
     thickness : float = 2; @ShowInInspector @FloatRange(1,5)
-    covered_alpha : float = 0.2; @ShowInInspector @FloatRange(0,1)
+    covered_alpha : float = 0.4; @ShowInInspector @FloatRange(0,1)
     color : Vec4f = .{0.972, 1, 0.498, 1}; @ShowInInspector @ColorEdit
 } @ShaderType
 
@@ -240,8 +240,9 @@ InitEditor :: () {
 
     io := ImGui.GetIO();
 
-    // SetStyleBasic();
-    SetStyleMoonlight();
+    // SetEditorStyleBasic();
+    SetEditorStyleMoonlight();
+    SetEditorStyleForBlurredBackground();
 
     {
         Base_Font_Size :: 16.0;
