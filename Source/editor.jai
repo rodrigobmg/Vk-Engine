@@ -8,6 +8,9 @@
 
 Log_Editor :: Log_Section.{name="Editor"};
 
+Editor_Background_Blur_Iterations :: 3;
+Editor_Background_Blur_Resolution_Factor :: 0.75;
+
 EditorSettings :: struct {
     entity_outline : EntityOutlineParams; @ShowInInspector @InspectorNoTree
 }

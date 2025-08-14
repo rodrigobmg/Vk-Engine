@@ -1,6 +1,3 @@
-ImGui_Background_Blur_Iterations :: 4;
-ImGui_Background_Blur_Resolution_Factor :: 0.75;
-
 ImGuiRenderer :: struct {
     jai_context : *#Context;
     font_texture : GfxTexture;

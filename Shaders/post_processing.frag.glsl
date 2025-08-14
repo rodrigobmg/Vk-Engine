@@ -62,7 +62,9 @@ void main() {
     float4 gizmo = texture(u_gizmo_texture, in_position);
     color = lerp(color, gizmo.rgb, gizmo.a);
 
-    float3 blurred_color = texture(u_blurred_color_texture, in_position).rgb;
+    float2 blur_texel_size = textureSize(u_blurred_color_texture, 0);
+    blur_texel_size = 1 / blur_texel_size;
+    float3 blurred_color = UpsampleTent9(u_blurred_color_texture, in_position, blur_texel_size).rgb;
     blurred_color = ApplyToneMapping(blurred_color);
     blurred_color = LinearTosRGB(blurred_color);
 

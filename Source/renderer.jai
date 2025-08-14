@@ -242,7 +242,7 @@ CreateRenderTargets :: () {
     g_color_texture = CreateGfxTexture("Color", texture_desc);
     Assert(!IsNull(*g_color_texture), "Could not create color texture");
 
-    CreateKawaseBlurTextures(*g_blurred_color, ImGui_Background_Blur_Iterations, texture_desc, ImGui_Background_Blur_Resolution_Factor);
+    CreateKawaseBlurTextures(*g_blurred_color, Editor_Background_Blur_Iterations, texture_desc, Editor_Background_Blur_Resolution_Factor);
 
     texture_desc.pixel_format = .Depth32Float;
     texture_desc.usage = .DepthStencilAttachment;
