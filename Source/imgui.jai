@@ -114,6 +114,26 @@ ImGuiDrawCallBindingSet :: struct {
     texture : GfxBindingCombinedTextureSampler; @Binding(0) @FragmentStage
 } @BindingSet
 
+g_imgui_color_texture : GfxTexture;
+
+CreateImGuiColorTexture :: () {
+    if !IsNull(*g_imgui_color_texture) {
+        DestroyGfxTexture(*g_imgui_color_texture);
+    }
+
+    w, h := GetWindowPixelSize(g_window);
+
+    desc : GfxTextureDesc;
+    desc.type = .Texture2D;
+    desc.pixel_format = .RGBA8UNorm;
+    desc.width = xx w;
+    desc.height = xx h;
+    desc.usage = .ColorAttachment | .Sampled;
+
+    g_imgui_color_texture = CreateGfxTexture("ImGui Color", desc);
+    Assert(!IsNull(*g_imgui_color_texture), "Could not create ImGui color texture");
+}
+
 g_imgui_pipeline : GfxGraphicsPipeline;
 g_imgui_vertex_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
 g_imgui_index_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
@@ -135,11 +155,12 @@ InitImGuiPipeline :: () {
     pipeline_desc.vertex_input = MakeVertexInputDesc(ImGuiVertex, 0);
 
     pipeline_desc.layout.binding_sets = .[
+        g_binding_set_layouts.FrameBindingSet,
         g_binding_set_layouts.ImGuiPassBindingSet,
         g_binding_set_layouts.ImGuiDrawCallBindingSet,
     ];
 
-    AddColorAttachment(*pipeline_desc, g_final_texture.desc.pixel_format);
+    AddColorAttachment(*pipeline_desc, g_imgui_color_texture.desc.pixel_format);
     pipeline_desc.blend_states[0] = .{enabled=true};
 
     pipeline_desc.rasterizer_state = .{cull_face=.None};
@@ -263,6 +284,8 @@ ImGuiPass :: (cmd_buffer : *GfxCommandBuffer, draw_data : *ImGui.ImDrawData) {
         idx_buffer_offset += list.IdxBuffer.Size * size_of(ImGui.ImDrawIdx);
     }
 
+    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *g_imgui_color_texture);
+
     using g_imgui_pipeline;
 
     L := draw_data.DisplayPos.x;
@@ -278,7 +301,7 @@ ImGuiPass :: (cmd_buffer : *GfxCommandBuffer, draw_data : *ImGui.ImDrawData) {
     pass_binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), pass_bindings);
 
     pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *g_final_texture);
+    AddColorAttachment(*pass_desc, *g_imgui_color_texture);
 
     global_vtx_offset := 0;
     global_idx_offset := 0;
@@ -289,7 +312,7 @@ ImGuiPass :: (cmd_buffer : *GfxCommandBuffer, draw_data : *ImGui.ImDrawData) {
 
         BindVertexBuffer(*pass, 0, vertex_buffer);
         BindIndexBuffer(*pass, ifx size_of(ImGui.ImDrawIdx) == 2 then .UInt16 else .UInt32, index_buffer);
-        BindGraphicsBindingSet(*pass, 0, *pass_binding_set);
+        BindGraphicsBindingSet(*pass, 1, *pass_binding_set);
 
         current_texture : *GfxTexture;
 
@@ -337,7 +360,7 @@ ImGuiPass :: (cmd_buffer : *GfxCommandBuffer, draw_data : *ImGui.ImDrawData) {
                             texture=.{sampler=*g_linear_clamp_sampler, texture=xx cmd.TextureId},
                         });
 
-                        BindGraphicsBindingSet(*pass, 1, *binding_set);
+                        BindGraphicsBindingSet(*pass, 2, *binding_set);
                         current_texture = xx cmd.TextureId;
                     }
 
@@ -356,4 +379,6 @@ ImGuiPass :: (cmd_buffer : *GfxCommandBuffer, draw_data : *ImGui.ImDrawData) {
         }
     }
     EndGfxRenderPass(*pass);
+
+    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_imgui_color_texture);
 }

@@ -19,6 +19,7 @@
 #load "gizmo_draw.jai";
 
 g_linear_clamp_sampler : GfxSampler;
+g_nearest_clamp_sampler : GfxSampler;
 
 InitRenderer :: () {
     if !LoadAllShaders() {
@@ -43,6 +44,12 @@ InitRenderer :: () {
     sampler_desc.mag_filter = .Linear;
     g_linear_clamp_sampler = CreateGfxSampler("Linear Clamp", sampler_desc);
     Assert(!IsNull(*g_linear_clamp_sampler));
+
+    sampler_desc = .{};
+    sampler_desc.min_filter = .Nearest;
+    sampler_desc.mag_filter = .Nearest;
+    g_nearest_clamp_sampler = CreateGfxSampler("Nearest Clamp", sampler_desc);
+    Assert(!IsNull(*g_nearest_clamp_sampler));
 }
 
 CleanupRenderer :: () {
@@ -66,6 +73,7 @@ CleanupRenderer :: () {
 
     DestroyGfxSampler(*g_skybox_sampler);
     DestroyGfxSampler(*g_linear_clamp_sampler);
+    DestroyGfxSampler(*g_nearest_clamp_sampler);
 }
 
 #placeholder Shader_Binding_Set_Types;
@@ -166,7 +174,6 @@ DestroyAllPipelines :: () {
     DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
 
     DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
-    DestroyGfxSampler(*g_post_processing_sampler);
     DestroyGfxSampler(*g_entity_guid_sampler);
 
     DestroyGfxTexture(*g_brdf_lut);
@@ -233,9 +240,11 @@ CreateRenderTargets :: () {
     CreateEntityGUIDTextures();
     CreateBloomTextures();
     CreateGizmoTextures(*g_gizmo_ctx);
+    CreateImGuiColorTexture();
 }
 
 DestroyRenderTargets :: () {
+    DestroyGfxTexture(*g_imgui_color_texture);
     DestroyGfxTexture(*g_gizmo_ctx.depth_texture);
     DestroyGfxTexture(*g_final_texture);
     DestroyGfxTexture(*g_color_texture);
@@ -645,9 +654,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     GizmoPass(*ctx, *g_gizmo_ctx);
 
+    ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
+
     PostProcessingPass(*ctx);
     DebugLinesPass(*ctx, camera);
-    ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);
 

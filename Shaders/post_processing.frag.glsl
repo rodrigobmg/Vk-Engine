@@ -8,6 +8,7 @@ layout(set=1, binding=1) uniform sampler2D u_bloom_texture;
 layout(set=1, binding=2) uniform usampler2D u_entity_guid_texture;
 layout(set=1, binding=3) uniform usampler2D u_selected_entity_guid_texture;
 layout(set=1, binding=4) uniform sampler2D u_gizmo_texture;
+layout(set=1, binding=5) uniform sampler2D u_imgui_texture;
 
 layout(location=0) in float2 in_position;
 
@@ -60,6 +61,9 @@ void main() {
     // float4 gizmo = FXAA(u_gizmo_texture, in_position, 1 / u_frame_info.window_pixel_size);
     float4 gizmo = texture(u_gizmo_texture, in_position);
     color = lerp(color, gizmo.rgb, gizmo.a);
+
+    float4 imgui = texture(u_imgui_texture, in_position);
+    color = lerp(color, imgui.rgb, imgui.a);
 
     out_color = float4(color, 1);
 }
