@@ -545,12 +545,16 @@ CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> 
 
     SetDebugName(layout, TPrint("Descriptor Set Layout '%'", name));
 
-    return .{layout=layout, desc=desc};
+    copied_desc := desc;
+    copied_desc.bindings = ArrayClone(desc.bindings);
+
+    return .{layout=layout, desc=copied_desc};
 }
 
 DestroyGfxBindingSetLayout :: (layout : *GfxBindingSetLayout) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(layout.desc.bindings.data);
     vkDestroyDescriptorSetLayout(g_gfx_context.device, layout.layout, g_vk_alloc_callbacks);
     layout.* = .{};
 }
@@ -1204,9 +1208,7 @@ MakeVertexInputDesc :: ($T : Type, buffer_bindings : []u32) -> GfxVertexInputDes
         return StringBuilderBuild(*builder);
     }
 
-    desc.attributes = AllocArray(GfxVertexInputAttribute, attributes.count ,, Temp);
-    memcpy(desc.attributes.data, attributes.data, size_of(GfxVertexInputAttribute) * attributes.count);
-
+    desc.attributes = ArrayClone(attributes ,, Temp);
     desc.buffer_bindings = AllocArray(GfxVertexInputBufferBinding, buffer_bindings.count ,, Temp);
     for * desc.buffer_bindings {
         it.binding = buffer_bindings[it_index];
@@ -1623,11 +1625,18 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
 
     SetDebugName(pipeline, TPrint("Pipeline '%'", name));
 
-    return .{layout=layout, pipeline=pipeline, desc=desc};
+    copied_desc := desc;
+    copied_desc.vertex_input.attributes = ArrayClone(desc.vertex_input.attributes);
+    copied_desc.vertex_input.buffer_bindings = ArrayClone(desc.vertex_input.buffer_bindings);
+
+    return .{layout=layout, pipeline=pipeline, desc=copied_desc};
 }
 
 DestroyGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline) {
     LogSectionScope(*Log_Vulkan);
+
+    Free(pipeline.desc.vertex_input.attributes.data);
+    Free(pipeline.desc.vertex_input.buffer_bindings.data);
 
     DestroyGfxPipelineLayout(*pipeline.layout);
     vkDestroyPipeline(g_gfx_context.device, pipeline.pipeline, g_vk_alloc_callbacks);
