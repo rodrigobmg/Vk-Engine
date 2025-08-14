@@ -17,7 +17,7 @@ g_editor_settings : EditorSettings;
 EntityOutlineParams :: struct {
     thickness : float = 2; @ShowInInspector @FloatRange(1,5)
     covered_alpha : float = 0.2; @ShowInInspector @FloatRange(0,1)
-    color : Vec4f = .{1,1,1,1}; @ShowInInspector @ColorEdit
+    color : Vec4f = .{0.972, 1, 0.498, 1}; @ShowInInspector @ColorEdit
 } @ShaderType
 
 g_show_imgui_demo := false;
@@ -240,25 +240,8 @@ InitEditor :: () {
 
     io := ImGui.GetIO();
 
-    ImGui.StyleColorsDark();
-    {
-        style := ImGui.GetStyle();
-        style.WindowRounding = 6;
-        style.WindowMenuButtonPosition = .Right;
-        style.ChildRounding = 3;
-        style.FrameRounding = 4;
-        style.PopupRounding = 3;
-        style.GrabRounding = 4;
-        style.TabRounding = 6;
-        style.FramePadding = .{6, 6};
-        style.SeparatorTextBorderSize = 1;
-        style.FrameBorderSize = 1;
-        style.ItemSpacing.y = 6;
-        style.ItemInnerSpacing.x = 8;
-        style.Colors[ImGui.Col.Border].w = 0.25;
-        style.Colors[ImGui.Col.WindowBg].w = 1.0;
-        style.Colors[ImGui.Col.PopupBg].w = 1.0;
-    }
+    // SetStyleBasic();
+    SetStyleMoonlight();
 
     {
         Base_Font_Size :: 16.0;
