@@ -161,7 +161,11 @@ InitImGuiPipeline :: () {
     ];
 
     AddColorAttachment(*pipeline_desc, g_imgui_color_texture.desc.pixel_format);
-    pipeline_desc.blend_states[0] = .{enabled=true};
+    pipeline_desc.blend_states[0] = .{
+        enabled=true,
+        src_alpha_factor=.One,
+        dst_alpha_factor=.One,
+    };
 
     pipeline_desc.rasterizer_state = .{cull_face=.None};
 
