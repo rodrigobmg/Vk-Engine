@@ -27,7 +27,7 @@ g_shaders := LoadedShader.[
     .{name="environment_map"},
     .{name="skybox"},
     .{name="brdf_lut"},
-    .{name="post_processing"},
+    .{name="compositing"},
     .{name="mesh_geometry"},
     .{name="opaque_surface"},
 ];

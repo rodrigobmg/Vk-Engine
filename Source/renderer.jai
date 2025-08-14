@@ -9,7 +9,7 @@
 #load "imgui.jai";
 #load "image_based_lighting.jai";
 #load "forward_pass.jai";
-#load "post_processing.jai";
+#load "compositing.jai";
 #load "shadow_map.jai";
 #load "point_shadow_map.jai";
 #load "skybox.jai";
@@ -146,7 +146,7 @@ CreateAllPipelines :: () {
     Assert(!IsNull(*g_dummy_frame_pipeline_layout), "Could not create dummy frame pipeline layout");
 
     CreateForwardPipeline();
-    CreatePostProcessingPipeline();
+    CreateCompositingPipeline();
     CreateShadowMapPipeline();
     CreatePointShadowMapPipeline();
     CreateSkyboxPipeline();
@@ -185,7 +185,7 @@ DestroyAllPipelines :: () {
     DestroyGfxGraphicsPipeline(*g_point_shadow_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
 
-    DestroyGfxGraphicsPipeline(*g_post_processing_pipeline);
+    DestroyGfxGraphicsPipeline(*g_compositing_pipeline);
     DestroyGfxSampler(*g_entity_guid_sampler);
 
     DestroyGfxTexture(*g_brdf_lut);
@@ -673,7 +673,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
     RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
 
-    PostProcessingPass(*ctx);
+    CompositingPass(*ctx);
     DebugLinesPass(*ctx, camera);
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);
