@@ -527,8 +527,6 @@ SetStyleMoonlight :: () {
     style := ImGui.GetStyle();
     style.Constructor(style);
 
-    style.Alpha = 1;
-    style.DisabledAlpha = 1;
     style.WindowRounding = 6;
     style.WindowMenuButtonPosition = .Right;
     style.ChildRounding = 3;
