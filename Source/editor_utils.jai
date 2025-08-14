@@ -592,7 +592,7 @@ SetStyleMoonlight :: () {
     style.Colors[ImGui.Col.TableBorderLight] = .{0, 0, 0, 1};
     style.Colors[ImGui.Col.TableRowBg] = .{0.117, 0.133, 0.149, 1};
     style.Colors[ImGui.Col.TableRowBgAlt] = .{0.098, 0.105, 0.121, 1};
-    style.Colors[ImGui.Col.TextSelectedBg] = .{0.935, 0.935, 0.935, 1};
+    style.Colors[ImGui.Col.TextSelectedBg] = .{0.935, 0.935, 0.935, 0.376};
     style.Colors[ImGui.Col.DragDropTarget] = .{0.498, 0.513, 1, 1};
     style.Colors[ImGui.Col.NavHighlight] = .{0.266, 0.289, 1, 1};
     style.Colors[ImGui.Col.NavWindowingHighlight] = .{0.498, 0.513, 1, 1};
