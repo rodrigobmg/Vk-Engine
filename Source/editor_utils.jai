@@ -618,6 +618,9 @@ SetEditorStyleOpaque :: () {
     style.Colors[ImGui.Col.HeaderHovered].a = 1;
     style.Colors[ImGui.Col.HeaderActive].a = 1;
     style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.501;
+    style.Colors[ImGui.Col.TableHeaderBg].a = 1;
+    style.Colors[ImGui.Col.TableRowBg].a = 1;
+    style.Colors[ImGui.Col.TableRowBgAlt].a = 1;
 }
 
 SetEditorStyleForBlurredBackground :: () {
@@ -639,5 +642,8 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.Header].a = 0.20;
     style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
     style.Colors[ImGui.Col.HeaderActive].a = 0.39;
-    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.39;
+    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.78;
+    style.Colors[ImGui.Col.TableHeaderBg].a = 0.78;
+    style.Colors[ImGui.Col.TableRowBg].a = 0.78;
+    style.Colors[ImGui.Col.TableRowBgAlt].a = 0.78;
 }

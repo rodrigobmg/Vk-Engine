@@ -75,9 +75,8 @@ void main() {
     }
 
     float4 imgui = texture(u_imgui_texture, in_position);
-    if (imgui.a > 0) {
-        color = BlendRGBPremultipliedAlpha(background_color, imgui.rgb, imgui.a);
-    }
+    color = lerp(color, background_color, clamp(imgui.a * 2, 0, 1));
+    color = BlendRGBPremultipliedAlpha(color, imgui.rgb, imgui.a);
 
     out_color = float4(color, 1);
 }
