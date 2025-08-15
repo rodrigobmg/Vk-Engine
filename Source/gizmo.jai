@@ -784,8 +784,8 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
             GizmoDrawLine(
                 ctx,
                 axes_guide_colors[i].rgb,
-                translation.* - axes_vectors[i] * 500,
-                translation.* + axes_vectors[i] * 500,
+                ctx.drag_start_translation - axes_vectors[i] * 500,
+                ctx.drag_start_translation + axes_vectors[i] * 500,
                 g_gizmo_style.guide_line_thickness
             );
         }
@@ -873,15 +873,15 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
             GizmoDrawLine(
                 ctx,
                 axes_guide_colors[axis0].rgb,
-                translation.* - axes_vectors[axis0] * 500,
-                translation.* + axes_vectors[axis0] * 500,
+                ctx.drag_start_translation - axes_vectors[axis0] * 500,
+                ctx.drag_start_translation + axes_vectors[axis0] * 500,
                 g_gizmo_style.guide_line_thickness
             );
             GizmoDrawLine(
                 ctx,
                 axes_guide_colors[axis1].rgb,
-                translation.* - axes_vectors[axis1] * 500,
-                translation.* + axes_vectors[axis1] * 500,
+                ctx.drag_start_translation - axes_vectors[axis1] * 500,
+                ctx.drag_start_translation + axes_vectors[axis1] * 500,
                 g_gizmo_style.guide_line_thickness
             );
         }

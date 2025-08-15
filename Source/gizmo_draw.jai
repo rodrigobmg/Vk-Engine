@@ -172,7 +172,7 @@ GizmoLinesPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
 
     pass_desc : GfxRenderPassDesc;
     AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture, resolve_texture=*gizmo_ctx.color_resolve);
-    AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture);
+    AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture, store_op=.DontCare);
 
     pass := BeginGfxRenderPass(cmd_buffer, "Gizmo Lines", pass_desc);
     {
