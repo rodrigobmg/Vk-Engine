@@ -329,8 +329,9 @@ RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, m
     model_space_ray_dir := Normalized(TransformVector(inv_transform, ray_dir));
 
     early_hit, early_point := RayIntersectsBox(model_space_ray_origin, model_space_ray_dir, F32_Inf, mesh.static_bounds.center, mesh.static_bounds.half_extents);
-    if !early_hit || Distance(TransformPoint(transform, early_point), ray_origin) > ray_length
+    if !early_hit || Distance(TransformPoint(transform, early_point), ray_origin) > ray_length {
         return false, .{}, 0, .{}, -1;
+    }
 
     closest_hit : bool;
     closest_point, closest_normal : Vec3f;
@@ -348,6 +349,10 @@ RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, m
             closest_dist = dist;
             triangle_index = xx it_index;
         }
+    }
+
+    if !closest_hit {
+        return false, .{}, 0, .{}, -1;
     }
 
     point := TransformPoint(transform, closest_point);
