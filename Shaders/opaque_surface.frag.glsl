@@ -18,6 +18,7 @@ layout(location=0) out float4 out_color;
 
 #define Min_Parallax_Layers 20
 #define Max_Parallax_Layers 60
+#define Parallax_Shadow_Attenuation_Cos_Angle 0.1
 
 // https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
 float2 ParallaxOcclusionMapping(sampler2D depth_map, float height_scale, float2 tex_coords, float3 view_dir) {
@@ -137,6 +138,11 @@ void main() {
                 shadow = 0;
             } else {
                 shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+
+                // Shadow don't look goot at steep angles, so we attenuate
+                float shadow_attenuation = InverseLerp(0, Parallax_Shadow_Attenuation_Cos_Angle, dot(in_normal, L));
+                shadow_attenuation = clamp(shadow_attenuation, 0, 1);
+                shadow *= shadow_attenuation;
             }
         }
 
@@ -175,6 +181,11 @@ void main() {
                 // Of course in addition to the shadow, it makes any light calculation a bit off, though it is more
                 // visible with self shadowing
                 shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+
+                // Shadow don't look goot at steep angles, so we attenuate
+                float shadow_attenuation = InverseLerp(0, Parallax_Shadow_Attenuation_Cos_Angle, dot(in_normal, L));
+                shadow_attenuation = clamp(shadow_attenuation, 0, 1);
+                shadow *= shadow_attenuation;
             }
         }
 
