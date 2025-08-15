@@ -192,6 +192,7 @@ class EntitiesExportOptions(bpy.types.PropertyGroup):
         name = "Output Directory",
         description = "Specify the output directory.",
         subtype = "DIR_PATH",
+        options={"PATH_SUPPORTS_BLEND_RELATIVE"},
         default = "//Scenes"
     )
 
@@ -199,6 +200,7 @@ class EntitiesExportOptions(bpy.types.PropertyGroup):
         name = "Meshes Directory",
         description = "Specify the directory where meshes are stored.",
         subtype = "DIR_PATH",
+        options={"PATH_SUPPORTS_BLEND_RELATIVE"},
         default = "//Meshes"
     )
 
@@ -206,6 +208,7 @@ class EntitiesExportOptions(bpy.types.PropertyGroup):
         name = "Textures Directory",
         description = "Specify the directory where textures are stored.",
         subtype = "DIR_PATH",
+        options={"PATH_SUPPORTS_BLEND_RELATIVE"},
         default = "//Textures"
     )
 
@@ -213,6 +216,7 @@ class EntitiesExportOptions(bpy.types.PropertyGroup):
         name = "Materials Directory",
         description = "Specify the directory where materials are stored.",
         subtype = "DIR_PATH",
+        options={"PATH_SUPPORTS_BLEND_RELATIVE"},
         default = "//Materials"
     )
 
