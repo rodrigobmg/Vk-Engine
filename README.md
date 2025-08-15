@@ -35,7 +35,7 @@ Supports Linux and Windows.
 ## Goals
 * Sponza running at 155 FPS with all point lights casting shadows
 
-## Screenshots
-![screenshot](Misc/screenshot1.png)
-![screenshot](Misc/screenshot2.png)
-![screenshot](Misc/screenshot3.png)
+## Gallery
+![Gizmos](Misc/gizmo.gif)
+![Parallax Occlusion Mapping With Self Shadowing](Misc/parallax_occlusion_mapping_with_shadows.gif)
+![File Browser](Misc/file_browser.png)
