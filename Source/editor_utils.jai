@@ -585,7 +585,7 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.PlotLinesHovered] = .{0.039, 0.980, 0.980, 1};
     style.Colors[ImGui.Col.PlotHistogram] = .{0.884, 0.794, 0.561, 1};
     style.Colors[ImGui.Col.PlotHistogramHovered] = .{0.957, 0.957, 0.957, 1};
-    style.Colors[ImGui.Col.TableHeaderBg] = .{0.047, 0.054, 0.070, 1};
+    style.Colors[ImGui.Col.TableHeaderBg] = .{0.089, 0.100, 0.122, 1};
     style.Colors[ImGui.Col.TableBorderStrong] = .{0.047, 0.054, 0.070, 1};
     style.Colors[ImGui.Col.TableBorderLight] = .{0, 0, 0, 1};
     style.Colors[ImGui.Col.TableRowBg] = .{0.117, 0.133, 0.149, 1};
@@ -621,6 +621,10 @@ SetEditorStyleOpaque :: () {
     style.Colors[ImGui.Col.TableHeaderBg].a = 1;
     style.Colors[ImGui.Col.TableRowBg].a = 1;
     style.Colors[ImGui.Col.TableRowBgAlt].a = 1;
+    style.Colors[ImGui.Col.ScrollbarBg].a = 1;
+    style.Colors[ImGui.Col.ScrollbarGrab].a = 1;
+    style.Colors[ImGui.Col.ScrollbarGrabHovered].a = 1;
+    style.Colors[ImGui.Col.ScrollbarGrabActive].a = 1;
 }
 
 SetEditorStyleForBlurredBackground :: () {
@@ -646,4 +650,8 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.TableHeaderBg].a = 0.78;
     style.Colors[ImGui.Col.TableRowBg].a = 0.78;
     style.Colors[ImGui.Col.TableRowBgAlt].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarBg].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarGrab].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarGrabHovered].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarGrabActive].a = 0.78;
 }
