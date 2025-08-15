@@ -656,6 +656,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
+    DebugLinesPass(*ctx, camera);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
 
     EntityGUIDPass(*ctx, *g_entity_guid_texture, *g_depth_texture, camera, *g_mesh_buffer);
@@ -680,7 +681,6 @@ RenderFrame :: (world : *World, camera : *Camera) {
     }
 
     CompositingPass(*ctx);
-    DebugLinesPass(*ctx, camera);
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);
 

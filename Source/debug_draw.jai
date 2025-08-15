@@ -238,7 +238,7 @@ CreateDebugLinesPipeline :: () {
         g_binding_set_layouts.DebugLinesBindingSet,
     ];
 
-    AddColorAttachment(*desc, g_final_texture.desc.pixel_format);
+    AddColorAttachment(*desc, g_color_texture.desc.pixel_format);
     desc.depth_format = g_depth_texture.desc.pixel_format;
 
     desc.blend_states[0] = .{enabled=true};
@@ -273,7 +273,7 @@ DebugLinesPass :: (using ctx : *FrameRenderContext, camera : *Camera) {
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 
     pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *g_final_texture);
+    AddColorAttachment(*pass_desc, *g_color_texture);
     AddDepthAttachment(*pass_desc, *g_depth_texture);
 
     pass := BeginGfxRenderPass(cmd_buffer, "Debug Lines", pass_desc);
