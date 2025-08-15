@@ -56,11 +56,11 @@ void main() {
     color = LinearTosRGB(color);
 
     float4 entity_outline = GetEntityOutline(in_position, 1 / u_frame_info.window_pixel_size);
-    color = lerp(color, entity_outline.rgb * entity_outline.a, entity_outline.a);
+    color = BlendRGBPostmultipliedAlpha(color, entity_outline.rgb, entity_outline.a);
 
     // float4 gizmo = FXAA(u_gizmo_texture, in_position, 1 / u_frame_info.window_pixel_size);
     float4 gizmo = texture(u_gizmo_texture, in_position);
-    color = lerp(color, gizmo.rgb, gizmo.a);
+    color = BlendRGBPremultipliedAlpha(color, gizmo.rgb, gizmo.a);
 
     float2 blur_texel_size = textureSize(u_blurred_color_texture, 0);
     blur_texel_size = 1 / blur_texel_size;
@@ -70,7 +70,7 @@ void main() {
 
     float4 imgui = texture(u_imgui_texture, in_position);
     if (imgui.a > 0) {
-        color = lerp(blurred_color, imgui.rgb, imgui.a);
+        color = BlendRGBPremultipliedAlpha(blurred_color, imgui.rgb, imgui.a);
     }
 
     out_color = float4(color, 1);

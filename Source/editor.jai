@@ -595,7 +595,7 @@ ShowEntityOutliner :: (world : *World) {
     defer ImGui.End();
 
     ImGui.SetNextWindowSize(.{350, 700}, .FirstUseEver);
-    if !ImGui.Begin("Entity Hierarchy", *g_show_entity_outliner) {
+    if !ImGui.Begin("Entity Outliner", *g_show_entity_outliner) {
         return;
     }
 
@@ -624,7 +624,7 @@ ShowEntityOutliner :: (world : *World) {
         ImGui.EndCombo();
     }
 
-    if !ImGui.BeginChild("Hierarchy", child_flags=.Border, window_flags=.HorizontalScrollbar) {
+    if !ImGui.BeginChild("Outliner", child_flags=.Border, window_flags=.HorizontalScrollbar) {
         return;
     }
 

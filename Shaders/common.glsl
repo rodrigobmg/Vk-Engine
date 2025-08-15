@@ -342,4 +342,12 @@ float LinearizeDepth(float d, float z_near, float z_far) {
     return z_near * z_far / (z_far + d * (z_near - z_far));
 }
 
+float3 BlendRGBPostmultipliedAlpha(float3 dst, float3 src, float alpha) {
+    return src * alpha + dst * (1 - alpha);
+}
+
+float3 BlendRGBPremultipliedAlpha(float3 dst, float3 src, float alpha) {
+    return src + dst * (1 - alpha);
+}
+
 #endif
