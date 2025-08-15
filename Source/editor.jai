@@ -13,15 +13,18 @@ Editor_Background_Blur_Resolution_Factor :: 0.75;
 
 EditorSettings :: struct {
     entity_outline : EntityOutlineParams; @ShowInInspector @InspectorNoTree
-}
-
-g_editor_settings : EditorSettings;
+    use_blur_effect := true; @ShowInInspector
+    blur_effect_resolution_factor := 0.75; @ShowInInspector @FloatRange(0.1,1)
+    blur_effect_iterations := 3; @ShowInInspector
+} @ShaderType
 
 EntityOutlineParams :: struct {
     thickness : float = 2; @ShowInInspector @FloatRange(1,5)
     covered_alpha : float = 0.4; @ShowInInspector @FloatRange(0,1)
     color : Vec4f = .{0.972, 1, 0.498, 1}; @ShowInInspector @ColorEdit
 } @ShaderType
+
+g_editor_settings : EditorSettings;
 
 g_show_imgui_demo := false;
 g_show_world_inspector := false;
@@ -891,7 +894,27 @@ ShowEngineSettings :: () {
         return;
     }
 
+    prev_editor_settings := g_editor_settings;
     ShowInspector("Editor", cast(*World, null), *g_editor_settings);
+
+    if memcmp(*prev_editor_settings, *g_editor_settings, size_of(EditorSettings)) != 0 {
+        if !g_editor_settings.use_blur_effect {
+            DestroyKawaseBlur(*g_blurred_color);
+        } else {
+            w, h := GetWindowPixelSize(g_window);
+
+            texture_desc : GfxTextureDesc;
+            texture_desc.type = .Texture2D;
+            texture_desc.pixel_format = .RGBA16Float;
+            texture_desc.width = xx w;
+            texture_desc.height = xx h;
+
+            g_editor_settings.blur_effect_iterations = Clamp(g_editor_settings.blur_effect_iterations, 2, 10);
+
+            CreateKawaseBlurTextures(*g_blurred_color, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+        }
+    }
+
     ShowInspector("Gizmo", cast(*World, null), *g_gizmo_style);
 
     if ImGui.TreeNodeEx("Graphics") {

@@ -242,7 +242,9 @@ CreateRenderTargets :: () {
     g_color_texture = CreateGfxTexture("Color", texture_desc);
     Assert(!IsNull(*g_color_texture), "Could not create color texture");
 
-    CreateKawaseBlurTextures(*g_blurred_color, Editor_Background_Blur_Iterations, texture_desc, Editor_Background_Blur_Resolution_Factor);
+    if g_editor_settings.use_blur_effect {
+        CreateKawaseBlurTextures(*g_blurred_color, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+    }
 
     texture_desc.pixel_format = .Depth32Float;
     texture_desc.usage = .DepthStencilAttachment;
@@ -385,7 +387,7 @@ FrameInfo :: struct {
     skybox_light_intensity := 1.0;
     shadow_map_params : ShadowMapParams;
     bloom_params : BloomParams;
-    entity_outline_params : EntityOutlineParams;
+    editor_settings : EditorSettings;
 } @ShaderType
 
 DirectionalLight :: struct {
@@ -610,7 +612,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         num_point_lights=xx num_point_lights,
         num_directional_lights=xx num_directional_lights,
         skybox_light_intensity=world.skybox_light_intensity,
-        entity_outline_params=g_editor_settings.entity_outline,
+        editor_settings=g_editor_settings,
         shadow_map_params=.{
             noise_resolution=Shadow_Map_Noise_Size,
             depth_bias_min_max=.{1, 5},
@@ -671,7 +673,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     GizmoPass(*ctx, *g_gizmo_ctx);
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
-    RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
+    if g_editor_settings.use_blur_effect {
+        RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
+    }
 
     CompositingPass(*ctx);
     DebugLinesPass(*ctx, camera);

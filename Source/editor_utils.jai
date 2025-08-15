@@ -598,6 +598,28 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.ModalWindowDimBg] = .{0.239, 0.233, 0.342, 0.501};
 }
 
+SetEditorStyleOpaque :: () {
+    style := ImGui.GetStyle();
+
+    style.Colors[ImGui.Col.WindowBg].a = 1;
+    style.Colors[ImGui.Col.ChildBg].a = 1;
+    style.Colors[ImGui.Col.PopupBg].a = 1;
+    style.Colors[ImGui.Col.FrameBg].a = 1;
+    style.Colors[ImGui.Col.FrameBgHovered].a = 1;
+    style.Colors[ImGui.Col.FrameBgActive].a = 1;
+    style.Colors[ImGui.Col.TitleBg].a = 1;
+    style.Colors[ImGui.Col.TitleBgActive].a = 1;
+    style.Colors[ImGui.Col.TitleBgCollapsed].a = 1;
+    style.Colors[ImGui.Col.MenuBarBg].a = 1;
+    style.Colors[ImGui.Col.Button].a = 1;
+    style.Colors[ImGui.Col.ButtonHovered].a = 1;
+    style.Colors[ImGui.Col.ButtonActive].a = 1;
+    style.Colors[ImGui.Col.Header].a = 1;
+    style.Colors[ImGui.Col.HeaderHovered].a = 1;
+    style.Colors[ImGui.Col.HeaderActive].a = 1;
+    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.501;
+}
+
 SetEditorStyleForBlurredBackground :: () {
     style := ImGui.GetStyle();
 

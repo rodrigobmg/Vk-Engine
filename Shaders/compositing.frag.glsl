@@ -16,9 +16,9 @@ layout(location=0) in float2 in_position;
 layout(location=0) out float4 out_color;
 
 float4 GetEntityOutline(float2 tex_coords, float2 texel_size) {
-    float steps = u_frame_info.entity_outline_params.thickness * 3;
-    float4 outline_color = float4(u_frame_info.entity_outline_params.color.rgb, 0);
-    float2 inv_thickness = floor(u_frame_info.entity_outline_params.thickness) * texel_size;
+    float steps = u_frame_info.editor_settings.entity_outline.thickness * 3;
+    float4 outline_color = float4(u_frame_info.editor_settings.entity_outline.color.rgb, 0);
+    float2 inv_thickness = floor(u_frame_info.editor_settings.entity_outline.thickness) * texel_size;
     bool at_edge = ApproxEquals(tex_coords.x, 0, inv_thickness.x)
         || ApproxEquals(tex_coords.x, 1, inv_thickness.x)
         || ApproxEquals(tex_coords.y, 0, inv_thickness.y)
@@ -27,13 +27,13 @@ float4 GetEntityOutline(float2 tex_coords, float2 texel_size) {
     uint4 sampled_at_point = texture(u_selected_entity_guid_texture, tex_coords);
     if (at_edge || sampled_at_point == uint4(0)) {
         for (float i = 0; i < Tau; i += Tau / steps) {
-            float2 offset = float2(sin(i), cos(i)) * texel_size * u_frame_info.entity_outline_params.thickness;
+            float2 offset = float2(sin(i), cos(i)) * texel_size * u_frame_info.editor_settings.entity_outline.thickness;
             uint4 sampled = texture(u_selected_entity_guid_texture, tex_coords + offset);
             if (sampled != uint4(0)) {
                 // Render outline with a different alpha if it is covered by another mesh
                 uint4 frontmost_entity = texture(u_entity_guid_texture, tex_coords + offset);
                 if (frontmost_entity != uint4(0) && frontmost_entity != sampled) {
-                    outline_color.a = u_frame_info.entity_outline_params.covered_alpha;
+                    outline_color.a = u_frame_info.editor_settings.entity_outline.covered_alpha;
                 } else {
                     outline_color.a = 1;
                 }
@@ -62,15 +62,21 @@ void main() {
     float4 gizmo = texture(u_gizmo_texture, in_position);
     color = BlendRGBPremultipliedAlpha(color, gizmo.rgb, gizmo.a);
 
-    float2 blur_texel_size = textureSize(u_blurred_color_texture, 0);
-    blur_texel_size = 1 / blur_texel_size;
-    float3 blurred_color = UpsampleTent9(u_blurred_color_texture, in_position, blur_texel_size).rgb;
-    blurred_color = ApplyToneMapping(blurred_color);
-    blurred_color = LinearTosRGB(blurred_color);
+    float3 background_color;
+    if (u_frame_info.editor_settings.use_blur_effect) {
+        float2 blur_texel_size = textureSize(u_blurred_color_texture, 0);
+        blur_texel_size = 1 / blur_texel_size;
+
+        background_color = UpsampleTent9(u_blurred_color_texture, in_position, blur_texel_size).rgb;
+        background_color = ApplyToneMapping(background_color);
+        background_color = LinearTosRGB(background_color);
+    } else {
+        background_color = color;
+    }
 
     float4 imgui = texture(u_imgui_texture, in_position);
     if (imgui.a > 0) {
-        color = BlendRGBPremultipliedAlpha(blurred_color, imgui.rgb, imgui.a);
+        color = BlendRGBPremultipliedAlpha(background_color, imgui.rgb, imgui.a);
     }
 
     out_color = float4(color, 1);
