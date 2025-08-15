@@ -624,8 +624,8 @@ SetEditorStyleForBlurredBackground :: () {
     style := ImGui.GetStyle();
 
     style.Colors[ImGui.Col.WindowBg].a = 0.78;
-    style.Colors[ImGui.Col.ChildBg].a = 0.04;
-    style.Colors[ImGui.Col.PopupBg].a = 0.59;
+    style.Colors[ImGui.Col.ChildBg].a = 0.78;
+    style.Colors[ImGui.Col.PopupBg].a = 0.78;
     style.Colors[ImGui.Col.FrameBg].a = 0.20;
     style.Colors[ImGui.Col.FrameBgHovered].a = 0.39;
     style.Colors[ImGui.Col.FrameBgActive].a = 0.59;
