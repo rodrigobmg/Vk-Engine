@@ -370,7 +370,7 @@ UpdateEditor :: (world : *World) {
         ShowGizmoControls(*g_gizmo_ctx);
 
         ImGui.Separator();
-        ImGui.Text("FPS: %/%/% (min/avg/max)", cast(int, 1 / g_max_frame_time), cast(int, 1 / g_avg_frame_time), cast(int, 1 / g_min_frame_time));
+        ImGui.Text("FPS: %/%/% (min/avg/max), % ms", cast(int, 1 / g_max_frame_time), cast(int, 1 / g_avg_frame_time), cast(int, 1 / g_min_frame_time), cast(int, g_last_frame_time * 1000));
 
         shader_failed_to_reload := 0;
         shader := "";
