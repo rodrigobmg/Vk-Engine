@@ -166,7 +166,7 @@ GizmoStyle :: struct {
         translation_arrow_aspect_ratio := 0.5; @ShowInInspector
         translation_view_circle_size := 0.3; @ShowInInspector
         translation_view_circle_thickness := 3.5; @ShowInInspector
-        translation_plane_distance := 0.5; @ShowInInspector
+        translation_plane_distance := 0.6; @ShowInInspector
         translation_plane_size := 0.5; @ShowInInspector
     }; @ShowInInspector
 
@@ -184,8 +184,8 @@ GizmoStyle :: struct {
         scale_all_inner_circle_size := 0.3; @ShowInInspector
         scale_all_outer_circle_size := 1.23; @ShowInInspector
         scale_all_handle_thickness := 3.5; @ShowInInspector
-        scale_plane_distance := 0.5; @ShowInInspector
-        scale_plane_size := 0.5; @ShowInInspector
+        scale_plane_distance := 0.6; @ShowInInspector
+        scale_plane_size := 0.3; @ShowInInspector
     }; @ShowInInspector
 
     using cursor : struct {
