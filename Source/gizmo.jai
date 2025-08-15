@@ -167,7 +167,7 @@ GizmoStyle :: struct {
         translation_view_circle_size := 0.3; @ShowInInspector
         translation_view_circle_thickness := 3.5; @ShowInInspector
         translation_plane_distance := 0.6; @ShowInInspector
-        translation_plane_size := 0.5; @ShowInInspector
+        translation_plane_size := 0.3; @ShowInInspector
     }; @ShowInInspector
 
     using rotation : struct {
@@ -372,7 +372,15 @@ AddGizmoWidget :: (ctx : *GizmoContext, id : u32, mesh_id : GizmoMesh, color : V
 
 // @Todo: control thickness
 GizmoDrawLine :: (ctx : *GizmoContext, color : Vec3f, start : Vec3f, end : Vec3f, thickness : float) {
-    DebugDrawLine(.{color.r,color.g,color.b,1}, start, end);
+    if ctx.lines_to_draw.count >= Max_Debug_Lines {
+        return;
+    }
+
+    ArrayPush(*ctx.lines_to_draw, .{
+        start=start,
+        end=end,
+        color=.{color.r,color.g,color.b,1},
+    });
 }
 
 DraggingBehavior :: (ctx : *GizmoContext, id : u32, interaction : GizmoInteractionType, translation : Vec3f) -> InteractionState {
@@ -885,7 +893,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         origin := translation.* + (tangent + bitangent) * widget_size * g_gizmo_style.translation_plane_distance;
         size := Vec3f.{widget_size,widget_size,widget_size} * g_gizmo_style.translation_plane_size;
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
-        AddGizmoWidget(ctx, id, .TranslatePlane, color, widget_transform);
+        AddGizmoWidget(ctx, id, .Plane, color, widget_transform);
     }
 
     return result_state;

@@ -158,6 +158,7 @@ CreateAllPipelines :: () {
     CreateBloomUpsamplePipeline();
     CreateDebugLinesPipeline();
     CreateGizmoPipeline();
+    CreateGizmoLinesPipeline();
 }
 
 DestroyAllPipelines :: () {
@@ -172,6 +173,7 @@ DestroyAllPipelines :: () {
         }
     }
 
+    DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
