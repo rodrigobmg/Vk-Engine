@@ -83,18 +83,19 @@ void main() {
         normalize(in_bitangent),
         normalize(in_normal)
     );
+    float3x3 inv_TBN = transpose(TBN);
+
+    float3 V = normalize(in_viewpoint_position - in_position);
 
     float2 tex_coords = in_tex_coords;
     if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-        float3 tangent_view_dir = TBN * normalize(in_viewpoint_position - in_position);
+        float3 tangent_view_dir = inv_TBN * V;
         tex_coords = ParallaxOcclusionMapping(u_depth_map_texture, mesh.material.depth_map_scale, in_tex_coords, tangent_view_dir);
     }
 
     float3 N = texture(u_normal_map_texture, tex_coords).xyz;
     N = N * 2 - float3(1);
     N = normalize(TBN * N);
-
-    float3 V = normalize(in_viewpoint_position - in_position);
 
     float3 base_color = texture(u_base_color_texture, tex_coords).rgb;
     base_color *= sRGBToLinear(mesh.material.base_color_tint);
@@ -132,7 +133,7 @@ void main() {
         }
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-            float3 tangent_light_dir = TBN * L;
+            float3 tangent_light_dir = inv_TBN * L;
             // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
             if (dot(in_normal, L) < 0) {
                 shadow = 0;
@@ -168,7 +169,7 @@ void main() {
         }
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-            float3 tangent_light_dir = TBN * L;
+            float3 tangent_light_dir = inv_TBN * L;
 
             // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
             if (dot(in_normal, L) < 0) {
