@@ -1472,7 +1472,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         origin := translation + (tangent + bitangent) * widget_size * g_gizmo_style.scale_plane_distance;
         size := Vec3f.{axis_widget_size.x,widget_size,axis_widget_size.y} * g_gizmo_style.scale_plane_size;
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
-        AddGizmoWidget(ctx, id, .Plane, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
+        AddGizmoWidget(ctx, id, .Plane, color, widget_transform);
     }
 
     ignore_all := flags & .NoViewAxis != 0;
