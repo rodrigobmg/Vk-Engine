@@ -443,6 +443,10 @@ UpdateEditor :: (world : *World) {
     ShowEntityInspector(world, entity_to_inspect);
 
     for :AllEntities entity : world {
+        if entity.flags & .Hidden {
+            continue;
+        }
+
         EntityCallback(world, entity, "OnDebugDraw");
     }
 
@@ -684,13 +688,9 @@ ShowEntityOutliner :: (world : *World) {
             }
 
             if ImGui.BeginPopupContextItem(CTPrint("%##context_menu", label)) {
-                ImGui.BeginDisabled(entity.parent == Null_Entity_GUID);
-
-                if ImGui.MenuItem("Detach") {
+                if ImGui.MenuItem("Detach", enabled=entity.parent != Null_Entity_GUID) {
                     DetachEntity(world, entity);
                 }
-
-                ImGui.EndDisabled();
 
                 if ImGui.MenuItem("Duplicate") {
                     entity = DuplicateEntity(world, entity);

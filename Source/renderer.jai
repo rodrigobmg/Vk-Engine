@@ -473,6 +473,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     frustum := MakePerspectiveFrustum(camera.transform, camera.fov_in_degrees, w / cast(float, h), camera.z_near, camera.z_far);
     for * world.MeshEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if !it.mesh {
             continue;
         }
@@ -505,6 +509,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if !it.mesh {
             continue;
         }
@@ -530,12 +538,20 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AllocDrawData(*g_selected_mesh_buffer);
 
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(it.world_transform), camera.transform);
         }
     }
 
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             UpdatePointShadowMapFarPlane(it);
             PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(it.world_transform));
@@ -557,6 +573,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
     shadow_map_index : s32 = 0;
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows && it.shadow_map.resolution == 0 {
             InitShadowMap(*it.shadow_map, Default_Shadow_Map_Resolution);
         }
@@ -585,6 +605,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
     point_shadow_map_index : s32 = 0;
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows && it.shadow_map.resolution == 0 {
             InitShadowMap(*it.shadow_map, Default_Point_Shadow_Map_Resolution);
         }
@@ -641,12 +665,20 @@ RenderFrame :: (world : *World, camera : *Camera) {
     GenerateEnvironmentMaps(*cmd_buffer);
 
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(it.world_transform), camera);
         }
     }
 
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(it.world_transform));
         }

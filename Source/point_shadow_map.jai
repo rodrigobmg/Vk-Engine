@@ -122,6 +122,10 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *PointShadowMap, li
     viewpoint := GetShadowMapViewpoint(shadow_map, light_position, face);
 
     for * world.MeshEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if !it.cast_point_shadows {
             continue;
         }

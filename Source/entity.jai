@@ -57,9 +57,14 @@ World :: struct {
     skybox_light_intensity := 1.0; @Serialize(2) @FloatRange(0,10) @Step(0.01)
 }
 
+EntityFlags :: enum_flags {
+    Hidden;
+}
+
 Entity :: struct {
     #as guid : EntityGUID; @Serialize(1) @HideInInspector
     index : EntityIndex;
+    flags : EntityFlags; @Serialize(7)
 
     name : string; @Serialize(2) @HideInInspector
 
@@ -910,6 +915,16 @@ AllEntities :: (world : *World, body : Code, flags : For_Flags) #expand {
         }
 
         return StringBuilderBuild(*builder);
+    }
+}
+
+AllVisibleEntities :: (world : *World, body : Code, flags : For_Flags) #expand {
+    for :AllEntities `it, `it_index : world {
+        if it.flags & .Hidden {
+            continue;
+        }
+
+        #insert body;
     }
 }
 

@@ -55,6 +55,9 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     shadow_map_index := 0;
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
 
         if shadow_map_index >= Max_Shadow_Maps {
             break;
@@ -70,6 +73,9 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     point_shadow_map_index := 0;
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
 
         if point_shadow_map_index >= Max_Point_Shadow_Maps {
             break;
