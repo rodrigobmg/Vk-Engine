@@ -413,8 +413,6 @@ UpdateEditor :: (world : *World) {
     // Update after camera, because this is where we check for mouse interaction
     UpdateGizmos(world, *g_gizmo_ctx);
 
-    EntityGizmo(world, *g_gizmo_ctx);
-
     // Entity selection
     if !ImGui.GetIO().WantCaptureMouse && !GizmoHasMouse(*g_gizmo_ctx) && !IsMouseButtonDown(.Right) && IsMouseButtonPressed(.Left) {
         x, y := GetMousePixelPosition(g_window);
@@ -429,6 +427,8 @@ UpdateEditor :: (world : *World) {
             ArrayClear(*g_editor_selected_entities);
         }
     }
+
+    EntityGizmo(world, *g_gizmo_ctx);
 
     ShowWorldInspector(world);
     ShowEntityOutliner(world);
