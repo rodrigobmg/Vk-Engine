@@ -309,7 +309,9 @@ LoadGfxShader :: (name : string, extra_compiler_args : []string = .[], dependenc
     stage := ifx StringEndsWith(name, ".vert")
         then "vert"
         else ifx StringEndsWith(name, ".frag")
-        then "frag";
+        then "frag"
+        else ifx StringEndsWith(name, ".comp")
+        then "comp";
 
     if !stage {
         LogError("Could not detect shader stage for shader '%'", name);
@@ -319,7 +321,9 @@ LoadGfxShader :: (name : string, extra_compiler_args : []string = .[], dependenc
     stage_define := ifx stage == "vert"
         then "SHADER_STAGE_VERTEX"
         else ifx stage == "frag"
-        then "SHADER_STAGE_FRAGMENT";
+        then "SHADER_STAGE_FRAGMENT"
+        else ifx stage == "comp"
+        then "SHADER_STAGE_COMPUTE";
 
     filename := TPrint("Shaders/%.glsl", name);
     output_filename := TPrint("Shaders/%.spv", name);
@@ -431,6 +435,7 @@ DestroyGfxShader :: (shader : *GfxShader) {
 GfxShaderStageFlags :: enum_flags u8 {
     Vertex;
     Fragment;
+    Compute;
 }
 
 MakeVkShaderStageFlags :: inline (stages : GfxShaderStageFlags) -> VkShaderStageFlags {
@@ -440,6 +445,9 @@ MakeVkShaderStageFlags :: inline (stages : GfxShaderStageFlags) -> VkShaderStage
     }
     if stages & .Fragment {
         result |= .FRAGMENT_BIT;
+    }
+    if stages & .Compute {
+        result |= .COMPUTE_BIT;
     }
 
     return result;
@@ -878,14 +886,16 @@ GfxBindingStorageBuffer :: struct {
     size : u32;
 }
 
-GfxBindingTexture :: *GfxTexture;
+GfxBindingTexture :: #type,isa *GfxTexture;
 
-GfxBindingSampler :: *GfxSampler;
+GfxBindingSampler :: #type,isa *GfxSampler;
 
 GfxBindingCombinedTextureSampler :: struct {
     texture : *GfxTexture;
     sampler : *GfxSampler;
 }
+
+GfxBindingStorageImage :: *GfxTexture;
 
 CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
     desc : GfxBindingSetLayoutDesc;
@@ -920,6 +930,8 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
                     stage_flags |= .Vertex;
                 } else if note == "FragmentStage" {
                     stage_flags |= .Fragment;
+                } else if note == "ComputeStage" {
+                    stage_flags |= .Compute;
                 } else if StringStartsWith(note, "Binding(") {
                     found_binding = true;
                     _note := StringAdvance(note, "Binding(".count);
@@ -937,7 +949,7 @@ CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
             }
 
             if stage_flags == 0 {
-                compiler_report(TPrint("Missing @VertexStage or @FragmentStage note on member %", it.name), loc=struct_location);
+                compiler_report(TPrint("Missing @VertexStage, @FragmentStage or @ComputeStage note on member %", it.name), loc=struct_location);
             }
 
             Appendln(*builder, "    .{binding=%, num_array_layers=%, type=.%, stage_flags=%, flags=%},", binding, num_array_layers, type, cast(u8, stage_flags), cast(u8, flags));
@@ -1623,7 +1635,7 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
         return .{};
     }
 
-    SetDebugName(pipeline, TPrint("Pipeline '%'", name));
+    SetDebugName(pipeline, TPrint("Graphics Pipeline '%'", name));
 
     copied_desc := desc;
     copied_desc.vertex_input.attributes = ArrayClone(desc.vertex_input.attributes);
@@ -1637,6 +1649,54 @@ DestroyGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline) {
 
     Free(pipeline.desc.vertex_input.attributes.data);
     Free(pipeline.desc.vertex_input.buffer_bindings.data);
+
+    DestroyGfxPipelineLayout(*pipeline.layout);
+    vkDestroyPipeline(g_gfx_context.device, pipeline.pipeline, g_vk_alloc_callbacks);
+    pipeline.* = .{};
+}
+
+GfxComputePipelineDesc :: struct {
+    shader : *GfxShader;
+    layout : GfxPipelineLayoutDesc;
+}
+
+GfxComputePipeline :: struct {
+    layout : GfxPipelineLayout;
+    pipeline : VkPipeline;
+    desc : GfxComputePipelineDesc;
+}
+
+IsNull :: inline (pipeline : *GfxComputePipeline) -> bool {
+    return pipeline == null || pipeline.pipeline == VK_NULL_HANDLE || IsNull(*pipeline.layout);
+}
+
+CreateGfxComputePipeline :: (name : string, desc : GfxComputePipelineDesc) -> GfxComputePipeline {
+    LogSectionScope(*Log_Vulkan);
+
+    layout := CreateGfxPipelineLayout(name, desc.layout);
+    if IsNull(*layout) {
+        return .{};
+    }
+
+    create_info : VkComputePipelineCreateInfo;
+    create_info.stage.stage = .COMPUTE_BIT;
+    create_info.stage.pName = "main";
+    create_info.stage.module = desc.shader.module;
+    create_info.layout = layout.layout;
+
+    pipeline : VkPipeline;
+    if vkCreateComputePipelines(g_gfx_context.device, VK_NULL_HANDLE, 1, *create_info, g_vk_alloc_callbacks, *pipeline) != .SUCCESS {
+        DestroyGfxPipelineLayout(*layout);
+        return .{};
+    }
+
+    SetDebugName(pipeline, TPrint("Compute Pipeline '%'", name));
+
+    return .{layout=layout, pipeline=pipeline, desc=desc};
+}
+
+DestroyGfxComputePipeline :: (pipeline : *GfxComputePipeline) {
+    LogSectionScope(*Log_Vulkan);
 
     DestroyGfxPipelineLayout(*pipeline.layout);
     vkDestroyPipeline(g_gfx_context.device, pipeline.pipeline, g_vk_alloc_callbacks);
@@ -2207,6 +2267,50 @@ QueueDestroyGfxSampler :: (sampler : *GfxSampler) {
     sampler.* = .{};
 }
 
+BeginGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer, name : string) {
+    LogSectionScope(*Log_Vulkan);
+
+    if !g_gfx_context.vkCmdBeginDebugUtilsLabelEXT || !g_gfx_context.vkCmdEndDebugUtilsLabelEXT {
+        return;
+    }
+
+    label : VkDebugUtilsLabelEXT;
+    label.pLabelName = CStringClone(name ,, Temp);
+    g_gfx_context.vkCmdBeginDebugUtilsLabelEXT(cmd_buffer.cmd_buffer, *label);
+}
+
+EndGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer) {
+    LogSectionScope(*Log_Vulkan);
+
+    if !g_gfx_context.vkCmdBeginDebugUtilsLabelEXT || !g_gfx_context.vkCmdEndDebugUtilsLabelEXT {
+        return;
+    }
+
+    g_gfx_context.vkCmdEndDebugUtilsLabelEXT(cmd_buffer.cmd_buffer);
+}
+
+BeginGfxDebugMarker :: (name : string) {
+    LogSectionScope(*Log_Vulkan);
+
+    if !g_gfx_context.vkQueueBeginDebugUtilsLabelEXT || !g_gfx_context.vkQueueEndDebugUtilsLabelEXT {
+        return;
+    }
+
+    label : VkDebugUtilsLabelEXT;
+    label.pLabelName = CStringClone(name ,, Temp);
+    g_gfx_context.vkQueueBeginDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue, *label);
+}
+
+EndGfxDebugMarker :: () {
+    LogSectionScope(*Log_Vulkan);
+
+    if !g_gfx_context.vkQueueBeginDebugUtilsLabelEXT || !g_gfx_context.vkQueueEndDebugUtilsLabelEXT {
+        return;
+    }
+
+    g_gfx_context.vkQueueEndDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue);
+}
+
 GfxAttachmentLoadOp :: enum {
     Load;
     Clear;
@@ -2449,50 +2553,6 @@ EndGfxRenderPass :: (pass : *GfxRenderPass) {
     AddBarrier(pass.cmd_buffer);
 }
 
-BeginGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer, name : string) {
-    LogSectionScope(*Log_Vulkan);
-
-    if !g_gfx_context.vkCmdBeginDebugUtilsLabelEXT || !g_gfx_context.vkCmdEndDebugUtilsLabelEXT {
-        return;
-    }
-
-    label : VkDebugUtilsLabelEXT;
-    label.pLabelName = CStringClone(name ,, Temp);
-    g_gfx_context.vkCmdBeginDebugUtilsLabelEXT(cmd_buffer.cmd_buffer, *label);
-}
-
-EndGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer) {
-    LogSectionScope(*Log_Vulkan);
-
-    if !g_gfx_context.vkCmdBeginDebugUtilsLabelEXT || !g_gfx_context.vkCmdEndDebugUtilsLabelEXT {
-        return;
-    }
-
-    g_gfx_context.vkCmdEndDebugUtilsLabelEXT(cmd_buffer.cmd_buffer);
-}
-
-BeginGfxDebugMarker :: (name : string) {
-    LogSectionScope(*Log_Vulkan);
-
-    if !g_gfx_context.vkQueueBeginDebugUtilsLabelEXT || !g_gfx_context.vkQueueEndDebugUtilsLabelEXT {
-        return;
-    }
-
-    label : VkDebugUtilsLabelEXT;
-    label.pLabelName = CStringClone(name ,, Temp);
-    g_gfx_context.vkQueueBeginDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue, *label);
-}
-
-EndGfxDebugMarker :: () {
-    LogSectionScope(*Log_Vulkan);
-
-    if !g_gfx_context.vkQueueBeginDebugUtilsLabelEXT || !g_gfx_context.vkQueueEndDebugUtilsLabelEXT {
-        return;
-    }
-
-    g_gfx_context.vkQueueEndDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue);
-}
-
 BindGraphicsPipeline :: (pass : *GfxRenderPass, pipeline : *GfxGraphicsPipeline) {
     pass.current_pipeline = pipeline;
     vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .GRAPHICS, pipeline.pipeline);
@@ -2540,6 +2600,10 @@ BindGraphicsBindingSet :: (cmd_buffer : *GfxCommandBuffer, layout : *GfxPipeline
     vkCmdBindDescriptorSets(cmd_buffer.cmd_buffer, .GRAPHICS, layout.layout, index, 1, *set.set, 0, null);
 }
 
+BindComputeBindingSet :: (cmd_buffer : *GfxCommandBuffer, layout : *GfxPipelineLayout, index : u32, set : *GfxBindingSet) {
+    vkCmdBindDescriptorSets(cmd_buffer.cmd_buffer, .COMPUTE, layout.layout, index, 1, *set.set, 0, null);
+}
+
 GfxIndexType :: enum {
     UInt16;
     UInt32;
@@ -2574,6 +2638,43 @@ DrawIndexed :: (
     base_instance : u32 = 0
 ) {
     vkCmdDrawIndexed(pass.cmd_buffer.cmd_buffer, index_count, instance_count, base_index, xx base_vertex, base_instance);
+}
+
+GfxComputePass :: struct {
+    name : string;
+    cmd_buffer : *GfxCommandBuffer;
+    current_pipeline : *GfxComputePipeline;
+}
+
+BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxComputePass {
+    LogSectionScope(*Log_Vulkan);
+
+    BeginGfxDebugMarker(cmd_buffer, name);
+
+    return .{name=name, cmd_buffer=cmd_buffer};
+}
+
+EndGfxComputePass :: (pass : *GfxComputePass) {
+    LogSectionScope(*Log_Vulkan);
+
+    EndGfxDebugMarker(pass.cmd_buffer);
+
+    AddBarrier(pass.cmd_buffer);
+}
+
+BindComputePipeline :: (pass : *GfxComputePass, pipeline : *GfxComputePipeline) {
+    pass.current_pipeline = pipeline;
+    vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .COMPUTE, pipeline.pipeline);
+}
+
+BindComputeBindingSet :: (pass : *GfxComputePass, index : u32, set : *GfxBindingSet) {
+    Assert(pass.current_pipeline != null, "Render pass has no pipeline bound yet. Use BindComputeBindingSet on a command buffer and specify pipeline layout or bind a pipeline first");
+
+    BindComputeBindingSet(pass.cmd_buffer, *pass.current_pipeline.layout, index, set);
+}
+
+Dispatch :: (pass : *GfxComputePass, num_groups_x : u32, num_groups_y : u32, num_groups_z : u32) {
+    vkCmdDispatch(pass.cmd_buffer.cmd_buffer, num_groups_x, num_groups_y, num_groups_z);
 }
 
 GfxCopyPass :: struct {
