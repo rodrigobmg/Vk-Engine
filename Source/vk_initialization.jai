@@ -196,6 +196,8 @@ InitGfxContext :: (window : *SDL_Window) {
     }
 
     device_features : VkPhysicalDeviceFeatures;
+    device_features.shaderStorageImageReadWithoutFormat = VK_TRUE;
+    device_features.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 
     device_info : VkDeviceCreateInfo;
     device_info.pQueueCreateInfos = queue_create_info.data;

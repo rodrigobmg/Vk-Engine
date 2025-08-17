@@ -1,6 +1,10 @@
 #ifndef COMMON_GLSL
 #define COMMON_GLSL
 
+#extension GL_EXT_shader_image_load_formatted : enable // Because GLSL sucks...
+// We cannot pass image2D to functions unless this extension is enabled, because
+// the GLSL spec does not handle it.
+
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4
