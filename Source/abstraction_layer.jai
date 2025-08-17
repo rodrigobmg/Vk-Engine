@@ -459,6 +459,7 @@ GfxBindingType :: enum u8 {
     Texture;
     Sampler;
     CombinedTextureSampler;
+    StorageImage;
 }
 
 GetGfxBindingType :: (type : *Type_Info) -> GfxBindingType {
@@ -473,6 +474,8 @@ GetGfxBindingType :: (type : *Type_Info) -> GfxBindingType {
         return .Sampler;
     case type_info(GfxBindingCombinedTextureSampler);
         return .CombinedTextureSampler;
+    case type_info(GfxBindingStorageImage);
+        return .StorageImage;
     }
 
     Panic("Invalid shader param type %", get_type(type));
@@ -486,6 +489,7 @@ MakeVkDescriptorType :: inline (type : GfxBindingType) -> VkDescriptorType {
     case .Texture;                return .SAMPLED_IMAGE;
     case .Sampler;                return .SAMPLER;
     case .CombinedTextureSampler; return .COMBINED_IMAGE_SAMPLER;
+    case .StorageImage;           return .STORAGE_IMAGE;
     }
 }
 
@@ -574,6 +578,7 @@ GfxBindingPoolDesc :: struct {
     max_textures : u32;
     max_samplers : u32;
     max_combined_texture_samplers : u32;
+    max_storage_images : u32;
 }
 
 GfxBindingPool :: struct {
@@ -602,6 +607,9 @@ CreateGfxBindingPool :: (name : string, desc : GfxBindingPoolDesc) -> GfxBinding
     }
     if desc.max_combined_texture_samplers > 0 {
         ArrayPush(*pool_sizes, .{type=.COMBINED_IMAGE_SAMPLER, descriptorCount=desc.max_combined_texture_samplers});
+    }
+    if desc.max_storage_images > 0 {
+        ArrayPush(*pool_sizes, .{type=.STORAGE_IMAGE, descriptorCount=desc.max_storage_images});
     }
 
     info : VkDescriptorPoolCreateInfo;
@@ -725,7 +733,8 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
                 type := GetGfxBindingType(cast(*Type_Info_Array, it.type).element_type);
                 for i : 0..count - 1 {
                     if type == {
-                    case .Texture;
+                    case .Texture; #through;
+                    case .StorageImage;
                         AppendImageInfo(*builder, TPrint("%[%]", it.name, i));
                     case .Sampler;
                         AppendSamplerInfo(*builder, TPrint("%[%]", it.name, i));
@@ -738,7 +747,8 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
             } else {
                 type := GetGfxBindingType(it.type);
                 if type == {
-                case .Texture;
+                case .Texture; #through;
+                case .StorageImage;
                     AppendImageInfo(*builder, it.name);
                 case .Sampler;
                     AppendSamplerInfo(*builder, it.name);
@@ -759,7 +769,8 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
                 case .StorageBuffer;
                     Appendln(builder, "if !IsNull(value.%1.buffer) && value.%1.size > 0 {", name);
 
-                case .Texture;
+                case .Texture; #through;
+                case .StorageImage;
                     Appendln(builder, "if !IsNull(value.%1) {", name);
 
                 case .Sampler;
@@ -788,6 +799,7 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
                 Append(builder, "pBufferInfo=*buffer_infos[%]", buffer_info_index.*);
                 buffer_info_index.* += 1;
 
+            case .StorageImage; #through;
             case .Texture; #through;
             case .Sampler; #through;
             case .CombinedTextureSampler;
@@ -895,7 +907,7 @@ GfxBindingCombinedTextureSampler :: struct {
     sampler : *GfxSampler;
 }
 
-GfxBindingStorageImage :: *GfxTexture;
+GfxBindingStorageImage :: #type,isa *GfxTexture;
 
 CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
     desc : GfxBindingSetLayoutDesc;
@@ -1415,6 +1427,9 @@ GfxBlendStateDesc :: struct {
     alpha_op : GfxBlendOp = .Add;
 }
 
+// I don't like having this concept in the abstraction layer as I don't find this very useful.
+// Currently it is needed so we can bind the global frame binding set at the beginning of the
+// frame outside of any render passes (and without needing a full pipeline).
 GfxPipelineLayout :: struct {
     layout : VkPipelineLayout;
 }
