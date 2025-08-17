@@ -585,7 +585,7 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.PlotLinesHovered] = .{0.039, 0.980, 0.980, 1};
     style.Colors[ImGui.Col.PlotHistogram] = .{0.884, 0.794, 0.561, 1};
     style.Colors[ImGui.Col.PlotHistogramHovered] = .{0.957, 0.957, 0.957, 1};
-    style.Colors[ImGui.Col.TableHeaderBg] = .{0.047, 0.054, 0.070, 1};
+    style.Colors[ImGui.Col.TableHeaderBg] = .{0.089, 0.100, 0.122, 1};
     style.Colors[ImGui.Col.TableBorderStrong] = .{0.047, 0.054, 0.070, 1};
     style.Colors[ImGui.Col.TableBorderLight] = .{0, 0, 0, 1};
     style.Colors[ImGui.Col.TableRowBg] = .{0.117, 0.133, 0.149, 1};
@@ -598,18 +598,47 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.ModalWindowDimBg] = .{0.239, 0.233, 0.342, 0.501};
 }
 
+SetEditorStyleOpaque :: () {
+    style := ImGui.GetStyle();
+
+    style.Colors[ImGui.Col.WindowBg].a = 1;
+    style.Colors[ImGui.Col.ChildBg].a = 1;
+    style.Colors[ImGui.Col.PopupBg].a = 1;
+    style.Colors[ImGui.Col.FrameBg].a = 1;
+    style.Colors[ImGui.Col.FrameBgHovered].a = 1;
+    style.Colors[ImGui.Col.FrameBgActive].a = 1;
+    style.Colors[ImGui.Col.TitleBg].a = 1;
+    style.Colors[ImGui.Col.TitleBgActive].a = 1;
+    style.Colors[ImGui.Col.TitleBgCollapsed].a = 1;
+    style.Colors[ImGui.Col.MenuBarBg].a = 1;
+    style.Colors[ImGui.Col.Button].a = 1;
+    style.Colors[ImGui.Col.ButtonHovered].a = 1;
+    style.Colors[ImGui.Col.ButtonActive].a = 1;
+    style.Colors[ImGui.Col.Header].a = 1;
+    style.Colors[ImGui.Col.HeaderHovered].a = 1;
+    style.Colors[ImGui.Col.HeaderActive].a = 1;
+    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.501;
+    style.Colors[ImGui.Col.TableHeaderBg].a = 1;
+    style.Colors[ImGui.Col.TableRowBg].a = 1;
+    style.Colors[ImGui.Col.TableRowBgAlt].a = 1;
+    style.Colors[ImGui.Col.ScrollbarBg].a = 1;
+    style.Colors[ImGui.Col.ScrollbarGrab].a = 1;
+    style.Colors[ImGui.Col.ScrollbarGrabHovered].a = 1;
+    style.Colors[ImGui.Col.ScrollbarGrabActive].a = 1;
+}
+
 SetEditorStyleForBlurredBackground :: () {
     style := ImGui.GetStyle();
 
     style.Colors[ImGui.Col.WindowBg].a = 0.78;
-    style.Colors[ImGui.Col.ChildBg].a = 0.04;
-    style.Colors[ImGui.Col.PopupBg].a = 0.59;
+    style.Colors[ImGui.Col.ChildBg].a = 0.78;
+    style.Colors[ImGui.Col.PopupBg].a = 0.78;
     style.Colors[ImGui.Col.FrameBg].a = 0.20;
     style.Colors[ImGui.Col.FrameBgHovered].a = 0.39;
     style.Colors[ImGui.Col.FrameBgActive].a = 0.59;
-    style.Colors[ImGui.Col.TitleBg].a = 0.39;
-    style.Colors[ImGui.Col.TitleBgActive].a = 0.59;
-    style.Colors[ImGui.Col.TitleBgCollapsed].a = 0.39;
+    style.Colors[ImGui.Col.TitleBg].a = 0.78;
+    style.Colors[ImGui.Col.TitleBgActive].a = 0.78;
+    style.Colors[ImGui.Col.TitleBgCollapsed].a = 0.78;
     style.Colors[ImGui.Col.MenuBarBg].a = 0.39;
     style.Colors[ImGui.Col.Button].a = 0.39;
     style.Colors[ImGui.Col.ButtonHovered].a = 0.39;
@@ -617,5 +646,12 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.Header].a = 0.20;
     style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
     style.Colors[ImGui.Col.HeaderActive].a = 0.39;
-    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.39;
+    style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.78;
+    style.Colors[ImGui.Col.TableHeaderBg].a = 0.78;
+    style.Colors[ImGui.Col.TableRowBg].a = 0.78;
+    style.Colors[ImGui.Col.TableRowBgAlt].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarBg].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarGrab].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarGrabHovered].a = 0.78;
+    style.Colors[ImGui.Col.ScrollbarGrabActive].a = 0.78;
 }

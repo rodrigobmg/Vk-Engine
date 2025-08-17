@@ -91,7 +91,7 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
 
     pass_desc : GfxRenderPassDesc;
     AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture, resolve_texture=*gizmo_ctx.color_resolve);
-    AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture, store_op=.DontCare);
+    AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture);
     ClearColor(*pass_desc, 0, Vec4f.{0,0,0,0});
     ClearDepth(*pass_desc, 1);
 
@@ -117,5 +117,72 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
     }
     EndGfxRenderPass(*pass);
 
+    GizmoLinesPass(ctx, gizmo_ctx);
+
     AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *gizmo_ctx.color_resolve);
+}
+
+g_gizmo_lines_pipeline : GfxGraphicsPipeline;
+
+CreateGizmoLinesPipeline :: () {
+    desc : GfxGraphicsPipelineDesc;
+    desc.vertex_shader = GetVertexShader("debug_line");
+    desc.fragment_shader = GetFragmentShader("debug_line");
+    desc.primitive_topology = .LineList;
+    desc.rasterizer_state = .{cull_face=.None, num_samples=Gizmo_Texture_Num_Samples};
+
+    desc.layout.binding_sets = .[
+        g_binding_set_layouts.FrameBindingSet,
+        g_binding_set_layouts.DebugLinesBindingSet,
+    ];
+
+    AddColorAttachment(*desc, .RGBA8UNorm);
+    desc.depth_format = .Depth32Float;
+
+    desc.blend_states[0] = .{enabled=true};
+    desc.depth_state = .{test_enabled=true, write_enabled=true};
+
+    ok := CreateGfxGraphicsPipeline(*g_gizmo_lines_pipeline, "Gizmo Lines", desc);
+    Assert(ok, "Could not create gizmo lines pipeline");
+}
+
+GizmoLinesPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
+    if IsNull(*g_gizmo_lines_pipeline) {
+        CreateGizmoLinesPipeline();
+    }
+
+    defer ArrayClear(*gizmo_ctx.lines_to_draw);
+
+    if gizmo_ctx.lines_to_draw.count <= 0 {
+        return;
+    }
+
+    w, h := GetWindowPixelSize(g_window);
+
+    viewpoint := MakeViewpoint(gizmo_ctx.camera);
+    viewpoint_offset, viewpoint_size := AllocAndPackUniformFrameData(viewpoint);
+
+    lines_offset, lines_size := AllocAndPackStorageFrameData(gizmo_ctx.lines_to_draw);
+
+    bindings := DebugLinesBindingSet.{
+        viewpoint=.{buffer=FrameDataBuffer(), offset=xx viewpoint_offset, size=xx viewpoint_size},
+        lines=.{buffer=FrameDataBuffer(), offset=xx lines_offset, size=xx lines_size},
+    };
+    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
+
+    pass_desc : GfxRenderPassDesc;
+    AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture, resolve_texture=*gizmo_ctx.color_resolve);
+    AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture, store_op=.DontCare);
+
+    pass := BeginGfxRenderPass(cmd_buffer, "Gizmo Lines", pass_desc);
+    {
+        BindGraphicsPipeline(*pass, *g_gizmo_lines_pipeline);
+        SetViewport(*pass, .{width=xx w, height=xx h});
+        SetScissor(*pass, .{w=xx w, h=xx h});
+
+        BindGraphicsBindingSet(*pass, 1, *binding_set);
+
+        Draw(*pass, vertex_count=2, instance_count=xx gizmo_ctx.lines_to_draw.count);
+    }
+    EndGfxRenderPass(*pass);
 }

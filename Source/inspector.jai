@@ -735,7 +735,8 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         return state;
 
     case .ENUM;
-        enum_info := cast(*Type_Info_Enum) type;
+        enum_info := cast(*Type_Info_Enum, type);
+        is_flags := enum_info.enum_type_flags & .FLAGS != 0;
 
         current_value := 0;
         if enum_info.runtime_size == {
@@ -749,14 +750,32 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         if ImGui.BeginCombo(label, CTPrint("%", any)) {
             for enum_info.values {
                 name := enum_info.names[it_index];
-                if ImGui.MenuItem(CStringClone(name ,, Temp), selected=current_value == it) {
-                    if enum_info.runtime_size == {
-                    case 1; (cast(*s8)  ptr).* = xx it;
-                    case 2; (cast(*s16) ptr).* = xx it;
-                    case 4; (cast(*s32) ptr).* = xx it;
-                    case 8; (cast(*s64) ptr).* = xx it;
+                selected := ifx is_flags then current_value & it == it else current_value == it;
+                if ImGui.MenuItem(CStringClone(name ,, Temp), selected=selected) {
+                    if enum_info.enum_type_flags & .FLAGS {
+                        if !selected {
+                            if enum_info.runtime_size == {
+                            case 1; cast(*s8,  ptr).* |= xx it;
+                            case 2; cast(*s16, ptr).* |= xx it;
+                            case 4; cast(*s32, ptr).* |= xx it;
+                            case 8; cast(*s64, ptr).* |= xx it;
+                            }
+                        } else {
+                            if enum_info.runtime_size == {
+                            case 1; cast(*s8,  ptr).* &= ~cast(s8,  it);
+                            case 2; cast(*s16, ptr).* &= ~cast(s16, it);
+                            case 4; cast(*s32, ptr).* &= ~cast(s32, it);
+                            case 8; cast(*s64, ptr).* &= ~cast(s64, it);
+                            }
+                        }
+                    } else {
+                        if enum_info.runtime_size == {
+                        case 1; cast(*s8,  ptr).* = xx it;
+                        case 2; cast(*s16, ptr).* = xx it;
+                        case 4; cast(*s32, ptr).* = xx it;
+                        case 8; cast(*s64, ptr).* = xx it;
+                        }
                     }
-
                 }
 
                 state |= LastItemInteractionState();

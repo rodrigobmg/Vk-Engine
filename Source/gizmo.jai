@@ -166,8 +166,8 @@ GizmoStyle :: struct {
         translation_arrow_aspect_ratio := 0.5; @ShowInInspector
         translation_view_circle_size := 0.3; @ShowInInspector
         translation_view_circle_thickness := 3.5; @ShowInInspector
-        translation_plane_distance := 0.5; @ShowInInspector
-        translation_plane_size := 0.5; @ShowInInspector
+        translation_plane_distance := 0.6; @ShowInInspector
+        translation_plane_size := 0.3; @ShowInInspector
     }; @ShowInInspector
 
     using rotation : struct {
@@ -184,8 +184,8 @@ GizmoStyle :: struct {
         scale_all_inner_circle_size := 0.3; @ShowInInspector
         scale_all_outer_circle_size := 1.23; @ShowInInspector
         scale_all_handle_thickness := 3.5; @ShowInInspector
-        scale_plane_distance := 0.5; @ShowInInspector
-        scale_plane_size := 0.5; @ShowInInspector
+        scale_plane_distance := 0.6; @ShowInInspector
+        scale_plane_size := 0.3; @ShowInInspector
     }; @ShowInInspector
 
     using cursor : struct {
@@ -372,7 +372,15 @@ AddGizmoWidget :: (ctx : *GizmoContext, id : u32, mesh_id : GizmoMesh, color : V
 
 // @Todo: control thickness
 GizmoDrawLine :: (ctx : *GizmoContext, color : Vec3f, start : Vec3f, end : Vec3f, thickness : float) {
-    DebugDrawLine(.{color.r,color.g,color.b,1}, start, end);
+    if ctx.lines_to_draw.count >= Max_Debug_Lines {
+        return;
+    }
+
+    ArrayPush(*ctx.lines_to_draw, .{
+        start=start,
+        end=end,
+        color=.{color.r,color.g,color.b,1},
+    });
 }
 
 DraggingBehavior :: (ctx : *GizmoContext, id : u32, interaction : GizmoInteractionType, translation : Vec3f) -> InteractionState {
@@ -776,8 +784,8 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
             GizmoDrawLine(
                 ctx,
                 axes_guide_colors[i].rgb,
-                translation.* - axes_vectors[i] * 500,
-                translation.* + axes_vectors[i] * 500,
+                ctx.drag_start_translation - axes_vectors[i] * 500,
+                ctx.drag_start_translation + axes_vectors[i] * 500,
                 g_gizmo_style.guide_line_thickness
             );
         }
@@ -865,15 +873,15 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
             GizmoDrawLine(
                 ctx,
                 axes_guide_colors[axis0].rgb,
-                translation.* - axes_vectors[axis0] * 500,
-                translation.* + axes_vectors[axis0] * 500,
+                ctx.drag_start_translation - axes_vectors[axis0] * 500,
+                ctx.drag_start_translation + axes_vectors[axis0] * 500,
                 g_gizmo_style.guide_line_thickness
             );
             GizmoDrawLine(
                 ctx,
                 axes_guide_colors[axis1].rgb,
-                translation.* - axes_vectors[axis1] * 500,
-                translation.* + axes_vectors[axis1] * 500,
+                ctx.drag_start_translation - axes_vectors[axis1] * 500,
+                ctx.drag_start_translation + axes_vectors[axis1] * 500,
                 g_gizmo_style.guide_line_thickness
             );
         }
@@ -885,7 +893,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         origin := translation.* + (tangent + bitangent) * widget_size * g_gizmo_style.translation_plane_distance;
         size := Vec3f.{widget_size,widget_size,widget_size} * g_gizmo_style.translation_plane_size;
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
-        AddGizmoWidget(ctx, id, .TranslatePlane, color, widget_transform);
+        AddGizmoWidget(ctx, id, .Plane, color, widget_transform);
     }
 
     return result_state;
@@ -1464,7 +1472,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         origin := translation + (tangent + bitangent) * widget_size * g_gizmo_style.scale_plane_distance;
         size := Vec3f.{axis_widget_size.x,widget_size,axis_widget_size.y} * g_gizmo_style.scale_plane_size;
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
-        AddGizmoWidget(ctx, id, .Plane, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
+        AddGizmoWidget(ctx, id, .Plane, color, widget_transform);
     }
 
     ignore_all := flags & .NoViewAxis != 0;

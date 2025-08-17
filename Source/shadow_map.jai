@@ -156,6 +156,10 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_d
     }
 
     for * world.MeshEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if !it.cast_shadows {
             continue;
         }

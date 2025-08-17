@@ -13,15 +13,18 @@ Editor_Background_Blur_Resolution_Factor :: 0.75;
 
 EditorSettings :: struct {
     entity_outline : EntityOutlineParams; @ShowInInspector @InspectorNoTree
-}
-
-g_editor_settings : EditorSettings;
+    use_blur_effect := true; @ShowInInspector
+    blur_effect_resolution_factor := 0.75; @ShowInInspector @FloatRange(0.1,1)
+    blur_effect_iterations := 3; @ShowInInspector
+} @ShaderType
 
 EntityOutlineParams :: struct {
     thickness : float = 2; @ShowInInspector @FloatRange(1,5)
     covered_alpha : float = 0.4; @ShowInInspector @FloatRange(0,1)
     color : Vec4f = .{0.972, 1, 0.498, 1}; @ShowInInspector @ColorEdit
 } @ShaderType
+
+g_editor_settings : EditorSettings;
 
 g_show_imgui_demo := false;
 g_show_world_inspector := false;
@@ -367,7 +370,7 @@ UpdateEditor :: (world : *World) {
         ShowGizmoControls(*g_gizmo_ctx);
 
         ImGui.Separator();
-        ImGui.Text("FPS: %/%/% (min/avg/max)", cast(int, 1 / g_max_frame_time), cast(int, 1 / g_avg_frame_time), cast(int, 1 / g_min_frame_time));
+        ImGui.Text("FPS: %/%/% (min/avg/max), % ms", cast(int, 1 / g_max_frame_time), cast(int, 1 / g_avg_frame_time), cast(int, 1 / g_min_frame_time), cast(int, g_last_frame_time * 1000));
 
         shader_failed_to_reload := 0;
         shader := "";
@@ -410,8 +413,6 @@ UpdateEditor :: (world : *World) {
     // Update after camera, because this is where we check for mouse interaction
     UpdateGizmos(world, *g_gizmo_ctx);
 
-    EntityGizmo(world, *g_gizmo_ctx);
-
     // Entity selection
     if !ImGui.GetIO().WantCaptureMouse && !GizmoHasMouse(*g_gizmo_ctx) && !IsMouseButtonDown(.Right) && IsMouseButtonPressed(.Left) {
         x, y := GetMousePixelPosition(g_window);
@@ -427,6 +428,8 @@ UpdateEditor :: (world : *World) {
         }
     }
 
+    EntityGizmo(world, *g_gizmo_ctx);
+
     ShowWorldInspector(world);
     ShowEntityOutliner(world);
     ShowMaterialEditor();
@@ -440,6 +443,10 @@ UpdateEditor :: (world : *World) {
     ShowEntityInspector(world, entity_to_inspect);
 
     for :AllEntities entity : world {
+        if entity.flags & .Hidden {
+            continue;
+        }
+
         EntityCallback(world, entity, "OnDebugDraw");
     }
 
@@ -681,13 +688,9 @@ ShowEntityOutliner :: (world : *World) {
             }
 
             if ImGui.BeginPopupContextItem(CTPrint("%##context_menu", label)) {
-                ImGui.BeginDisabled(entity.parent == Null_Entity_GUID);
-
-                if ImGui.MenuItem("Detach") {
+                if ImGui.MenuItem("Detach", enabled=entity.parent != Null_Entity_GUID) {
                     DetachEntity(world, entity);
                 }
-
-                ImGui.EndDisabled();
 
                 if ImGui.MenuItem("Duplicate") {
                     entity = DuplicateEntity(world, entity);
@@ -891,7 +894,27 @@ ShowEngineSettings :: () {
         return;
     }
 
+    prev_editor_settings := g_editor_settings;
     ShowInspector("Editor", cast(*World, null), *g_editor_settings);
+
+    if memcmp(*prev_editor_settings, *g_editor_settings, size_of(EditorSettings)) != 0 {
+        if !g_editor_settings.use_blur_effect {
+            DestroyKawaseBlur(*g_blurred_color);
+        } else {
+            w, h := GetWindowPixelSize(g_window);
+
+            texture_desc : GfxTextureDesc;
+            texture_desc.type = .Texture2D;
+            texture_desc.pixel_format = .RGBA16Float;
+            texture_desc.width = xx w;
+            texture_desc.height = xx h;
+
+            g_editor_settings.blur_effect_iterations = Clamp(g_editor_settings.blur_effect_iterations, 2, 10);
+
+            CreateKawaseBlurTextures(*g_blurred_color, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+        }
+    }
+
     ShowInspector("Gizmo", cast(*World, null), *g_gizmo_style);
 
     if ImGui.TreeNodeEx("Graphics") {

@@ -48,6 +48,13 @@ struct EntityOutlineParams {
     float4 color;
 };
 
+struct EditorSettings {
+    EntityOutlineParams entity_outline;
+    bool use_blur_effect;
+    float blur_effect_resolution_factor;
+    int blur_effect_iterations;
+};
+
 struct ShadowMapParams {
     uint noise_resolution;
     float2 depth_bias_min_max;
@@ -63,7 +70,7 @@ struct FrameInfo {
     float skybox_light_intensity;
     ShadowMapParams shadow_map_params;
     BloomParams bloom_params;
-    EntityOutlineParams entity_outline_params;
+    EditorSettings editor_settings;
 };
 
 #define GizmoMesh int

@@ -5,6 +5,7 @@ LoadedShader :: struct {
     dependencies : [..]string;
     vertex_shader : GfxShader;
     fragment_shader : GfxShader;
+    compute_shader : GfxShader;
     reload_callbacks : [..]ShaderReloadCallback;
     failed_to_reload : bool;
 }
@@ -57,7 +58,7 @@ AddShaderReloadCallback :: (shader : *LoadedShader, callback : ShaderReloadCallb
 
 AddShaderReloadCallback :: (shader : *GfxShader, callback : ShaderReloadCallback) {
     for * g_shaders {
-        if *it.vertex_shader == shader || *it.fragment_shader == shader {
+        if *it.vertex_shader == shader || *it.fragment_shader == shader || *it.compute_shader == shader {
             AddShaderReloadCallback(it, callback);
         }
     }
@@ -87,6 +88,22 @@ GetFragmentShader :: (name : string) -> *GfxShader {
             }
 
             Panic("No fragment shader named '%'", name);
+            return null;
+        }
+    }
+
+    Panic("No shader named '%'", name);
+    return null;
+}
+
+GetComputeShader :: (name : string) -> *GfxShader {
+    for * g_shaders {
+        if it.name == name {
+            if !IsNull(*it.compute_shader) {
+                return *it.compute_shader;
+            }
+
+            Panic("No compute shader named '%'", name);
             return null;
         }
     }
@@ -127,6 +144,10 @@ DestroyAllShaders :: () {
 
         if !IsNull(*it.fragment_shader) {
             DestroyGfxShader(*it.fragment_shader);
+        }
+
+        if !IsNull(*it.compute_shader) {
+            DestroyGfxShader(*it.compute_shader);
         }
 
         for it.dependencies {
@@ -179,10 +200,15 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
     fragment_filename = get_absolute_path(fragment_filename ,, Temp, logger=IgnoreLogger);
     path_overwrite_separators(fragment_filename, #char "/");
 
+    compute_filename := TPrint("Shaders/%.comp.glsl", shader.name);
+    compute_filename = get_absolute_path(compute_filename ,, Temp, logger=IgnoreLogger);
+    path_overwrite_separators(compute_filename, #char "/");
+
     has_vertex_shader := file_exists(vertex_filename);
     has_fragment_shader := file_exists(fragment_filename);
+    has_compute_shader := file_exists(compute_filename);
 
-    if !has_vertex_shader && !has_fragment_shader {
+    if !has_vertex_shader && !has_fragment_shader && !has_compute_shader {
         LogError("No shader file for shader '%'", shader.name);
         shader.failed_to_reload = true;
         return false;
@@ -193,6 +219,9 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
 
     fragment_shader : GfxShader;
     defer if !IsNull(*fragment_shader) then DestroyGfxShader(*fragment_shader);
+
+    compute_shader : GfxShader;
+    defer if !IsNull(*compute_shader) then DestroyGfxShader(*compute_shader);
 
     extra := string.[
         TPrint("-DNum_Environment_Map_Samples=%", g_preferences.environment_map_num_samples),
@@ -217,15 +246,25 @@ ReloadShader :: (shader : *LoadedShader) -> bool {
         }
     }
 
+    if has_compute_shader {
+        compute_shader = LoadGfxShader(TPrint("%.comp", shader.name), extra, dependencies=*dependencies);
+
+        if IsNull(*compute_shader) {
+            shader.failed_to_reload = true;
+            return false;
+        }
+    }
+
     Swap(*shader.dependencies, *dependencies);
     Swap(*shader.vertex_shader, *vertex_shader);
     Swap(*shader.fragment_shader, *fragment_shader);
+    Swap(*shader.compute_shader, *compute_shader);
 
     for shader.reload_callbacks {
         it.proc(shader, it.data);
     }
 
-    LogMessage("Loaded shader '%' (%)", shader.name, ifx has_vertex_shader && has_fragment_shader then "vertex and fragment" else ifx has_vertex_shader then "vertex only" else ifx has_fragment_shader then "fragment only");
+    LogMessage("Loaded shader '%'", shader.name);
 
     return true;
 }

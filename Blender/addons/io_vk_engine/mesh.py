@@ -381,6 +381,7 @@ class MeshExportOptions(bpy.types.PropertyGroup):
         name = "Output Directory",
         description = "Specify the output directory.",
         subtype = "DIR_PATH",
+        options={"PATH_SUPPORTS_BLEND_RELATIVE"},
         default = "//Meshes"
     )
 

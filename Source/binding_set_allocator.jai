@@ -17,6 +17,7 @@ MakeGfxBindingPoolDesc :: (layout : *GfxBindingSetLayout, max_binding_sets : u32
         case .Texture; desc.max_textures += it.num_array_layers;
         case .Sampler; desc.max_samplers += it.num_array_layers;
         case .CombinedTextureSampler; desc.max_combined_texture_samplers += it.num_array_layers;
+        case .StorageImage; desc.max_storage_images += it.num_array_layers;
         }
     }
 
@@ -25,6 +26,7 @@ MakeGfxBindingPoolDesc :: (layout : *GfxBindingSetLayout, max_binding_sets : u32
     desc.max_textures *= max_binding_sets;
     desc.max_samplers *= max_binding_sets;
     desc.max_combined_texture_samplers *= max_binding_sets;
+    desc.max_storage_images *= max_binding_sets;
 
     return desc;
 }
@@ -184,6 +186,7 @@ InitBindingSetAllocators :: () {
             max_textures=100,
             max_samplers=100,
             max_combined_texture_samplers=100,
+            max_storage_images=100,
         };
 
         if !InitBindingSetAllocator(it, TPrint("Global binding set allocator, frame in flight %", it_index)) {

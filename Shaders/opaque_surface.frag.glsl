@@ -18,6 +18,7 @@ layout(location=0) out float4 out_color;
 
 #define Min_Parallax_Layers 20
 #define Max_Parallax_Layers 60
+#define Parallax_Shadow_Attenuation_Cos_Angle 0.1
 
 // https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
 float2 ParallaxOcclusionMapping(sampler2D depth_map, float height_scale, float2 tex_coords, float3 view_dir) {
@@ -82,18 +83,19 @@ void main() {
         normalize(in_bitangent),
         normalize(in_normal)
     );
+    float3x3 inv_TBN = transpose(TBN);
+
+    float3 V = normalize(in_viewpoint_position - in_position);
 
     float2 tex_coords = in_tex_coords;
     if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-        float3 tangent_view_dir = TBN * normalize(in_viewpoint_position - in_position);
+        float3 tangent_view_dir = inv_TBN * V;
         tex_coords = ParallaxOcclusionMapping(u_depth_map_texture, mesh.material.depth_map_scale, in_tex_coords, tangent_view_dir);
     }
 
     float3 N = texture(u_normal_map_texture, tex_coords).xyz;
     N = N * 2 - float3(1);
     N = normalize(TBN * N);
-
-    float3 V = normalize(in_viewpoint_position - in_position);
 
     float3 base_color = texture(u_base_color_texture, tex_coords).rgb;
     base_color *= sRGBToLinear(mesh.material.base_color_tint);
@@ -131,12 +133,17 @@ void main() {
         }
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-            float3 tangent_light_dir = TBN * L;
+            float3 tangent_light_dir = inv_TBN * L;
             // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
             if (dot(in_normal, L) < 0) {
                 shadow = 0;
             } else {
                 shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+
+                // Shadow don't look goot at steep angles, so we attenuate
+                float shadow_attenuation = InverseLerp(0, Parallax_Shadow_Attenuation_Cos_Angle, dot(in_normal, L));
+                shadow_attenuation = clamp(shadow_attenuation, 0, 1);
+                shadow *= shadow_attenuation;
             }
         }
 
@@ -162,7 +169,7 @@ void main() {
         }
 
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
-            float3 tangent_light_dir = TBN * L;
+            float3 tangent_light_dir = inv_TBN * L;
 
             // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
             if (dot(in_normal, L) < 0) {
@@ -175,6 +182,11 @@ void main() {
                 // Of course in addition to the shadow, it makes any light calculation a bit off, though it is more
                 // visible with self shadowing
                 shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
+
+                // Shadow don't look goot at steep angles, so we attenuate
+                float shadow_attenuation = InverseLerp(0, Parallax_Shadow_Attenuation_Cos_Angle, dot(in_normal, L));
+                shadow_attenuation = clamp(shadow_attenuation, 0, 1);
+                shadow *= shadow_attenuation;
             }
         }
 

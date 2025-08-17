@@ -5,7 +5,7 @@ CompositingBindingSet :: struct {
     selected_entity_guid_texture : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
     gizmo_texture : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
     imgui_texture : GfxBindingCombinedTextureSampler; @Binding(5) @FragmentStage
-    blurred_color_texture : GfxBindingCombinedTextureSampler; @Binding(6) @FragmentStage
+    blurred_color_texture : GfxBindingCombinedTextureSampler; @Binding(6) @FragmentStage @AllowNull
 } @BindingSet
 
 g_compositing_pipeline : GfxGraphicsPipeline;
@@ -45,8 +45,15 @@ CompositingPass :: (using ctx : *FrameRenderContext) {
         selected_entity_guid_texture=.{texture=*g_selected_entity_guid_texture, sampler=*g_entity_guid_sampler},
         gizmo_texture=.{texture=*g_gizmo_ctx.color_resolve, sampler=*g_linear_clamp_sampler},
         imgui_texture=.{texture=*g_imgui_color_texture, sampler=*g_linear_clamp_sampler},
-        blurred_color_texture=.{texture=GetFinalTexture(*g_blurred_color), sampler=*g_linear_clamp_sampler},
     };
+
+    if g_editor_settings.use_blur_effect {
+        bindings.blurred_color_texture = .{
+            texture=GetFinalTexture(*g_blurred_color),
+            sampler=*g_linear_clamp_sampler
+        };
+    }
+
     binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
 
     w, h := GetWindowPixelSize(g_window);

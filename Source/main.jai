@@ -63,6 +63,7 @@ g_default_material : *Asset(Material);
 g_avg_frame_time : float = 1 / 60.0;
 g_min_frame_time : float = 1 / 60.0;
 g_max_frame_time : float = 1 / 60.0;
+g_last_frame_time : float = 1 / 60.0;
 
 LoadDefaultAssets :: () {
     g_default_base_color = LoadAsset(Texture2D, "Default_BaseColor.png");
@@ -182,6 +183,7 @@ main :: () {
         defer {
             frame_end := Basic.current_time_monotonic();
             frame_time := Basic.to_float64_seconds(frame_end - frame_start);
+            g_last_frame_time = xx frame_time;
             frame_times[frame_time_index] = xx frame_time;
 
             if frame_time_index == frame_times.count - 1 {

@@ -44,20 +44,20 @@ CreateKawaseBlurTextures :: (using blur : *KawaseBlur, num_iterations : int, bas
 
 DestroyKawaseBlur :: (using blur : *KawaseBlur) {
     for * downsample_levels {
-        DestroyGfxTextureView(it);
+        QueueDestroyGfxTextureView(it);
     }
     for * upsample_levels {
-        DestroyGfxTextureView(it);
+        QueueDestroyGfxTextureView(it);
     }
 
     Free(downsample_levels.data);
     Free(upsample_levels.data);
 
     if !IsNull(*downsample_texture) {
-        DestroyGfxTexture(*downsample_texture);
+        QueueDestroyGfxTexture(*downsample_texture);
     }
     if !IsNull(*upsample_texture) {
-        DestroyGfxTexture(*upsample_texture);
+        QueueDestroyGfxTexture(*upsample_texture);
     }
 
     blur.* = .{};

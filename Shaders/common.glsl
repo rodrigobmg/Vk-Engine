@@ -1,6 +1,10 @@
 #ifndef COMMON_GLSL
 #define COMMON_GLSL
 
+#extension GL_EXT_shader_image_load_formatted : enable // Because GLSL sucks...
+// We cannot pass image2D to functions unless this extension is enabled, because
+// the GLSL spec does not handle it.
+
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4
@@ -261,6 +265,29 @@ float4 DownsampleBox13(sampler2D s, float2 uv, float2 texel_size) {
     return result;
 }
 
+float4 DownsampleBox13(readonly image2D i, int2 uv) {
+    float4 A = imageLoad(i, uv + int2(-2, -2));
+    float4 B = imageLoad(i, uv + int2( 0, -2));
+    float4 C = imageLoad(i, uv + int2( 2, -2));
+    float4 D = imageLoad(i, uv + int2(-1, -1));
+    float4 E = imageLoad(i, uv + int2( 1, -1));
+    float4 F = imageLoad(i, uv + int2(-2,  0));
+    float4 G = imageLoad(i, uv);
+    float4 H = imageLoad(i, uv + int2( 2,  0));
+    float4 I = imageLoad(i, uv + int2(-1,  1));
+    float4 J = imageLoad(i, uv + int2( 1,  1));
+    float4 K = imageLoad(i, uv + int2(-2,  2));
+    float4 L = imageLoad(i, uv + int2( 0,  2));
+    float4 M = imageLoad(i, uv + int2( 2,  2));
+
+    float4 result = G * 0.125;
+    result += (A + C + M + K) * 0.03125;
+    result += (B + H + L + F) * 0.0625;
+    result += (D + E + J + I) * 0.125;
+
+    return result;
+}
+
 float KarisAverage(float3 color) {
     float luma = LinearRGBToLuminance(color) * 0.25;
 
@@ -303,6 +330,35 @@ float4 DownsampleBox13WithKarisAverage(sampler2D s, float2 uv, float2 texel_size
     return G1 + G2 + G3 + G4 + G5;
 }
 
+float4 DownsampleBox13WithKarisAverage(readonly image2D i, int2 uv) {
+    float4 A = imageLoad(i, uv + int2(-2, -2));
+    float4 B = imageLoad(i, uv + int2( 0, -2));
+    float4 C = imageLoad(i, uv + int2( 2, -2));
+    float4 D = imageLoad(i, uv + int2(-1, -1));
+    float4 E = imageLoad(i, uv + int2( 1, -1));
+    float4 F = imageLoad(i, uv + int2(-2,  0));
+    float4 G = imageLoad(i, uv);
+    float4 H = imageLoad(i, uv + int2( 2,  0));
+    float4 I = imageLoad(i, uv + int2(-1,  1));
+    float4 J = imageLoad(i, uv + int2( 1,  1));
+    float4 K = imageLoad(i, uv + int2(-2,  2));
+    float4 L = imageLoad(i, uv + int2( 0,  2));
+    float4 M = imageLoad(i, uv + int2( 2,  2));
+
+    float4 G1 = (A + B + F + G) * (0.125 / 4);
+    float4 G2 = (B + C + G + H) * (0.125 / 4);
+    float4 G3 = (F + G + K + L) * (0.125 / 4);
+    float4 G4 = (G + H + L + M) * (0.125 / 4);
+    float4 G5 = (D + E + I + J) * (0.5 / 4);
+    G1.rgb *= KarisAverage(G1.rgb);
+    G2.rgb *= KarisAverage(G2.rgb);
+    G3.rgb *= KarisAverage(G3.rgb);
+    G4.rgb *= KarisAverage(G4.rgb);
+    G5.rgb *= KarisAverage(G5.rgb);
+
+    return G1 + G2 + G3 + G4 + G5;
+}
+
 // [Jimenez14] https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
 float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size) {
     float4 A = texture(s, uv + float2(-texel_size.x,  texel_size.y));
@@ -329,11 +385,45 @@ float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size) {
     return result;
 }
 
+float4 UpsampleTent9(readonly image2D i, int2 uv) {
+    float4 A = imageLoad(i, uv + int2(-1,  1));
+    float4 B = imageLoad(i, uv + int2( 0,  1));
+    float4 C = imageLoad(i, uv + int2( 1,  1));
+
+    float4 D = imageLoad(i, uv + int2(-1,  0));
+    float4 E = imageLoad(i, uv);
+    float4 F = imageLoad(i, uv + int2( 1,  0));
+
+    float4 G = imageLoad(i, uv + int2(-1, -1));
+    float4 H = imageLoad(i, uv + int2( 0, -1));
+    float4 I = imageLoad(i, uv + int2( 1, -1));
+
+    // Apply weighted distribution, by using a 3x3 tent filter:
+    //  1   | 1 2 1 |
+    // -- * | 2 4 2 |
+    // 16   | 1 2 1 |
+    float4 result = E * 4;
+    result += (B + D + F + H) * 2;
+    result += (A + C + G + I);
+    result *= 1 / 16.0;
+
+    return result;
+}
+
 float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size) {
     float4 A = texture(s, uv + float2(-texel_size.x,  texel_size.y));
     float4 B = texture(s, uv + float2( texel_size.x,  texel_size.y));
     float4 C = texture(s, uv + float2(-texel_size.x, -texel_size.y));
     float4 D = texture(s, uv + float2( texel_size.x, -texel_size.y));
+
+    return (A + B + C + D) * (1 / 4.0);
+}
+
+float4 SampleBox4(readonly image2D i, int2 uv) {
+    float4 A = imageLoad(i, uv + int2(-1,  1));
+    float4 B = imageLoad(i, uv + int2( 1,  1));
+    float4 C = imageLoad(i, uv + int2(-1, -1));
+    float4 D = imageLoad(i, uv + int2( 1, -1));
 
     return (A + B + C + D) * (1 / 4.0);
 }

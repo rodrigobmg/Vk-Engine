@@ -158,6 +158,7 @@ CreateAllPipelines :: () {
     CreateBloomUpsamplePipeline();
     CreateDebugLinesPipeline();
     CreateGizmoPipeline();
+    CreateGizmoLinesPipeline();
 }
 
 DestroyAllPipelines :: () {
@@ -172,6 +173,7 @@ DestroyAllPipelines :: () {
         }
     }
 
+    DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
@@ -242,7 +244,9 @@ CreateRenderTargets :: () {
     g_color_texture = CreateGfxTexture("Color", texture_desc);
     Assert(!IsNull(*g_color_texture), "Could not create color texture");
 
-    CreateKawaseBlurTextures(*g_blurred_color, Editor_Background_Blur_Iterations, texture_desc, Editor_Background_Blur_Resolution_Factor);
+    if g_editor_settings.use_blur_effect {
+        CreateKawaseBlurTextures(*g_blurred_color, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+    }
 
     texture_desc.pixel_format = .Depth32Float;
     texture_desc.usage = .DepthStencilAttachment;
@@ -385,7 +389,7 @@ FrameInfo :: struct {
     skybox_light_intensity := 1.0;
     shadow_map_params : ShadowMapParams;
     bloom_params : BloomParams;
-    entity_outline_params : EntityOutlineParams;
+    editor_settings : EditorSettings;
 } @ShaderType
 
 DirectionalLight :: struct {
@@ -469,6 +473,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     frustum := MakePerspectiveFrustum(camera.transform, camera.fov_in_degrees, w / cast(float, h), camera.z_near, camera.z_far);
     for * world.MeshEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if !it.mesh {
             continue;
         }
@@ -501,6 +509,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if !it.mesh {
             continue;
         }
@@ -526,12 +538,20 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AllocDrawData(*g_selected_mesh_buffer);
 
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(it.world_transform), camera.transform);
         }
     }
 
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             UpdatePointShadowMapFarPlane(it);
             PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(it.world_transform));
@@ -553,6 +573,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
     shadow_map_index : s32 = 0;
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows && it.shadow_map.resolution == 0 {
             InitShadowMap(*it.shadow_map, Default_Shadow_Map_Resolution);
         }
@@ -581,6 +605,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
     point_shadow_map_index : s32 = 0;
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows && it.shadow_map.resolution == 0 {
             InitShadowMap(*it.shadow_map, Default_Point_Shadow_Map_Resolution);
         }
@@ -610,7 +638,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         num_point_lights=xx num_point_lights,
         num_directional_lights=xx num_directional_lights,
         skybox_light_intensity=world.skybox_light_intensity,
-        entity_outline_params=g_editor_settings.entity_outline,
+        editor_settings=g_editor_settings,
         shadow_map_params=.{
             noise_resolution=Shadow_Map_Noise_Size,
             depth_bias_min_max=.{1, 5},
@@ -637,12 +665,20 @@ RenderFrame :: (world : *World, camera : *Camera) {
     GenerateEnvironmentMaps(*cmd_buffer);
 
     for * world.DirectionalLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(it.world_transform), camera);
         }
     }
 
     for * world.PointLightEntity_storage {
+        if it.flags & .Hidden {
+            continue;
+        }
+
         if it.cast_shadows {
             PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(it.world_transform));
         }
@@ -652,6 +688,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     ForwardPass(*ctx, camera, *g_mesh_buffer);
+    DebugLinesPass(*ctx, camera);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
 
     EntityGUIDPass(*ctx, *g_entity_guid_texture, *g_depth_texture, camera, *g_mesh_buffer);
@@ -671,10 +708,11 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     GizmoPass(*ctx, *g_gizmo_ctx);
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
-    RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
+    if g_editor_settings.use_blur_effect {
+        RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
+    }
 
     CompositingPass(*ctx);
-    DebugLinesPass(*ctx, camera);
 
     AddTextureBarrier(*cmd_buffer, .ColorAttachment, .TransferSrc, *g_final_texture);
 
