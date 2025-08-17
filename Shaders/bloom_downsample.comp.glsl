@@ -11,6 +11,6 @@ void main() {
     int2 src_coords = int2(gl_GlobalInvocationID.xy / float2(dst_size) * src_size);
     int2 dst_coords = int2(gl_GlobalInvocationID.xy);
 
-    float4 color = DownsampleBox13(u_src_image, src_coords);
-    imageStore(u_dst_image, dst_coords, color);
+    // float4 color = DownsampleBox13(u_src_image, src_coords);
+    // imageStore(u_dst_image, dst_coords, color);
 }
