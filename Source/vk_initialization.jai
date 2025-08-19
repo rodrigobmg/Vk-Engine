@@ -216,6 +216,7 @@ InitGfxContext :: (window : *SDL_Window) {
     vulkan12_features : VkPhysicalDeviceVulkan12Features;
     vulkan12_features.shaderOutputLayer = VK_TRUE;
     vulkan12_features.descriptorBindingPartiallyBound = VK_TRUE;
+    vulkan12_features.hostQueryReset = VK_TRUE;
     device_info.pNext = *vulkan12_features;
 
     vulkan13_features : VkPhysicalDeviceVulkan13Features;

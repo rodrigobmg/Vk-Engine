@@ -100,6 +100,7 @@ GfxLimits :: struct {
     max_storage_buffer_size : u32;
     uniform_buffer_offset_alignment : u32;
     storage_buffer_offset_alignment : u32;
+    timestamp_tick_period : u32;
 }
 
 MakeGfxLimits :: inline (limits : VkPhysicalDeviceLimits) -> GfxLimits {
@@ -115,6 +116,7 @@ MakeGfxLimits :: inline (limits : VkPhysicalDeviceLimits) -> GfxLimits {
     result.max_storage_buffer_size = limits.maxStorageBufferRange;
     result.uniform_buffer_offset_alignment = xx limits.minUniformBufferOffsetAlignment;
     result.storage_buffer_offset_alignment = xx limits.minStorageBufferOffsetAlignment;
+    result.timestamp_tick_period = xx limits.timestampPeriod;
 
     return result;
 }
@@ -2514,6 +2516,7 @@ ClearStencil :: inline (pass_desc : *GfxRenderPassDesc, value : u32) {
 GfxRenderPass :: struct {
     desc : GfxRenderPassDesc;
     cmd_buffer : *GfxCommandBuffer;
+    profiling_event : *GPUProfilingEvent;
 
     current_pipeline : *GfxGraphicsPipeline;
 }
@@ -2596,15 +2599,17 @@ BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : Gfx
     render_info.renderArea.extent = .{width=xx w, height=xx h};
 
     BeginGfxDebugMarker(cmd_buffer, name);
+    profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
     vkCmdBeginRendering(cmd_buffer.cmd_buffer, *render_info);
 
-    return .{desc=desc, cmd_buffer=cmd_buffer};
+    return .{desc=desc, cmd_buffer=cmd_buffer, profiling_event=profiling_event};
 }
 
 EndGfxRenderPass :: (pass : *GfxRenderPass) {
     LogSectionScope(*Log_Vulkan);
 
     vkCmdEndRendering(pass.cmd_buffer.cmd_buffer);
+    ProfilerEndEvent(pass.cmd_buffer, *g_gpu_profiler, pass.profiling_event);
     EndGfxDebugMarker(pass.cmd_buffer);
 
     AddBarrier(pass.cmd_buffer);
@@ -2700,6 +2705,8 @@ DrawIndexed :: (
 GfxComputePass :: struct {
     name : string;
     cmd_buffer : *GfxCommandBuffer;
+    profiling_event : *GPUProfilingEvent;
+
     current_pipeline : *GfxComputePipeline;
 }
 
@@ -2707,6 +2714,7 @@ BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCom
     LogSectionScope(*Log_Vulkan);
 
     BeginGfxDebugMarker(cmd_buffer, name);
+    profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
 
     return .{name=name, cmd_buffer=cmd_buffer};
 }
@@ -2714,6 +2722,7 @@ BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCom
 EndGfxComputePass :: (pass : *GfxComputePass) {
     LogSectionScope(*Log_Vulkan);
 
+    ProfilerEndEvent(pass.cmd_buffer, *g_gpu_profiler, pass.profiling_event);
     EndGfxDebugMarker(pass.cmd_buffer);
 
     AddBarrier(pass.cmd_buffer);
@@ -2737,19 +2746,22 @@ Dispatch :: (pass : *GfxComputePass, num_groups_x : u32, num_groups_y : u32, num
 GfxCopyPass :: struct {
     name : string;
     cmd_buffer : *GfxCommandBuffer;
+    profiling_event : *GPUProfilingEvent;
 }
 
 BeginGfxCopyPass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCopyPass {
     LogSectionScope(*Log_Vulkan);
 
     BeginGfxDebugMarker(cmd_buffer, name);
+    profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
 
-    return .{name=name, cmd_buffer=cmd_buffer};
+    return .{name=name, cmd_buffer=cmd_buffer, profiling_event=profiling_event};
 }
 
 EndGfxCopyPass :: (pass : *GfxCopyPass) {
     LogSectionScope(*Log_Vulkan);
 
+    ProfilerEndEvent(pass.cmd_buffer, *g_gpu_profiler, pass.profiling_event);
     EndGfxDebugMarker(pass.cmd_buffer);
 
     AddBarrier(pass.cmd_buffer);
@@ -3120,6 +3132,8 @@ VulkanDebugCallback :: (
 
     if verbose {
         LogMessage("messageId=0x%, %", FormatIntHex(callback_data.messageIdNumber), verbose, flags=.VERBOSE_ONLY);
+    } else {
+        LogMessage("messageId=0x%", FormatIntHex(callback_data.messageIdNumber), flags=.VERBOSE_ONLY);
     }
 
     if severity & .ERROR_BIT_EXT {

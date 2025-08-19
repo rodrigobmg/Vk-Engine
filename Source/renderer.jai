@@ -5,6 +5,7 @@
 #load "mesh_buffer.jai";
 #load "allocator.jai";
 #load "binding_set_allocator.jai";
+#load "gpu_profiling.jai";
 
 #load "imgui.jai";
 #load "image_based_lighting.jai";
@@ -18,6 +19,8 @@
 #load "debug_draw.jai";
 #load "gizmo_draw.jai";
 #load "kawase_blur.jai";
+
+g_gpu_profiler : GPUFrameProfiler;
 
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
@@ -51,9 +54,13 @@ InitRenderer :: () {
     sampler_desc.mag_filter = .Nearest;
     g_nearest_clamp_sampler = CreateGfxSampler("Nearest Clamp", sampler_desc);
     Assert(!IsNull(*g_nearest_clamp_sampler));
+
+    InitGPUFrameProfiler(*g_gpu_profiler, 1000);
 }
 
 CleanupRenderer :: () {
+    DestroyGPUFrameProfiler(*g_gpu_profiler);
+
     DestroyRenderTargets();
 
     DestroyAllBindingSetLayouts();
@@ -465,6 +472,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
     w, h := GetWindowPixelSize(g_window);
 
     BeginFrame();
+
+    ProfilerBeginFrame(*g_gpu_profiler);
 
     ResetFrameDataAllocator();
     ResetBindingSetAllocators();

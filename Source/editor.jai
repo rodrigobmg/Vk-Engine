@@ -31,6 +31,7 @@ g_show_world_inspector := false;
 g_show_entity_outliner := true;
 g_show_entity_inspector := true;
 g_show_engine_settings := false;
+g_show_gpu_profiler := false;
 
 g_editor_selected_entities : [..]EntityGUID;
 g_editor_last_copied_entity_guid : EntityGUID;
@@ -354,6 +355,9 @@ UpdateEditor :: (world : *World) {
             if ImGui.MenuItem("Engine Settings", selected=g_show_engine_settings) {
                 g_show_engine_settings = true;
             }
+            if ImGui.MenuItem("GPU Profiler", selected=g_show_gpu_profiler) {
+                g_show_gpu_profiler = true;
+            }
             if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
                 g_show_imgui_demo = true;
             }
@@ -434,6 +438,7 @@ UpdateEditor :: (world : *World) {
     ShowEntityOutliner(world);
     ShowMaterialEditor();
     ShowEngineSettings();
+    ShowGPUProfiler();
 
     entity_to_inspect : *Entity;
     if g_editor_selected_entities.count == 1 {
@@ -922,5 +927,27 @@ ShowEngineSettings :: () {
         ShowInspector("", cast(*World, null), *g_bloom_params, .["InspectorNoTree"]);
 
         ImGui.TreePop();
+    }
+}
+
+ShowGPUProfiler :: () {
+    if !g_show_gpu_profiler {
+        return;
+    }
+
+    defer ImGui.End();
+
+    ImGui.SetNextWindowSize(.{450, 700}, .FirstUseEver);
+    if !ImGui.Begin("GPU Profiler", *g_show_gpu_profiler, flags=.HorizontalScrollbar) {
+        return;
+    }
+
+    if g_gpu_profiler.recorded_frames.count == 0 {
+        return;
+    }
+
+    frame_events := g_gpu_profiler.recorded_frames[g_gpu_profiler.recorded_frames.count - 1];
+    for frame_events {
+        ImGui.Text("% - % ms", it.name, it.elapsed_time_ms);
     }
 }
