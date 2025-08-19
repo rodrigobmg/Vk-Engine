@@ -153,9 +153,6 @@ CreateAllPipelines :: () {
     CreateIrradianceMapPipeline();
     CreateEnvironmentMapPipeline();
     CreateEntityGUIDPipeline();
-    CreateBloomFilterPipeline();
-    CreateBloomDownsamplePipeline();
-    CreateBloomUpsamplePipeline();
     CreateBloomFilterComputePipeline();
     CreateBloomDownsampleComputePipeline();
     CreateBloomUpsampleComputePipeline();
@@ -182,9 +179,6 @@ DestroyAllPipelines :: () {
     DestroyGfxComputePipeline(*g_bloom_upsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_downsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_filter_compute_pipeline);
-    DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
-    DestroyGfxGraphicsPipeline(*g_bloom_downsample_pipeline);
-    DestroyGfxGraphicsPipeline(*g_bloom_filter_pipeline);
     DestroyGfxGraphicsPipeline(*g_entity_guid_pipeline);
     DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
