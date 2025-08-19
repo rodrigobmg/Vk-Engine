@@ -931,6 +931,25 @@ ShowEngineSettings :: () {
 }
 
 ShowGPUProfiler :: () {
+    ShowEvent :: (event : *GPUProfilingEvent) {
+        label := CTPrint("% - % ms###%", event.name, event.elapsed_time_ms, event.index);
+        flags := ImGui.TreeNodeFlags.DefaultOpen | .OpenOnArrow | .SpanFullWidth;
+        if !event.first_child {
+            flags |= .Leaf;
+        }
+
+        if ImGui.TreeNodeEx(label, flags) {
+            defer ImGui.TreePop();
+
+            child := event.first_child;
+            while child
+            {
+                ShowEvent(child);
+                child = child.next_sibling;
+            }
+        }
+    }
+
     if !g_show_gpu_profiler {
         return;
     }
@@ -947,7 +966,11 @@ ShowGPUProfiler :: () {
     }
 
     frame_events := g_gpu_profiler.recorded_frames[g_gpu_profiler.recorded_frames.count - 1];
-    for frame_events {
-        ImGui.Text("% - % ms", it.name, it.elapsed_time_ms);
+    for * frame_events {
+        if it.parent {
+            continue;
+        }
+
+        ShowEvent(it);
     }
 }

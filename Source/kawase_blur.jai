@@ -184,6 +184,8 @@ RenderKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_te
     BeginGfxDebugMarker(cmd_buffer, "Kawase Blur");
     defer EndGfxDebugMarker(cmd_buffer);
 
+    ProfileGPUZone(cmd_buffer, *g_gpu_profiler, "Kawase Blur");
+
     for i : 0..blur.downsample_levels.count - 1 {
         KawaseBlurDownsample(cmd_buffer, blur, base_texture, i);
     }

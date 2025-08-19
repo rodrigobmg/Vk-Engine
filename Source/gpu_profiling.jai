@@ -10,14 +10,21 @@ GPUFrameProfiler :: struct {
     num_events_for_frame : [Gfx_Num_Frames_In_Flight]int;
     recorded_frames : [..][]GPUProfilingEvent;
     frame_index : int;
+
+    current_event : *GPUProfilingEvent;
 }
 
 GPUProfilingEvent :: struct {
     name : string;
     index : int;
-    start_gpu_time : u64 = 0xffffffffffffffff;
-    end_gpu_time : u64 = 0xffffffffffffffff;
+    start_gpu_tick : u64 = 0xffffffffffffffff;
+    end_gpu_tick : u64 = 0xffffffffffffffff;
     elapsed_time_ms : float64;
+
+    parent : *GPUProfilingEvent;
+    first_child : *GPUProfilingEvent;
+    last_child : *GPUProfilingEvent;
+    next_sibling : *GPUProfilingEvent;
 }
 
 InitGPUFrameProfiler :: (profiler : *GPUFrameProfiler, max_events : int) {
@@ -72,16 +79,36 @@ ProfilerBeginFrame :: (profiler : *GPUFrameProfiler) {
         frame := ArrayPush(*profiler.recorded_frames);
         frame.* = AllocArray(GPUProfilingEvent, profiler.num_events_for_frame[g_gfx_context.frame_in_flight]);
         for * frame.* {
-            it.* = profiler.events_for_frame[g_gfx_context.frame_in_flight][it_index];
-            it.start_gpu_time = profiler.query_results[it_index * 2 + 0];
-            it.end_gpu_time   = profiler.query_results[it_index * 2 + 1];
-            it.elapsed_time_ms = (it.end_gpu_time - it.start_gpu_time) * GetGfxLimits().timestamp_tick_period / 1000000.0;
+            event := profiler.events_for_frame[g_gfx_context.frame_in_flight][it_index];
+            it.* = event;
+            it.start_gpu_tick = profiler.query_results[it_index * 2 + 0];
+            it.end_gpu_tick   = profiler.query_results[it_index * 2 + 1];
+            it.elapsed_time_ms = (it.end_gpu_tick - it.start_gpu_tick) * GetGfxLimits().timestamp_tick_period / 1000000.0;
+            if event.parent {
+                it.parent = *(frame.*)[event.parent.index];
+
+                if !it.parent.first_child {
+                    it.parent.first_child = it;
+                }
+
+                if it.parent.last_child {
+                    it.parent.last_child.next_sibling = it;
+                }
+
+                it.parent.last_child = it;
+            } else {
+                it.parent = null;
+                it.first_child = null;
+                it.last_child = null;
+                it.next_sibling = null;
+            }
         }
     }
 
     vkResetQueryPool(g_gfx_context.device, profiler.query_pools[g_gfx_context.frame_in_flight], 0, profiler.query_pool_capacity);
 
     profiler.num_events_for_frame[g_gfx_context.frame_in_flight] = 0;
+    profiler.current_event = null;
 }
 
 ProfilerBeginEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfiler, name : string) -> *GPUProfilingEvent {
@@ -90,8 +117,11 @@ ProfilerBeginEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfi
     }
 
     event := *profiler.events_for_frame[g_gfx_context.frame_in_flight][profiler.num_events_for_frame[g_gfx_context.frame_in_flight]];
+    event.* = .{};
     event.name = name;
     event.index = profiler.num_events_for_frame[g_gfx_context.frame_in_flight];
+    event.parent = profiler.current_event;
+    profiler.current_event = event;
 
     vkCmdWriteTimestamp(cmd_buffer.cmd_buffer, .TOP_OF_PIPE_BIT, profiler.query_pools[g_gfx_context.frame_in_flight], xx (event.index * 2));
     profiler.num_events_for_frame[g_gfx_context.frame_in_flight] += 1;
@@ -105,4 +135,10 @@ ProfilerEndEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfile
     }
 
     vkCmdWriteTimestamp(cmd_buffer.cmd_buffer, .BOTTOM_OF_PIPE_BIT, profiler.query_pools[g_gfx_context.frame_in_flight], xx (event.index * 2 + 1));
+    profiler.current_event = event.parent;
+}
+
+ProfileGPUZone :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfiler, name : string) #expand {
+    event := ProfilerBeginEvent(cmd_buffer, profiler, name);
+    `defer ProfilerEndEvent(cmd_buffer, profiler, event);
 }

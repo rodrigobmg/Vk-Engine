@@ -2716,7 +2716,7 @@ BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCom
     BeginGfxDebugMarker(cmd_buffer, name);
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
 
-    return .{name=name, cmd_buffer=cmd_buffer};
+    return .{name=name, cmd_buffer=cmd_buffer, profiling_event=profiling_event};
 }
 
 EndGfxComputePass :: (pass : *GfxComputePass) {

@@ -170,6 +170,8 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
     BeginGfxDebugMarker(cmd_buffer, "Bloom");
     defer EndGfxDebugMarker(cmd_buffer);
 
+    ProfileGPUZone(cmd_buffer, *g_gpu_profiler, "Bloom");
+
     if IsNull(*g_bloom_filter_compute_pipeline) {
         CreateBloomFilterComputePipeline();
     }
