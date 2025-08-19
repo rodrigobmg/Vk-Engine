@@ -690,15 +690,19 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
         }
 
         AppendImageInfo :: (builder : *StringBuilder, name : string) {
-            Appendln(builder, "    .{imageView=ifx value.%1 then value.%1.image_view, imageLayout=.READ_ONLY_OPTIMAL},", name);
+            Appendln(builder, "    .{imageView=ifx value.%1.texture then value.%1.texture.image_view else VK_NULL_HANDLE, imageLayout=.READ_ONLY_OPTIMAL},", name);
         }
 
         AppendSamplerInfo :: (builder : *StringBuilder, name : string) {
-            Appendln(builder, "    .{sampler=ifx value.%1 then value.%1.sampler},", name);
+            Appendln(builder, "    .{sampler=ifx value.%1.sampler then value.%1.sampler.sampler else VK_NULL_HANDLE},", name);
         }
 
         AppendCombinedImageSamplerInfo :: (builder : *StringBuilder, name : string) {
-            Appendln(builder, "    .{sampler=ifx value.%1.sampler then value.%1.sampler.sampler, imageView=ifx value.%1.texture then value.%1.texture.image_view, imageLayout=.READ_ONLY_OPTIMAL},", name);
+            Appendln(builder, "    .{sampler=ifx value.%1.sampler then value.%1.sampler.sampler else VK_NULL_HANDLE, imageView=ifx value.%1.texture then value.%1.texture.image_view else VK_NULL_HANDLE, imageLayout=.READ_ONLY_OPTIMAL},", name);
+        }
+
+        AppendStorageImageInfo :: (builder : *StringBuilder, name : string) {
+            Appendln(builder, "    .{imageView=ifx value.%1.texture then value.%1.texture.image_view else VK_NULL_HANDLE, imageLayout=.GENERAL},", name);
         }
 
         builder : StringBuilder;
@@ -733,13 +737,14 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
                 type := GetGfxBindingType(cast(*Type_Info_Array, it.type).element_type);
                 for i : 0..count - 1 {
                     if type == {
-                    case .Texture; #through;
-                    case .StorageImage;
+                    case .Texture;
                         AppendImageInfo(*builder, TPrint("%[%]", it.name, i));
                     case .Sampler;
                         AppendSamplerInfo(*builder, TPrint("%[%]", it.name, i));
                     case .CombinedTextureSampler;
                         AppendCombinedImageSamplerInfo(*builder, TPrint("%[%]", it.name, i));
+                    case .StorageImage;
+                        AppendStorageImageInfo(*builder, TPrint("%[%]", it.name, i));
                     }
                 }
 
@@ -747,13 +752,14 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
             } else {
                 type := GetGfxBindingType(it.type);
                 if type == {
-                case .Texture; #through;
-                case .StorageImage;
+                case .Texture;
                     AppendImageInfo(*builder, it.name);
                 case .Sampler;
                     AppendSamplerInfo(*builder, it.name);
                 case .CombinedTextureSampler;
                     AppendCombinedImageSamplerInfo(*builder, it.name);
+                case .StorageImage;
+                    AppendStorageImageInfo(*builder, it.name);
                 }
 
                 max_possible_writes += 1;
@@ -898,16 +904,22 @@ GfxBindingStorageBuffer :: struct {
     size : u32;
 }
 
-GfxBindingTexture :: #type,isa *GfxTexture;
+GfxBindingTexture :: struct {
+    texture : *GfxTexture;
+}
 
-GfxBindingSampler :: #type,isa *GfxSampler;
+GfxBindingSampler :: struct {
+    sampler : *GfxSampler;
+}
 
 GfxBindingCombinedTextureSampler :: struct {
     texture : *GfxTexture;
     sampler : *GfxSampler;
 }
 
-GfxBindingStorageImage :: #type,isa *GfxTexture;
+GfxBindingStorageImage :: struct {
+    texture : *GfxTexture;
+}
 
 CreateGfxBindingSetLayout :: ($T : Type) -> GfxBindingSetLayout {
     desc : GfxBindingSetLayoutDesc;
@@ -1879,6 +1891,36 @@ GfxTextureAndViewDesc :: struct {
     first_mipmap_level : u32;
     num_mipmap_levels : u32 = 1;
     num_samples : u32 = 1;
+}
+
+GetTextureMipWidth :: (w : u32, mipmap_level : int) -> u32 {
+    for 1..mipmap_level {
+        w = Max(w / 2, 1);
+    }
+
+    return w;
+}
+
+GetTextureMipHeight :: (h : u32, mipmap_level : int) -> u32 {
+    for 1..mipmap_level {
+        h = Max(h / 2, 1);
+    }
+
+    return h;
+}
+
+GetTextureMipSize :: (w : u32, h : u32, mipmap_level : int) -> w : u32, h : u32 {
+    for 1..mipmap_level {
+        w = Max(w / 2, 1);
+        h = Max(h / 2, 1);
+    }
+
+    return w, h;
+}
+
+GetTextureMipSize :: (desc : GfxTextureAndViewDesc, mipmap_level : int) -> w : u32, h : u32 {
+    w, h := GetTextureMipSize(desc.width, desc.height, mipmap_level);
+    return w, h;
 }
 
 MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureDesc) -> GfxTextureAndViewDesc {
@@ -2924,7 +2966,7 @@ MakeVkImageLayout :: inline (layout : GfxTextureLayout) -> VkImageLayout {
     case .General;                return .GENERAL;
     case .TransferSrc;            return .TRANSFER_SRC_OPTIMAL;
     case .TransferDst;            return .TRANSFER_DST_OPTIMAL;
-    case .ShaderReadOnly;               return .SHADER_READ_ONLY_OPTIMAL ;
+    case .ShaderReadOnly;         return .SHADER_READ_ONLY_OPTIMAL ;
     case .ColorAttachment;        return .COLOR_ATTACHMENT_OPTIMAL;
     case .DepthStencilAttachment; return .DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     case .PresentSrc;             return .PRESENT_SRC_KHR;

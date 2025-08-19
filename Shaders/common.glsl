@@ -55,6 +55,13 @@
     layout(set=0, binding=4) uniform sampler2DArray u_shadow_map_noise_texture
 #endif
 
+#ifdef SHADER_STAGE_COMPUTE
+#define DECLARE_PER_FRAME_PARAMS() \
+    layout(set=0, binding=0, std140) uniform FrameData { \
+        FrameInfo u_frame_info; \
+    }
+#endif
+
 #define Max_Viewpoints 6
 
 #ifdef SHADER_STAGE_VERTEX
@@ -265,20 +272,20 @@ float4 DownsampleBox13(sampler2D s, float2 uv, float2 texel_size) {
     return result;
 }
 
-float4 DownsampleBox13(readonly image2D i, int2 uv) {
-    float4 A = imageLoad(i, uv + int2(-2, -2));
-    float4 B = imageLoad(i, uv + int2( 0, -2));
-    float4 C = imageLoad(i, uv + int2( 2, -2));
-    float4 D = imageLoad(i, uv + int2(-1, -1));
-    float4 E = imageLoad(i, uv + int2( 1, -1));
-    float4 F = imageLoad(i, uv + int2(-2,  0));
-    float4 G = imageLoad(i, uv);
-    float4 H = imageLoad(i, uv + int2( 2,  0));
-    float4 I = imageLoad(i, uv + int2(-1,  1));
-    float4 J = imageLoad(i, uv + int2( 1,  1));
-    float4 K = imageLoad(i, uv + int2(-2,  2));
-    float4 L = imageLoad(i, uv + int2( 0,  2));
-    float4 M = imageLoad(i, uv + int2( 2,  2));
+float4 DownsampleBox13(readonly image2D i, int2 uv, int2 image_size) {
+    float4 A = imageLoad(i, clamp(uv + int2(-2, -2), int2(0), image_size - int2(1)));
+    float4 B = imageLoad(i, clamp(uv + int2( 0, -2), int2(0), image_size - int2(1)));
+    float4 C = imageLoad(i, clamp(uv + int2( 2, -2), int2(0), image_size - int2(1)));
+    float4 D = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
+    float4 E = imageLoad(i, clamp(uv + int2( 1, -1), int2(0), image_size - int2(1)));
+    float4 F = imageLoad(i, clamp(uv + int2(-2,  0), int2(0), image_size - int2(1)));
+    float4 G = imageLoad(i, clamp(uv, int2(0), image_size - int2(1)));
+    float4 H = imageLoad(i, clamp(uv + int2( 2,  0), int2(0), image_size - int2(1)));
+    float4 I = imageLoad(i, clamp(uv + int2(-1,  1), int2(0), image_size - int2(1)));
+    float4 J = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
+    float4 K = imageLoad(i, clamp(uv + int2(-2,  2), int2(0), image_size - int2(1)));
+    float4 L = imageLoad(i, clamp(uv + int2( 0,  2), int2(0), image_size - int2(1)));
+    float4 M = imageLoad(i, clamp(uv + int2( 2,  2), int2(0), image_size - int2(1)));
 
     float4 result = G * 0.125;
     result += (A + C + M + K) * 0.03125;
@@ -330,20 +337,20 @@ float4 DownsampleBox13WithKarisAverage(sampler2D s, float2 uv, float2 texel_size
     return G1 + G2 + G3 + G4 + G5;
 }
 
-float4 DownsampleBox13WithKarisAverage(readonly image2D i, int2 uv) {
-    float4 A = imageLoad(i, uv + int2(-2, -2));
-    float4 B = imageLoad(i, uv + int2( 0, -2));
-    float4 C = imageLoad(i, uv + int2( 2, -2));
-    float4 D = imageLoad(i, uv + int2(-1, -1));
-    float4 E = imageLoad(i, uv + int2( 1, -1));
-    float4 F = imageLoad(i, uv + int2(-2,  0));
-    float4 G = imageLoad(i, uv);
-    float4 H = imageLoad(i, uv + int2( 2,  0));
-    float4 I = imageLoad(i, uv + int2(-1,  1));
-    float4 J = imageLoad(i, uv + int2( 1,  1));
-    float4 K = imageLoad(i, uv + int2(-2,  2));
-    float4 L = imageLoad(i, uv + int2( 0,  2));
-    float4 M = imageLoad(i, uv + int2( 2,  2));
+float4 DownsampleBox13WithKarisAverage(readonly image2D i, int2 uv, int2 image_size) {
+    float4 A = imageLoad(i, clamp(uv + int2(-2, -2), int2(0), image_size - int2(1)));
+    float4 B = imageLoad(i, clamp(uv + int2( 0, -2), int2(0), image_size - int2(1)));
+    float4 C = imageLoad(i, clamp(uv + int2( 2, -2), int2(0), image_size - int2(1)));
+    float4 D = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
+    float4 E = imageLoad(i, clamp(uv + int2( 1, -1), int2(0), image_size - int2(1)));
+    float4 F = imageLoad(i, clamp(uv + int2(-2,  0), int2(0), image_size - int2(1)));
+    float4 G = imageLoad(i, clamp(uv, int2(0), image_size - int2(1)));
+    float4 H = imageLoad(i, clamp(uv + int2( 2,  0), int2(0), image_size - int2(1)));
+    float4 I = imageLoad(i, clamp(uv + int2(-1,  1), int2(0), image_size - int2(1)));
+    float4 J = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
+    float4 K = imageLoad(i, clamp(uv + int2(-2,  2), int2(0), image_size - int2(1)));
+    float4 L = imageLoad(i, clamp(uv + int2( 0,  2), int2(0), image_size - int2(1)));
+    float4 M = imageLoad(i, clamp(uv + int2( 2,  2), int2(0), image_size - int2(1)));
 
     float4 G1 = (A + B + F + G) * (0.125 / 4);
     float4 G2 = (B + C + G + H) * (0.125 / 4);
@@ -385,18 +392,18 @@ float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size) {
     return result;
 }
 
-float4 UpsampleTent9(readonly image2D i, int2 uv) {
-    float4 A = imageLoad(i, uv + int2(-1,  1));
-    float4 B = imageLoad(i, uv + int2( 0,  1));
-    float4 C = imageLoad(i, uv + int2( 1,  1));
+float4 UpsampleTent9(readonly image2D i, int2 uv, int2 image_size) {
+    float4 A = imageLoad(i, clamp(uv + int2(-1,  1), int2(0), image_size - int2(1)));
+    float4 B = imageLoad(i, clamp(uv + int2( 0,  1), int2(0), image_size - int2(1)));
+    float4 C = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
 
-    float4 D = imageLoad(i, uv + int2(-1,  0));
-    float4 E = imageLoad(i, uv);
-    float4 F = imageLoad(i, uv + int2( 1,  0));
+    float4 D = imageLoad(i, clamp(uv + int2(-1,  0), int2(0), image_size - int2(1)));
+    float4 E = imageLoad(i, clamp(uv, int2(0), image_size - int2(1)));
+    float4 F = imageLoad(i, clamp(uv + int2( 1,  0), int2(0), image_size - int2(1)));
 
-    float4 G = imageLoad(i, uv + int2(-1, -1));
-    float4 H = imageLoad(i, uv + int2( 0, -1));
-    float4 I = imageLoad(i, uv + int2( 1, -1));
+    float4 G = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
+    float4 H = imageLoad(i, clamp(uv + int2( 0, -1), int2(0), image_size - int2(1)));
+    float4 I = imageLoad(i, clamp(uv + int2( 1, -1), int2(0), image_size - int2(1)));
 
     // Apply weighted distribution, by using a 3x3 tent filter:
     //  1   | 1 2 1 |
@@ -419,11 +426,11 @@ float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size) {
     return (A + B + C + D) * (1 / 4.0);
 }
 
-float4 SampleBox4(readonly image2D i, int2 uv) {
-    float4 A = imageLoad(i, uv + int2(-1,  1));
-    float4 B = imageLoad(i, uv + int2( 1,  1));
-    float4 C = imageLoad(i, uv + int2(-1, -1));
-    float4 D = imageLoad(i, uv + int2( 1, -1));
+float4 SampleBox4(readonly image2D i, int2 uv, int2 image_size) {
+    float4 A = imageLoad(i, clamp(uv + int2(-1,  1), int2(0), image_size - int2(1)));
+    float4 B = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
+    float4 C = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
+    float4 D = imageLoad(i, clamp(uv + int2( 1, -1), int2(0), image_size - int2(1)));
 
     return (A + B + C + D) * (1 / 4.0);
 }

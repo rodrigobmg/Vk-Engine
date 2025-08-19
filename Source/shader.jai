@@ -284,3 +284,18 @@ CreateGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline, name : string, de
 
     return true;
 }
+
+CreateGfxComputePipeline :: (pipeline : *GfxComputePipeline, name : string, desc : GfxComputePipelineDesc) -> bool {
+    pipeline.* = CreateGfxComputePipeline(name, desc);
+    if IsNull(pipeline) {
+        return false;
+    }
+
+    callback : ShaderReloadCallback;
+    callback.proc = (shader, pipeline) => { DestroyGfxComputePipeline(pipeline); };
+    callback.data = pipeline;
+
+    AddShaderReloadCallback(desc.shader, callback);
+
+    return true;
+}

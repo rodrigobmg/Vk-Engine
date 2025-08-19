@@ -94,6 +94,8 @@ ScopeLongFormStructFormat :: () #expand {
     context.print_style.default_format_struct.use_newlines_if_long_form = true;
 }
 
+Pow :: Math.pow;
+
 Log :: Math.log;
 
 Log10 :: inline (x : float) -> float {

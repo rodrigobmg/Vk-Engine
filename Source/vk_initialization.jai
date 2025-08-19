@@ -196,6 +196,10 @@ InitGfxContext :: (window : *SDL_Window) {
     }
 
     device_features : VkPhysicalDeviceFeatures;
+    // Make out of bounds reads return 0s and out of bounds writes a noop
+    device_features.robustBufferAccess = VK_TRUE;
+    // Allow passing image2D to functions (not possible otherwise as the standard
+    // does not define a way to declare an argument with the image format)
     device_features.shaderStorageImageReadWithoutFormat = VK_TRUE;
     device_features.shaderStorageImageWriteWithoutFormat = VK_TRUE;
 

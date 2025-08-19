@@ -156,6 +156,9 @@ CreateAllPipelines :: () {
     CreateBloomFilterPipeline();
     CreateBloomDownsamplePipeline();
     CreateBloomUpsamplePipeline();
+    CreateBloomFilterComputePipeline();
+    CreateBloomDownsampleComputePipeline();
+    CreateBloomUpsampleComputePipeline();
     CreateDebugLinesPipeline();
     CreateGizmoPipeline();
     CreateGizmoLinesPipeline();
@@ -176,6 +179,9 @@ DestroyAllPipelines :: () {
     DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
+    DestroyGfxComputePipeline(*g_bloom_upsample_compute_pipeline);
+    DestroyGfxComputePipeline(*g_bloom_downsample_compute_pipeline);
+    DestroyGfxComputePipeline(*g_bloom_filter_compute_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_upsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_downsample_pipeline);
     DestroyGfxGraphicsPipeline(*g_bloom_filter_pipeline);
@@ -239,7 +245,7 @@ CreateRenderTargets :: () {
     Assert(!IsNull(*g_final_texture), "Could not create final texture");
 
     texture_desc.pixel_format = .RGBA16Float;
-    texture_desc.usage = .ColorAttachment | .TransferSrc | .Sampled;
+    texture_desc.usage = .ColorAttachment | .TransferSrc | .Sampled | .Storage;
 
     g_color_texture = CreateGfxTexture("Color", texture_desc);
     Assert(!IsNull(*g_color_texture), "Could not create color texture");
@@ -367,7 +373,7 @@ Max_Shadow_Maps :: 2;
 Max_Point_Shadow_Maps :: 20;
 
 FrameBindingSet :: struct {
-    frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
+    frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage @ComputeStage
     directional_lights : GfxBindingStorageBuffer; @Binding(1) @FragmentStage @AllowNull
     point_lights : GfxBindingStorageBuffer; @Binding(2) @FragmentStage @AllowNull
     brdf_lut : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
@@ -660,6 +666,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     ctx.frame_binding_set = CreateGfxBindingSet(GlobalBindingSetAllocator(), frame_binding_set);
     BindGraphicsBindingSet(*cmd_buffer, *g_dummy_frame_pipeline_layout, 0, *ctx.frame_binding_set);
+    BindComputeBindingSet(*cmd_buffer, *g_dummy_frame_pipeline_layout, 0, *ctx.frame_binding_set);
 
     TextureUploadPass(*cmd_buffer);
     GenerateEnvironmentMaps(*cmd_buffer);
@@ -700,10 +707,13 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     AddTextureBarrier(*cmd_buffer, .TransferSrc, .ShaderReadOnly, *g_entity_guid_texture);
 
-    AddTextureBarriers(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*g_color_texture, *g_selected_entity_guid_texture]);
+    AddTextureBarrier(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_selected_entity_guid_texture);
+    AddTextureBarrier(*cmd_buffer, .ColorAttachment, .General, *g_color_texture);
 
-    RenderBloom(*ctx, *g_color_texture);
+    // RenderBloom(*ctx, *g_color_texture);
+    ComputeBloom(*ctx, *g_color_texture);
 
+    AddTextureBarrier(*cmd_buffer, .General, .ShaderReadOnly, *g_color_texture);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     GizmoPass(*ctx, *g_gizmo_ctx);
