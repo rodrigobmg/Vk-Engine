@@ -961,16 +961,24 @@ ShowGPUProfiler :: () {
         return;
     }
 
-    if g_gpu_profiler.recorded_frames.count == 0 {
-        return;
+    start_gpu_tick : u64 = 0xffffffffffffffff;
+    end_gpu_tick : u64 = 0;
+    for g_gpu_profiler.latest_frame {
+        start_gpu_tick = Min(start_gpu_tick, it.start_gpu_tick);
+        end_gpu_tick = Max(end_gpu_tick, it.end_gpu_tick);
     }
 
-    frame_events := g_gpu_profiler.recorded_frames[g_gpu_profiler.recorded_frames.count - 1];
-    for * frame_events {
-        if it.parent {
-            continue;
+    total_frame_time := (end_gpu_tick - start_gpu_tick) * GetGfxLimits().timestamp_tick_period / 1000000.0;
+
+    if ImGui.TreeNodeEx(CTPrint("Frame - % ms###profiler_frame_time", total_frame_time), .DefaultOpen | .OpenOnArrow | .SpanFullWidth) {
+        for * g_gpu_profiler.latest_frame {
+            if it.parent {
+                continue;
+            }
+
+            ShowEvent(it);
         }
 
-        ShowEvent(it);
+        ImGui.TreePop();
     }
 }

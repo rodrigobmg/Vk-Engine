@@ -8,7 +8,7 @@ GPUFrameProfiler :: struct {
     query_pool_capacity : u32;
     events_for_frame : [Gfx_Num_Frames_In_Flight][]GPUProfilingEvent;
     num_events_for_frame : [Gfx_Num_Frames_In_Flight]int;
-    recorded_frames : [..][]GPUProfilingEvent;
+    latest_frame : []GPUProfilingEvent;
     frame_index : int;
 
     current_event : *GPUProfilingEvent;
@@ -46,15 +46,11 @@ InitGPUFrameProfiler :: (profiler : *GPUFrameProfiler, max_events : int) {
         it.* = AllocArray(GPUProfilingEvent, max_events);
     }
 
-    ArrayReserve(*profiler.recorded_frames, 1000);
+    profiler.latest_frame = AllocArray(GPUProfilingEvent, max_events);
 }
 
 DestroyGPUFrameProfiler :: (profiler : *GPUFrameProfiler) {
-    for profiler.recorded_frames {
-        Free(it.data);
-    }
-
-    ArrayFree(*profiler.recorded_frames);
+    Free(profiler.latest_frame.data);
 
     for profiler.events_for_frame {
         Free(it.data);
@@ -76,16 +72,15 @@ ProfilerBeginFrame :: (profiler : *GPUFrameProfiler) {
     if profiler.frame_index >= 3 {
         vkGetQueryPoolResults(g_gfx_context.device, profiler.query_pools[g_gfx_context.frame_in_flight], 0, profiler.query_pool_capacity, profiler.query_pool_capacity * size_of(u64), profiler.query_results.data, size_of(u64), ._64_BIT);
 
-        frame := ArrayPush(*profiler.recorded_frames);
-        frame.* = AllocArray(GPUProfilingEvent, profiler.num_events_for_frame[g_gfx_context.frame_in_flight]);
-        for * frame.* {
+        profiler.latest_frame.count = profiler.num_events_for_frame[g_gfx_context.frame_in_flight];
+        for * profiler.latest_frame {
             event := profiler.events_for_frame[g_gfx_context.frame_in_flight][it_index];
             it.* = event;
             it.start_gpu_tick = profiler.query_results[it_index * 2 + 0];
             it.end_gpu_tick   = profiler.query_results[it_index * 2 + 1];
             it.elapsed_time_ms = (it.end_gpu_tick - it.start_gpu_tick) * GetGfxLimits().timestamp_tick_period / 1000000.0;
             if event.parent {
-                it.parent = *(frame.*)[event.parent.index];
+                it.parent = *profiler.latest_frame[event.parent.index];
 
                 if !it.parent.first_child {
                     it.parent.first_child = it;
