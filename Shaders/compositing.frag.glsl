@@ -49,7 +49,7 @@ void main() {
     float3 color = FXAA(u_color_texture, in_position, 1 / u_frame_info.window_pixel_size).rgb;
 
     int2 bloom_size = textureSize(u_bloom_texture, 0);
-    float4 bloom = SampleBox4(u_bloom_texture, in_position, 1 / float2(bloom_size));
+    float4 bloom = UpsampleTent9(u_bloom_texture, in_position, 1 / float2(bloom_size));
     color += bloom.rgb * u_frame_info.bloom_params.blend_intensity;
 
     color = ApplyToneMapping(color);
