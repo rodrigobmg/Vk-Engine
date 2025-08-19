@@ -18,6 +18,7 @@ Supports Linux and Windows.
 * Bloom
 * Omnidirectional shadow maps
 * Simple editor with gizmos
+* Simple GPU profiler
 
 ## To explore/implement next:
 * Global illumination
