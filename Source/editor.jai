@@ -961,6 +961,14 @@ ShowGPUProfiler :: () {
         return;
     }
 
+    ImGui.SeparatorText("GPU Timings");
+
+    prev_format_float := context.print_style.default_format_float;
+    defer context.print_style.default_format_float = prev_format_float;
+    context.print_style.default_format_float.width = 6;
+    context.print_style.default_format_float.trailing_width = 3;
+    context.print_style.default_format_float.zero_removal = .NO;
+
     start_gpu_tick : u64 = 0xffffffffffffffff;
     end_gpu_tick : u64 = 0;
     for g_gpu_profiler.latest_frame {
