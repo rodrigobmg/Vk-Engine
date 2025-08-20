@@ -527,13 +527,13 @@ SetEditorStyleMoonlight :: () {
     style := ImGui.GetStyle();
     style.Constructor(style);
 
-    style.WindowRounding = 6;
     style.WindowMenuButtonPosition = .Right;
+    style.WindowRounding = 4;
     style.ChildRounding = 3;
-    style.FrameRounding = 4;
-    style.PopupRounding = 3;
+    style.FrameRounding = 3;
+    style.PopupRounding = 2;
     style.GrabRounding = 4;
-    style.TabRounding = 6;
+    style.TabRounding = 3;
     style.FramePadding = .{6, 6};
     style.SeparatorTextBorderSize = 1;
     style.FrameBorderSize = 1;
