@@ -20,7 +20,7 @@ CreateKawaseBlurTextures :: (using blur : *KawaseBlur, num_iterations : int, bas
     desc.width = Max(cast(u32, base_texture_desc.width * resolution_factor) / 2, 1);
     desc.height = Max(cast(u32, base_texture_desc.height * resolution_factor) / 2, 1);
     desc.num_mipmap_levels = xx num_iterations;
-    desc.usage = .ColorAttachment | .Sampled;
+    desc.usage = .ColorAttachment | .Sampled | .Storage;
 
     downsample_texture = CreateGfxTexture("Kawase Downsample", desc);
 
@@ -63,134 +63,106 @@ DestroyKawaseBlur :: (using blur : *KawaseBlur) {
     blur.* = .{};
 }
 
-KawaseBlurBindingSet :: struct {
-    texture : GfxBindingCombinedTextureSampler; @Binding(0) @FragmentStage
+Kawase_Bur_Compute_Work_Group_Size :: 16;
+
+KawaseBlurComputeBindingSet :: struct {
+    src_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
+    dst_image : GfxBindingStorageImage; @Binding(1) @ComputeStage
 } @BindingSet
 
-g_kawase_blur_downsample_pipeline : [#run type_info(GfxPixelFormat).values.count]GfxGraphicsPipeline;
-g_kawase_blur_upsample_pipeline : [#run type_info(GfxPixelFormat).values.count]GfxGraphicsPipeline;
+g_kawase_blur_downsample_compute_pipeline : GfxComputePipeline;
+g_kawase_blur_upsample_compute_pipeline : GfxComputePipeline;
 
-CreateKawaseBlurDownsamplePipeline :: (pixel_format : GfxPixelFormat) {
-    desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("screen_effect");
-    desc.fragment_shader = GetFragmentShader("kawase_blur_downsample");
-    AddColorAttachment(*desc, pixel_format);
-
+CreateKawaseBlurDownsampleComputePipeline :: () {
+    desc : GfxComputePipelineDesc;
+    desc.shader = GetComputeShader("kawase_blur_downsample");
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.KawaseBlurBindingSet,
+        g_binding_set_layouts.KawaseBlurComputeBindingSet,
     ];
 
-    ok := CreateGfxGraphicsPipeline(*g_kawase_blur_downsample_pipeline[pixel_format], TPrint("Kawase Downsample, %", pixel_format), desc);
-    Assert(ok, "Could not create kawase blur downsample pipeline for pixel format %", pixel_format);
+    ok := CreateGfxComputePipeline(*g_kawase_blur_downsample_compute_pipeline, "Kawase Blur Downsample", desc);
+    Assert(ok, "Could not create kawase blur downsample compute pipeline");
 }
 
-CreateKawaseBlurUpsamplePipeline :: (pixel_format : GfxPixelFormat) {
-    desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("screen_effect");
-    desc.fragment_shader = GetFragmentShader("kawase_blur_upsample");
-    AddColorAttachment(*desc, pixel_format);
-
+CreateKawaseBlurUpsampleComputePipeline :: () {
+    desc : GfxComputePipelineDesc;
+    desc.shader = GetComputeShader("kawase_blur_upsample");
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.KawaseBlurBindingSet,
+        g_binding_set_layouts.KawaseBlurComputeBindingSet,
     ];
 
-    ok := CreateGfxGraphicsPipeline(*g_kawase_blur_upsample_pipeline[pixel_format], TPrint("Kawase Upsample, %", pixel_format), desc);
-    Assert(ok, "Could not create kawase blur upsample pipeline for pixel format %", pixel_format);
+    ok := CreateGfxComputePipeline(*g_kawase_blur_upsample_compute_pipeline, "Kawase Blur Upsample", desc);
+    Assert(ok, "Could not create kawase blur upsample compute pipeline");
 }
 
-KawaseBlurDownsample :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_texture : *GfxTexture, level : int) {
-    if IsNull(*g_kawase_blur_downsample_pipeline[blur.downsample_texture.desc.pixel_format]) {
-        CreateKawaseBlurDownsamplePipeline(blur.downsample_texture.desc.pixel_format);
-    }
-
-    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *blur.downsample_levels[level]);
-
-    w := blur.downsample_texture.desc.width;
-    h := blur.downsample_texture.desc.height;
-    for 0..level - 1 {
-        w = Max(w / 2, 1);
-        h = Max(h / 2, 1);
-    }
-
-    bindings := KawaseBlurBindingSet.{
-        texture=.{texture=ifx level == 0 then base_texture else *blur.downsample_levels[level - 1], sampler=*g_linear_clamp_sampler},
-    };
-    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
-
-    pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *blur.downsample_levels[level]);
-
-    pass := BeginGfxRenderPass(cmd_buffer, "Kawase Blur Downsample", pass_desc);
-    {
-        BindGraphicsPipeline(*pass, *g_kawase_blur_downsample_pipeline[blur.downsample_texture.desc.pixel_format]);
-        SetViewport(*pass, .{width=xx w, height=xx h});
-        SetScissor(*pass, .{w=xx w, h=xx h});
-
-        BindGraphicsBindingSet(*pass, 1, *binding_set);
-
-        Draw(*pass, vertex_count=6, instance_count=1);
-    }
-    EndGfxRenderPass(*pass);
-
-    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *blur.downsample_levels[level]);
-}
-
-KawaseBlurUpsample :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, level : int) {
-    if IsNull(*g_kawase_blur_upsample_pipeline[blur.upsample_texture.desc.pixel_format]) {
-        CreateKawaseBlurUpsamplePipeline(blur.upsample_texture.desc.pixel_format);
-    }
-
-    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *blur.upsample_levels[level]);
-
-    w := blur.upsample_texture.desc.width;
-    h := blur.upsample_texture.desc.height;
-    for 0..level - 1 {
-        w = Max(w / 2, 1);
-        h = Max(h / 2, 1);
-    }
-
-    bindings := KawaseBlurBindingSet.{
-        texture=.{sampler=*g_linear_clamp_sampler},
-    };
-    if level == blur.upsample_levels.count - 1 {
-        bindings.texture.texture = *blur.downsample_levels[blur.downsample_levels.count - 1];
-    } else {
-        bindings.texture.texture = *blur.upsample_levels[level + 1];
-    }
-
-    binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
-
-    pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *blur.upsample_levels[level]);
-
-    pass := BeginGfxRenderPass(cmd_buffer, "Kawase Blur Upsample", pass_desc);
-    {
-        BindGraphicsPipeline(*pass, *g_kawase_blur_upsample_pipeline[blur.upsample_texture.desc.pixel_format]);
-        SetViewport(*pass, .{width=xx w, height=xx h});
-        SetScissor(*pass, .{w=xx w, h=xx h});
-
-        BindGraphicsBindingSet(*pass, 1, *binding_set);
-
-        Draw(*pass, vertex_count=6, instance_count=1);
-    }
-    EndGfxRenderPass(*pass);
-
-    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *blur.upsample_levels[level]);
-}
-
-RenderKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_texture : *GfxTexture) {
+ComputeKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_texture : *GfxTexture) {
     BeginGfxDebugMarker(cmd_buffer, "Kawase Blur");
     defer EndGfxDebugMarker(cmd_buffer);
 
     ProfileGPUZone(cmd_buffer, *g_gpu_profiler, "Kawase Blur");
 
-    for i : 0..blur.downsample_levels.count - 1 {
-        KawaseBlurDownsample(cmd_buffer, blur, base_texture, i);
+    if IsNull(*g_kawase_blur_downsample_compute_pipeline) {
+        CreateKawaseBlurDownsampleComputePipeline();
+    }
+    if IsNull(*g_kawase_blur_upsample_compute_pipeline) {
+        CreateKawaseBlurUpsampleComputePipeline();
     }
 
-    for #v2 < i : 0..blur.upsample_levels.count - 1 {
-        KawaseBlurUpsample(cmd_buffer, blur, i);
+    AddTextureBarriers(cmd_buffer, .Undefined, .General, .[*blur.downsample_texture, *blur.upsample_texture]);
+
+    pass := BeginGfxComputePass(cmd_buffer, "Kawase Blur Downsample");
+    {
+        BindComputePipeline(*pass, *g_kawase_blur_downsample_compute_pipeline);
+
+        for i : 0..blur.downsample_levels.count - 1 {
+            bindings := KawaseBlurComputeBindingSet.{
+                dst_image=.{*blur.downsample_levels[i]},
+            };
+
+            if i == 0 {
+                bindings.src_image = .{base_texture};
+            } else {
+                bindings.src_image = .{*blur.downsample_levels[i - 1]};
+            }
+
+            binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
+            BindComputeBindingSet(*pass, 1, *binding_set);
+
+            num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(blur.downsample_texture.desc, i, Kawase_Bur_Compute_Work_Group_Size);
+
+            Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
+            AddBarrier(cmd_buffer);
+        }
     }
+    EndGfxComputePass(*pass);
+
+    pass = BeginGfxComputePass(cmd_buffer, "Kawase Blur Upsample");
+    {
+        BindComputePipeline(*pass, *g_kawase_blur_upsample_compute_pipeline);
+
+        for #v2 < i : 0..blur.upsample_levels.count - 1 {
+            bindings := KawaseBlurComputeBindingSet.{
+                dst_image=.{*blur.upsample_levels[i]},
+            };
+
+            if i == blur.upsample_levels.count - 1 {
+                bindings.src_image = .{*blur.downsample_levels[blur.downsample_levels.count - 1]};
+            } else {
+                bindings.src_image = .{*blur.upsample_levels[i + 1]};
+            }
+
+            binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
+            BindComputeBindingSet(*pass, 1, *binding_set);
+
+            num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(blur.upsample_texture.desc, i, Kawase_Bur_Compute_Work_Group_Size);
+
+            Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
+            AddBarrier(cmd_buffer);
+        }
+    }
+    EndGfxComputePass(*pass);
+
+    AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, GetFinalTexture(blur));
 }

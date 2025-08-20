@@ -250,19 +250,19 @@ float3 SphericalToCartesian(float azimuth, float polar) {
 // . K . L . M .
 // . . . . . . .
 float4 DownsampleBox13(sampler2D s, float2 uv, float2 texel_size) {
-    float4 A = texture(s, uv + texel_size * 2 * float2(-1.0, -1.0));
-    float4 B = texture(s, uv + texel_size * 2 * float2( 0.0, -1.0));
-    float4 C = texture(s, uv + texel_size * 2 * float2( 1.0, -1.0));
-    float4 D = texture(s, uv + texel_size * 2 * float2(-0.5, -0.5));
-    float4 E = texture(s, uv + texel_size * 2 * float2( 0.5, -0.5));
-    float4 F = texture(s, uv + texel_size * 2 * float2(-1.0,  0.0));
-    float4 G = texture(s, uv);
-    float4 H = texture(s, uv + texel_size * 2 * float2( 1.0,  0.0));
-    float4 I = texture(s, uv + texel_size * 2 * float2(-0.5,  0.5));
-    float4 J = texture(s, uv + texel_size * 2 * float2( 0.5,  0.5));
-    float4 K = texture(s, uv + texel_size * 2 * float2(-1.0,  1.0));
-    float4 L = texture(s, uv + texel_size * 2 * float2( 0.0,  1.0));
-    float4 M = texture(s, uv + texel_size * 2 * float2( 1.0,  1.0));
+    float4 A = textureLod(s, uv + texel_size * float2(-2, -2), 0);
+    float4 B = textureLod(s, uv + texel_size * float2( 0, -2), 0);
+    float4 C = textureLod(s, uv + texel_size * float2( 2, -2), 0);
+    float4 D = textureLod(s, uv + texel_size * float2(-1, -1), 0);
+    float4 E = textureLod(s, uv + texel_size * float2( 1, -1), 0);
+    float4 F = textureLod(s, uv + texel_size * float2(-2,  0), 0);
+    float4 G = textureLod(s, uv, 0);
+    float4 H = textureLod(s, uv + texel_size * float2( 2,  0), 0);
+    float4 I = textureLod(s, uv + texel_size * float2(-1,  1), 0);
+    float4 J = textureLod(s, uv + texel_size * float2( 1,  1), 0);
+    float4 K = textureLod(s, uv + texel_size * float2(-2,  2), 0);
+    float4 L = textureLod(s, uv + texel_size * float2( 0,  2), 0);
+    float4 M = textureLod(s, uv + texel_size * float2( 2,  2), 0);
 
     float4 result = G * 0.125;
     result += (A + C + M + K) * 0.03125;
@@ -309,19 +309,19 @@ float KarisAverage(float3 color) {
 // . K . L . M .
 // . . . . . . .
 float4 DownsampleBox13WithKarisAverage(sampler2D s, float2 uv, float2 texel_size) {
-    float4 A = texture(s, uv + texel_size * 2 * float2(-1.0, -1.0));
-    float4 B = texture(s, uv + texel_size * 2 * float2( 0.0, -1.0));
-    float4 C = texture(s, uv + texel_size * 2 * float2( 1.0, -1.0));
-    float4 D = texture(s, uv + texel_size * 2 * float2(-0.5, -0.5));
-    float4 E = texture(s, uv + texel_size * 2 * float2( 0.5, -0.5));
-    float4 F = texture(s, uv + texel_size * 2 * float2(-1.0,  0.0));
-    float4 G = texture(s, uv);
-    float4 H = texture(s, uv + texel_size * 2 * float2( 1.0,  0.0));
-    float4 I = texture(s, uv + texel_size * 2 * float2(-0.5,  0.5));
-    float4 J = texture(s, uv + texel_size * 2 * float2( 0.5,  0.5));
-    float4 K = texture(s, uv + texel_size * 2 * float2(-1.0,  1.0));
-    float4 L = texture(s, uv + texel_size * 2 * float2( 0.0,  1.0));
-    float4 M = texture(s, uv + texel_size * 2 * float2( 1.0,  1.0));
+    float4 A = textureLod(s, uv + texel_size * float2(-2, -2), 0);
+    float4 B = textureLod(s, uv + texel_size * float2( 0, -2), 0);
+    float4 C = textureLod(s, uv + texel_size * float2( 2, -2), 0);
+    float4 D = textureLod(s, uv + texel_size * float2(-1, -1), 0);
+    float4 E = textureLod(s, uv + texel_size * float2( 1, -1), 0);
+    float4 F = textureLod(s, uv + texel_size * float2(-2,  0), 0);
+    float4 G = textureLod(s, uv, 0);
+    float4 H = textureLod(s, uv + texel_size * float2( 2,  0), 0);
+    float4 I = textureLod(s, uv + texel_size * float2(-1,  1), 0);
+    float4 J = textureLod(s, uv + texel_size * float2( 1,  1), 0);
+    float4 K = textureLod(s, uv + texel_size * float2(-2,  2), 0);
+    float4 L = textureLod(s, uv + texel_size * float2( 0,  2), 0);
+    float4 M = textureLod(s, uv + texel_size * float2( 2,  2), 0);
 
     float4 G1 = (A + B + F + G) * (0.125 / 4);
     float4 G2 = (B + C + G + H) * (0.125 / 4);
@@ -368,17 +368,17 @@ float4 DownsampleBox13WithKarisAverage(readonly image2D i, int2 uv, int2 image_s
 
 // [Jimenez14] https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/
 float4 UpsampleTent9(sampler2D s, float2 uv, float2 texel_size) {
-    float4 A = texture(s, uv + float2(-texel_size.x,  texel_size.y));
-    float4 B = texture(s, uv + float2(            0,  texel_size.y));
-    float4 C = texture(s, uv + float2( texel_size.x,  texel_size.y));
+    float4 A = textureLod(s, uv + float2(-texel_size.x,  texel_size.y), 0);
+    float4 B = textureLod(s, uv + float2(            0,  texel_size.y), 0);
+    float4 C = textureLod(s, uv + float2( texel_size.x,  texel_size.y), 0);
 
-    float4 D = texture(s, uv + float2(-texel_size.x,  0));
-    float4 E = texture(s, uv);
-    float4 F = texture(s, uv + float2( texel_size.x,  0));
+    float4 D = textureLod(s, uv + float2(-texel_size.x,  0), 0);
+    float4 E = textureLod(s, uv, 0);
+    float4 F = textureLod(s, uv + float2( texel_size.x,  0), 0);
 
-    float4 G = texture(s, uv + float2(-texel_size.x, -texel_size.y));
-    float4 H = texture(s, uv + float2(            0, -texel_size.y));
-    float4 I = texture(s, uv + float2( texel_size.x, -texel_size.y));
+    float4 G = textureLod(s, uv + float2(-texel_size.x, -texel_size.y), 0);
+    float4 H = textureLod(s, uv + float2(            0, -texel_size.y), 0);
+    float4 I = textureLod(s, uv + float2( texel_size.x, -texel_size.y), 0);
 
     // Apply weighted distribution, by using a 3x3 tent filter:
     //  1   | 1 2 1 |
@@ -418,10 +418,10 @@ float4 UpsampleTent9(readonly image2D i, int2 uv, int2 image_size) {
 }
 
 float4 SampleBox4(sampler2D s, float2 uv, float2 texel_size) {
-    float4 A = texture(s, uv + float2(-texel_size.x,  texel_size.y));
-    float4 B = texture(s, uv + float2( texel_size.x,  texel_size.y));
-    float4 C = texture(s, uv + float2(-texel_size.x, -texel_size.y));
-    float4 D = texture(s, uv + float2( texel_size.x, -texel_size.y));
+    float4 A = textureLod(s, uv + float2(-texel_size.x,  texel_size.y), 0);
+    float4 B = textureLod(s, uv + float2( texel_size.x,  texel_size.y), 0);
+    float4 C = textureLod(s, uv + float2(-texel_size.x, -texel_size.y), 0);
+    float4 D = textureLod(s, uv + float2( texel_size.x, -texel_size.y), 0);
 
     return (A + B + C + D) * (1 / 4.0);
 }

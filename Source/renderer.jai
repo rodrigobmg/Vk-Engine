@@ -163,26 +163,19 @@ CreateAllPipelines :: () {
     CreateBloomFilterComputePipeline();
     CreateBloomDownsampleComputePipeline();
     CreateBloomUpsampleComputePipeline();
+    CreateKawaseBlurDownsampleComputePipeline();
+    CreateKawaseBlurUpsampleComputePipeline();
     CreateDebugLinesPipeline();
     CreateGizmoPipeline();
     CreateGizmoLinesPipeline();
 }
 
 DestroyAllPipelines :: () {
-    for * g_kawase_blur_downsample_pipeline {
-        if !IsNull(it) {
-            DestroyGfxGraphicsPipeline(it);
-        }
-    }
-    for * g_kawase_blur_upsample_pipeline {
-        if !IsNull(it) {
-            DestroyGfxGraphicsPipeline(it);
-        }
-    }
-
     DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
+    DestroyGfxComputePipeline(*g_kawase_blur_upsample_compute_pipeline);
+    DestroyGfxComputePipeline(*g_kawase_blur_downsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_upsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_downsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_filter_compute_pipeline);
@@ -440,7 +433,7 @@ ViewpointsData :: struct {
     viewpoints : [Max_Viewpoints]Viewpoint;
 }
 
-MakeViewpoint :: (camera : *Camera) -> Viewpoint {
+MakeViewpoint :: inline (camera : *Camera) -> Viewpoint {
     w, h := GetWindowPixelSize(g_window);
 
     return .{
@@ -715,15 +708,15 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     // RenderBloom(*ctx, *g_color_texture);
     ComputeBloom(*ctx, *g_color_texture);
+    if g_editor_settings.use_blur_effect {
+        ComputeKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
+    }
 
     AddTextureBarrier(*cmd_buffer, .General, .ShaderReadOnly, *g_color_texture);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     GizmoPass(*ctx, *g_gizmo_ctx);
     ImGuiPass(*cmd_buffer, ImGui.GetDrawData());
-    if g_editor_settings.use_blur_effect {
-        RenderKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
-    }
 
     CompositingPass(*ctx);
 
