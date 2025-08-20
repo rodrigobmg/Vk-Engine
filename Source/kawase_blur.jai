@@ -66,7 +66,7 @@ DestroyKawaseBlur :: (using blur : *KawaseBlur) {
 Kawase_Bur_Compute_Work_Group_Size :: 16;
 
 KawaseBlurComputeBindingSet :: struct {
-    src_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
+    src_texture : GfxBindingCombinedTextureSampler; @Binding(0) @ComputeStage
     dst_image : GfxBindingStorageImage; @Binding(1) @ComputeStage
 } @BindingSet
 
@@ -110,8 +110,6 @@ ComputeKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_t
         CreateKawaseBlurUpsampleComputePipeline();
     }
 
-    AddTextureBarriers(cmd_buffer, .Undefined, .General, .[*blur.downsample_texture, *blur.upsample_texture]);
-
     pass := BeginGfxComputePass(cmd_buffer, "Kawase Blur Downsample");
     {
         BindComputePipeline(*pass, *g_kawase_blur_downsample_compute_pipeline);
@@ -122,10 +120,12 @@ ComputeKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_t
             };
 
             if i == 0 {
-                bindings.src_image = .{base_texture};
+                bindings.src_texture = .{texture=base_texture, sampler=*g_linear_clamp_sampler};
             } else {
-                bindings.src_image = .{*blur.downsample_levels[i - 1]};
+                bindings.src_texture = .{texture=*blur.downsample_levels[i - 1], sampler=*g_linear_clamp_sampler};
             }
+
+            AddTextureBarrier(cmd_buffer, .Undefined, .General, *blur.downsample_levels[i]);
 
             binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
             BindComputeBindingSet(*pass, 1, *binding_set);
@@ -133,7 +133,8 @@ ComputeKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_t
             num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(blur.downsample_texture.desc, i, Kawase_Bur_Compute_Work_Group_Size);
 
             Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
-            AddBarrier(cmd_buffer);
+
+            AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *blur.downsample_levels[i]);
         }
     }
     EndGfxComputePass(*pass);
@@ -148,10 +149,12 @@ ComputeKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_t
             };
 
             if i == blur.upsample_levels.count - 1 {
-                bindings.src_image = .{*blur.downsample_levels[blur.downsample_levels.count - 1]};
+                bindings.src_texture = .{texture=*blur.downsample_levels[blur.downsample_levels.count - 1], sampler=*g_linear_clamp_sampler};
             } else {
-                bindings.src_image = .{*blur.upsample_levels[i + 1]};
+                bindings.src_texture = .{texture=*blur.upsample_levels[i + 1], sampler=*g_linear_clamp_sampler};
             }
+
+            AddTextureBarrier(cmd_buffer, .Undefined, .General, *blur.upsample_levels[i]);
 
             binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
             BindComputeBindingSet(*pass, 1, *binding_set);
@@ -159,10 +162,9 @@ ComputeKawaseBlur :: (cmd_buffer : *GfxCommandBuffer, blur : *KawaseBlur, base_t
             num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(blur.upsample_texture.desc, i, Kawase_Bur_Compute_Work_Group_Size);
 
             Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
-            AddBarrier(cmd_buffer);
+
+            AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *blur.upsample_levels[i]);
         }
     }
     EndGfxComputePass(*pass);
-
-    AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, GetFinalTexture(blur));
 }

@@ -708,11 +708,13 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     // RenderBloom(*ctx, *g_color_texture);
     ComputeBloom(*ctx, *g_color_texture);
+
+    AddTextureBarrier(*cmd_buffer, .General, .ShaderReadOnly, *g_color_texture);
+
     if g_editor_settings.use_blur_effect {
         ComputeKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
     }
 
-    AddTextureBarrier(*cmd_buffer, .General, .ShaderReadOnly, *g_color_texture);
     AddTextureBarrier(*cmd_buffer, .Undefined, .ColorAttachment, *g_final_texture);
 
     GizmoPass(*ctx, *g_gizmo_ctx);

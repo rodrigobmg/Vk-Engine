@@ -279,7 +279,7 @@ float4 DownsampleBox13(readonly image2D i, int2 uv, int2 image_size) {
     float4 D = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
     float4 E = imageLoad(i, clamp(uv + int2( 1, -1), int2(0), image_size - int2(1)));
     float4 F = imageLoad(i, clamp(uv + int2(-2,  0), int2(0), image_size - int2(1)));
-    float4 G = imageLoad(i, clamp(uv, int2(0), image_size - int2(1)));
+    float4 G = imageLoad(i, clamp(uv,                int2(0), image_size - int2(1)));
     float4 H = imageLoad(i, clamp(uv + int2( 2,  0), int2(0), image_size - int2(1)));
     float4 I = imageLoad(i, clamp(uv + int2(-1,  1), int2(0), image_size - int2(1)));
     float4 J = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
@@ -344,7 +344,7 @@ float4 DownsampleBox13WithKarisAverage(readonly image2D i, int2 uv, int2 image_s
     float4 D = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
     float4 E = imageLoad(i, clamp(uv + int2( 1, -1), int2(0), image_size - int2(1)));
     float4 F = imageLoad(i, clamp(uv + int2(-2,  0), int2(0), image_size - int2(1)));
-    float4 G = imageLoad(i, clamp(uv, int2(0), image_size - int2(1)));
+    float4 G = imageLoad(i, clamp(uv,                int2(0), image_size - int2(1)));
     float4 H = imageLoad(i, clamp(uv + int2( 2,  0), int2(0), image_size - int2(1)));
     float4 I = imageLoad(i, clamp(uv + int2(-1,  1), int2(0), image_size - int2(1)));
     float4 J = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
@@ -398,7 +398,7 @@ float4 UpsampleTent9(readonly image2D i, int2 uv, int2 image_size) {
     float4 C = imageLoad(i, clamp(uv + int2( 1,  1), int2(0), image_size - int2(1)));
 
     float4 D = imageLoad(i, clamp(uv + int2(-1,  0), int2(0), image_size - int2(1)));
-    float4 E = imageLoad(i, clamp(uv, int2(0), image_size - int2(1)));
+    float4 E = imageLoad(i, clamp(uv,                int2(0), image_size - int2(1)));
     float4 F = imageLoad(i, clamp(uv + int2( 1,  0), int2(0), image_size - int2(1)));
 
     float4 G = imageLoad(i, clamp(uv + int2(-1, -1), int2(0), image_size - int2(1)));
