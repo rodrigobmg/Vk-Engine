@@ -447,4 +447,8 @@ float3 BlendRGBPreMultipliedAlpha(float3 dst, float3 src, float alpha) {
     return src + dst * (1 - alpha);
 }
 
+float2 IntegerToNormalizedTexCoords(int2 integer_coords, int2 size) {
+    return float2((integer_coords + float2(0.5)) / float2(size));
+}
+
 #endif

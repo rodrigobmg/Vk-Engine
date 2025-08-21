@@ -70,9 +70,8 @@ void main() {
         return;
     }
 
-    float NdotV = (dst_coords.x + 0.5) / float(dst_size.x);
-    float roughness = (dst_coords.y + 0.5) / float(dst_size.y);
-    float2 result = IntegrateBRDF(NdotV, roughness);
+    float2 coords = IntegerToNormalizedTexCoords(dst_coords, dst_size);
+    float2 result = IntegrateBRDF(coords.x, coords.y);
 
     imageStore(u_dst_image, dst_coords, float4(result, 0, 1));
 }
