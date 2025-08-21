@@ -191,7 +191,6 @@ DestroyAllPipelines :: () {
     DestroyGfxSampler(*g_entity_guid_sampler);
 
     DestroyGfxTexture(*g_brdf_lut);
-    DestroyGfxGraphicsPipeline(*g_brdf_lut_pipeline);
     DestroyGfxComputePipeline(*g_brdf_lut_compute_pipeline);
 
     DestroyGfxSampler(*g_material_texture_sampler);
@@ -748,7 +747,6 @@ RenderFrame :: (world : *World, camera : *Camera) {
 }
 
 g_brdf_lut : GfxTexture;
-g_brdf_lut_pipeline : GfxGraphicsPipeline;
 g_brdf_lut_compute_pipeline : GfxComputePipeline;
 
 BRDF_LUT_Resolution : u32 : 512;
