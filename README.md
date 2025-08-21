@@ -26,7 +26,6 @@ Supports Linux and Windows.
 * Depth prepass
 * Clustered forward rendering
 * GTAO
-* Compute shaders
 * Subsurface scattering
 * Volumetric clouds
 * Automatic texture transition barriers
