@@ -191,8 +191,8 @@ DestroyAllPipelines :: () {
     DestroyGfxSampler(*g_entity_guid_sampler);
 
     DestroyGfxTexture(*g_brdf_lut);
-    DestroyGfxSampler(*g_brdf_lut_sampler);
     DestroyGfxGraphicsPipeline(*g_brdf_lut_pipeline);
+    DestroyGfxComputePipeline(*g_brdf_lut_compute_pipeline);
 
     DestroyGfxSampler(*g_material_texture_sampler);
 
@@ -656,7 +656,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         frame_info=.{buffer=FrameDataBuffer(), offset=xx frame_info_offset, size=xx frame_info_size},
         directional_lights=.{buffer=FrameDataBuffer(), offset=xx directional_lights_offset, size=xx directional_lights_size},
         point_lights=.{buffer=FrameDataBuffer(), offset=xx point_lights_offset, size=xx point_lights_size},
-        brdf_lut=.{texture=*g_brdf_lut, sampler=*g_brdf_lut_sampler},
+        brdf_lut=.{texture=*g_brdf_lut, sampler=*g_linear_clamp_sampler},
         shadow_map_noise=.{texture=*g_shadow_map_noise_texture, sampler=*g_shadow_map_noise_sampler},
     };
 
@@ -748,10 +748,15 @@ RenderFrame :: (world : *World, camera : *Camera) {
 }
 
 g_brdf_lut : GfxTexture;
-g_brdf_lut_sampler : GfxSampler;
 g_brdf_lut_pipeline : GfxGraphicsPipeline;
+g_brdf_lut_compute_pipeline : GfxComputePipeline;
 
 BRDF_LUT_Resolution : u32 : 512;
+BRDF_LUT_Compute_Work_Group_Size :: 16;
+
+BRDFLUTBindingSet :: struct {
+    dst_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
+} @BindingSet
 
 RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
     texture_desc : GfxTextureDesc;
@@ -759,44 +764,39 @@ RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
     texture_desc.pixel_format = .RGBA16Float;
     texture_desc.width = BRDF_LUT_Resolution;
     texture_desc.height = BRDF_LUT_Resolution;
-    texture_desc.usage = .ColorAttachment | .Sampled;
+    texture_desc.usage = .Storage | .Sampled;
 
     g_brdf_lut = CreateGfxTexture("BRDF LUT", texture_desc);
     Assert(!IsNull(*g_brdf_lut), "Could not create BRDF LUT texture");
 
-    sampler_desc : GfxSamplerDesc;
-    sampler_desc.min_filter = .Linear;
-    sampler_desc.mag_filter = .Linear;
-    sampler_desc.u_address_mode = .ClampToEdge;
-    sampler_desc.v_address_mode = .ClampToEdge;
+    pipeline_desc : GfxComputePipelineDesc;
+    pipeline_desc.shader = GetComputeShader("brdf_lut");
+    pipeline_desc.layout.binding_sets = .[
+        g_binding_set_layouts.BRDFLUTBindingSet,
+    ];
 
-    g_brdf_lut_sampler = CreateGfxSampler("BRDF LUT", sampler_desc);
-    Assert(!IsNull(*g_brdf_lut_sampler), "Could not create BRDF LUT sampler");
+    g_brdf_lut_compute_pipeline = CreateGfxComputePipeline("BRDF LUT", pipeline_desc);
+    Assert(!IsNull(*g_brdf_lut_compute_pipeline), "Could not create BRDF LUT pipeline");
 
-    pipeline_desc : GfxGraphicsPipelineDesc;
-    pipeline_desc.vertex_shader = GetVertexShader("screen_effect");
-    pipeline_desc.fragment_shader = GetFragmentShader("brdf_lut");
-    AddColorAttachment(*pipeline_desc, g_brdf_lut.desc.pixel_format);
+    AddTextureBarrier(cmd_buffer, .Undefined, .General, *g_brdf_lut);
 
-    g_brdf_lut_pipeline = CreateGfxGraphicsPipeline("BRDF LUT", pipeline_desc);
-    Assert(!IsNull(*g_brdf_lut_pipeline), "Could not create BRDF LUT pipeline");
-
-    AddTextureBarrier(cmd_buffer, .Undefined, .ColorAttachment, *g_brdf_lut);
-
-    pass_desc : GfxRenderPassDesc;
-    AddColorAttachment(*pass_desc, *g_brdf_lut);
-
-    pass := BeginGfxRenderPass(cmd_buffer, "BRDF LUT", pass_desc);
+    pass := BeginGfxComputePass(cmd_buffer, "BRDF LUT");
     {
-        BindGraphicsPipeline(*pass, *g_brdf_lut_pipeline);
-        SetViewport(*pass, .{width=xx BRDF_LUT_Resolution, height=xx BRDF_LUT_Resolution});
-        SetScissor(*pass, .{w=xx BRDF_LUT_Resolution, h=xx BRDF_LUT_Resolution});
+        BindComputePipeline(*pass, *g_brdf_lut_compute_pipeline);
 
-        Draw(*pass, vertex_count=6, instance_count=1);
+        bindings := BRDFLUTBindingSet.{
+            dst_image=.{*g_brdf_lut},
+        };
+        binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
+        BindComputeBindingSet(*pass, 0, *binding_set);
+
+        num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(g_brdf_lut.desc, 0, BRDF_LUT_Compute_Work_Group_Size);
+
+        Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
     }
-    EndGfxRenderPass(*pass);
+    EndGfxComputePass(*pass);
 
-    AddTextureBarrier(cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_brdf_lut);
+    AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *g_brdf_lut);
 }
 
 Plane :: struct {
