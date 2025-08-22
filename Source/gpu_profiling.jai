@@ -47,6 +47,7 @@ InitGPUFrameProfiler :: (profiler : *GPUFrameProfiler, max_events : int) {
     }
 
     profiler.latest_frame = AllocArray(GPUProfilingEvent, max_events);
+    profiler.latest_frame.count = 0;
 }
 
 DestroyGPUFrameProfiler :: (profiler : *GPUFrameProfiler) {
@@ -71,6 +72,10 @@ ProfilerBeginFrame :: (profiler : *GPUFrameProfiler) {
     // Only query results starting at the third frame, because frames prior don't have anything
     if profiler.frame_index >= 3 {
         vkGetQueryPoolResults(g_gfx_context.device, profiler.query_pools[g_gfx_context.frame_in_flight], 0, profiler.query_pool_capacity, profiler.query_pool_capacity * size_of(u64), profiler.query_results.data, size_of(u64), ._64_BIT);
+
+        for * profiler.latest_frame {
+            Free(it.name.data);
+        }
 
         profiler.latest_frame.count = profiler.num_events_for_frame[g_gfx_context.frame_in_flight];
         for * profiler.latest_frame {
@@ -113,7 +118,7 @@ ProfilerBeginEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfi
 
     event := *profiler.events_for_frame[g_gfx_context.frame_in_flight][profiler.num_events_for_frame[g_gfx_context.frame_in_flight]];
     event.* = .{};
-    event.name = name;
+    event.name = StringClone(name);
     event.index = profiler.num_events_for_frame[g_gfx_context.frame_in_flight];
     event.parent = profiler.current_event;
     profiler.current_event = event;

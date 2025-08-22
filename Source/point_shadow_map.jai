@@ -230,6 +230,7 @@ PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShado
         InitShadowMap(shadow_map, Default_Point_Shadow_Map_Resolution);
     }
 
+    ProfileGPUZone(cmd_buffer, *g_gpu_profiler, "Point Shadow Map");
     BeginGfxDebugMarker(cmd_buffer, "Point Shadow Map");
 
     AddTextureBarrier(cmd_buffer, .Undefined, .DepthStencilAttachment, *shadow_map.depth_texture);
