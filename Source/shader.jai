@@ -112,8 +112,18 @@ GetComputeShader :: (name : string) -> *GfxShader {
     return null;
 }
 
+CleanupSPIRVFiles :: () {
+    for file_list("Shaders" ,, Temp) {
+        if path_extension(it) == "spv" {
+            file_delete(it);
+        }
+    }
+}
+
 LoadAllShaders :: () -> bool {
     LogSectionScope(*Log_Shaders);
+
+    CleanupSPIRVFiles();
 
     init(*g_shader_file_watcher, ShaderFileChangeCallback, events_to_watch=.MODIFIED);
 
@@ -137,6 +147,8 @@ LoadAllShaders :: () -> bool {
 }
 
 DestroyAllShaders :: () {
+    CleanupSPIRVFiles();
+
     for * g_shaders {
         if !IsNull(*it.vertex_shader) {
             DestroyGfxShader(*it.vertex_shader);
