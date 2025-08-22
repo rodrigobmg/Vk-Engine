@@ -16,7 +16,7 @@ void main() {
     }
 
     int2 src_size = textureSize(u_src_texture, 0);
-    float2 src_coords = gl_GlobalInvocationID.xy / float2(dst_size);
+    float2 src_coords = IntegerToNormalizedTexCoords(dst_coords, dst_size);
 
     float4 color = DownsampleBox13(u_src_texture, src_coords, 1 / float2(src_size));
     imageStore(u_dst_image, dst_coords, color);
