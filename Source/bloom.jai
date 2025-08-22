@@ -116,13 +116,13 @@ GetNumComputeWorkGroupsForTexture :: (desc : GfxTextureAndViewDesc, mipmap_level
 }
 
 BloomComputeBindingSet :: struct {
-    src_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
+    src_texture : GfxBindingCombinedTextureSampler; @Binding(0) @ComputeStage
     dst_image : GfxBindingStorageImage; @Binding(1) @ComputeStage
 } @BindingSet
 
 BloomUpsampleComputeBindingSet :: struct {
-    previous_upsampled_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
-    same_size_downsampled_image : GfxBindingStorageImage; @Binding(1) @ComputeStage
+    previous_upsampled_texture : GfxBindingCombinedTextureSampler; @Binding(0) @ComputeStage
+    same_size_downsampled_texture : GfxBindingCombinedTextureSampler; @Binding(1) @ComputeStage
     dst_image : GfxBindingStorageImage; @Binding(2) @ComputeStage
 } @BindingSet
 
@@ -188,8 +188,10 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
     {
         BindComputePipeline(*pass, *g_bloom_filter_compute_pipeline);
 
+        AddTextureBarrier(cmd_buffer, .Undefined, .General, *g_bloom_downsample_levels[0]);
+
         bindings := BloomComputeBindingSet.{
-            src_image=.{color_texture},
+            src_texture=.{texture=color_texture, sampler=*g_linear_clamp_sampler},
             dst_image=.{*g_bloom_downsample_levels[0]},
         };
 
@@ -198,6 +200,8 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
         binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
         BindComputeBindingSet(*pass, 1, *binding_set);
         Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
+
+        AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *g_bloom_downsample_levels[0]);
     }
     EndGfxComputePass(*pass);
 
@@ -206,8 +210,10 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
         BindComputePipeline(*pass, *g_bloom_downsample_compute_pipeline);
 
         for i : 0..Bloom_Num_Downsample_Passes - 1 {
+            AddTextureBarrier(cmd_buffer, .Undefined, .General, *g_bloom_downsample_levels[i + 1]);
+
             bindings := BloomComputeBindingSet.{
-                src_image=.{*g_bloom_downsample_levels[i]},
+                src_texture=.{texture=*g_bloom_downsample_levels[i], sampler=*g_linear_clamp_sampler},
                 dst_image=.{*g_bloom_downsample_levels[i + 1]},
             };
 
@@ -217,7 +223,8 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
             num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(g_bloom_downsample_texture.desc, i + 1, Bloom_Compute_Work_Group_Size);
 
             Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
-            AddBarrier(cmd_buffer);
+
+            AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *g_bloom_downsample_levels[i + 1]);
         }
     }
     EndGfxComputePass(*pass);
@@ -227,15 +234,17 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
         BindComputePipeline(*pass, *g_bloom_upsample_compute_pipeline);
 
         for #v2 < i : 0..Bloom_Num_Downsample_Passes - 1 {
+            AddTextureBarrier(cmd_buffer, .Undefined, .General, *g_bloom_upsample_levels[i]);
+
             bindings := BloomUpsampleComputeBindingSet.{
-                same_size_downsampled_image=.{*g_bloom_downsample_levels[i]},
+                same_size_downsampled_texture=.{texture=*g_bloom_downsample_levels[i], sampler=*g_linear_clamp_sampler},
                 dst_image=.{*g_bloom_upsample_levels[i]},
             };
 
             if i == g_bloom_upsample_levels.count - 1 {
-                bindings.previous_upsampled_image = .{*g_bloom_downsample_levels[i + 1]};
+                bindings.previous_upsampled_texture = .{texture=*g_bloom_downsample_levels[i + 1], sampler=*g_linear_clamp_sampler};
             } else {
-                bindings.previous_upsampled_image = .{*g_bloom_upsample_levels[i + 1]};
+                bindings.previous_upsampled_texture = .{texture=*g_bloom_upsample_levels[i + 1], sampler=*g_linear_clamp_sampler};
             }
 
             binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
@@ -244,10 +253,9 @@ ComputeBloom :: (using ctx : *FrameRenderContext, color_texture : *GfxTexture) {
             num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(g_bloom_upsample_texture.desc, i, Bloom_Compute_Work_Group_Size);
 
             Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
-            AddBarrier(cmd_buffer);
+
+            AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *g_bloom_upsample_levels[i]);
         }
     }
     EndGfxComputePass(*pass);
-
-    AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, GetFinalBloomTexture());
 }

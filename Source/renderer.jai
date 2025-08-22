@@ -702,13 +702,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     AddTextureBarrier(*cmd_buffer, .TransferSrc, .ShaderReadOnly, *g_entity_guid_texture);
 
-    AddTextureBarrier(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, *g_selected_entity_guid_texture);
-    AddTextureBarrier(*cmd_buffer, .ColorAttachment, .General, *g_color_texture);
+    AddTextureBarriers(*cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*g_selected_entity_guid_texture, *g_color_texture]);
 
-    // RenderBloom(*ctx, *g_color_texture);
     ComputeBloom(*ctx, *g_color_texture);
-
-    AddTextureBarrier(*cmd_buffer, .General, .ShaderReadOnly, *g_color_texture);
 
     if g_editor_settings.use_blur_effect {
         ComputeKawaseBlur(*cmd_buffer, *g_blurred_color, *g_color_texture);
