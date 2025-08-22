@@ -711,7 +711,11 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
             then g_gizmo_style.colors.view_axis_active else g_gizmo_style.colors.view_axis;
 
         size := widget_size * g_gizmo_style.translation_view_circle_size;
-        widget_transform := Mat4fTranslate(translation.*) * rotation * Mat4fScale(.{size,size,size});
+        tangent := axes_vectors[0];
+        bitangent := axes_vectors[1];
+        axis := axes_vectors[2];
+        rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
+        widget_transform := Mat4fTranslate(translation.*) * rotation2 * Mat4fScale(.{size,size,size});
 
         AddGizmoWidget(ctx, view_id, .Cube, color, widget_transform, shaded=ctx.hovered_id != view_id && ctx.active_id != view_id);
     }
@@ -1555,7 +1559,11 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
             then g_gizmo_style.colors.view_axis_active else g_gizmo_style.colors.view_axis;
 
         size := widget_size * g_gizmo_style.scale_all_inner_circle_size;
-        widget_transform := Mat4fTranslate(translation) * transform * Mat4fScale(.{size,size,size});
+        tangent := axes_vectors[0];
+        bitangent := axes_vectors[1];
+        axis := axes_vectors[2];
+        rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
+        widget_transform := Mat4fTranslate(translation) * rotation2 * Mat4fScale(.{size,size,size});
 
         AddGizmoWidget(ctx, all_id, .Cube, color, widget_transform, shaded=ctx.hovered_id != all_id && ctx.active_id != all_id);
     }
