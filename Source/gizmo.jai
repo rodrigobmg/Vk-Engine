@@ -1176,33 +1176,12 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
 
     if !(flags & .GlobalSpace) {
         for * axes_vectors {
-            it.* = TransformVector(transform, it.*);
+            it.* = Normalized(TransformVector(transform, it.*));
         }
     }
 
     for * local_axes_vectors {
-        it.* = TransformVector(transform, it.*);
-    }
-
-    plane_vectors := Vec3f.[
-        .{1,1,0},
-        .{0,1,1},
-        .{1,0,1},
-    ];
-    local_plane_vectors := Vec3f.[
-        .{1,1,0},
-        .{0,1,1},
-        .{1,0,1},
-    ];
-
-    if !(flags & .GlobalSpace) {
-        for * plane_vectors {
-            it.* = TransformVector(transform, it.*);
-        }
-    }
-
-    for * local_plane_vectors {
-        it.* = TransformVector(transform, it.*);
+        it.* = Normalized(TransformVector(transform, it.*));
     }
 
     axes_colors := Vec4f.[
@@ -1297,9 +1276,9 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
                 ];
 
                 result = .{
-                    Length(new_local_axes[0]),
-                    Length(new_local_axes[1]),
-                    Length(new_local_axes[2]),
+                    Dot(new_local_axes[0], local_axes_vectors[0]),
+                    Dot(new_local_axes[1], local_axes_vectors[1]),
+                    Dot(new_local_axes[2], local_axes_vectors[2]),
                 };
 
                 axis_widget_size *= s * ratio;
@@ -1416,9 +1395,9 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
                 ];
 
                 result = .{
-                    Length(new_local_axes[0]),
-                    Length(new_local_axes[1]),
-                    Length(new_local_axes[2]),
+                    Dot(new_local_axes[0], local_axes_vectors[0]),
+                    Dot(new_local_axes[1], local_axes_vectors[1]),
+                    Dot(new_local_axes[2], local_axes_vectors[2]),
                 };
 
                 axis_widget_size.x *= s.x * ratio;
