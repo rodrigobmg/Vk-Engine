@@ -202,6 +202,7 @@ GfxCommandPool :: struct {
     pool : VkCommandPool;
     free_cmd_buffers : [..]GfxCommandBuffer;
     used_cmd_buffers : [..]GfxCommandBuffer;
+    name : string;
 }
 
 IsNull :: inline (pool : *GfxCommandPool) -> bool {
@@ -221,13 +222,14 @@ CreateGfxCommandPool :: (name : string) -> GfxCommandPool {
 
     SetDebugName(pool, TPrint("Command Pool '%'", name));
 
-    return .{pool=pool};
+    return .{pool=pool, name=StringClone(name)};
 }
 
 DestroyGfxCommandPool :: (pool : *GfxCommandPool) {
     ArrayFree(*pool.free_cmd_buffers);
     ArrayFree(*pool.used_cmd_buffers);
 
+    Free(pool.name.data);
     vkDestroyCommandPool(g_gfx_context.device, pool.pool, g_vk_alloc_callbacks);
     pool.* = .{};
 }
@@ -522,6 +524,7 @@ GfxBindingSetLayoutDesc :: struct {
 
 GfxBindingSetLayout :: struct {
     layout : VkDescriptorSetLayout;
+    name : string;
     desc : GfxBindingSetLayoutDesc;
 }
 
@@ -562,12 +565,13 @@ CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> 
     copied_desc := desc;
     copied_desc.bindings = ArrayClone(desc.bindings);
 
-    return .{layout=layout, desc=copied_desc};
+    return .{layout=layout, name=StringClone(name), desc=copied_desc};
 }
 
 DestroyGfxBindingSetLayout :: (layout : *GfxBindingSetLayout) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(layout.name.data);
     Free(layout.desc.bindings.data);
     vkDestroyDescriptorSetLayout(g_gfx_context.device, layout.layout, g_vk_alloc_callbacks);
     layout.* = .{};
@@ -1446,6 +1450,7 @@ GfxBlendStateDesc :: struct {
 // frame outside of any render passes (and without needing a full pipeline).
 GfxPipelineLayout :: struct {
     layout : VkPipelineLayout;
+    name : string;
 }
 
 IsNull :: inline (layout : *GfxPipelineLayout) -> bool {
@@ -1469,10 +1474,11 @@ CreateGfxPipelineLayout :: (name : string, desc : GfxPipelineLayoutDesc) -> GfxP
 
     SetDebugName(layout, TPrint("Pipeline Layout '%'", name));
 
-    return .{layout=layout};
+    return .{layout=layout, name=StringClone(name)};
 }
 
 DestroyGfxPipelineLayout :: (layout : *GfxPipelineLayout) {
+    Free(layout.name.data);
     vkDestroyPipelineLayout(g_gfx_context.device, layout.layout, g_vk_alloc_callbacks);
     layout.* = .{};
 }
@@ -1504,6 +1510,7 @@ AddColorAttachment :: (desc : *GfxGraphicsPipelineDesc, format : GfxPixelFormat)
 GfxGraphicsPipeline :: struct {
     layout : GfxPipelineLayout;
     pipeline : VkPipeline;
+    name : string;
     desc : GfxGraphicsPipelineDesc;
 }
 
@@ -1670,12 +1677,13 @@ CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> 
     copied_desc.vertex_input.attributes = ArrayClone(desc.vertex_input.attributes);
     copied_desc.vertex_input.buffer_bindings = ArrayClone(desc.vertex_input.buffer_bindings);
 
-    return .{layout=layout, pipeline=pipeline, desc=copied_desc};
+    return .{layout=layout, pipeline=pipeline, name=StringClone(name), desc=copied_desc};
 }
 
 DestroyGfxGraphicsPipeline :: (pipeline : *GfxGraphicsPipeline) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(pipeline.name.data);
     Free(pipeline.desc.vertex_input.attributes.data);
     Free(pipeline.desc.vertex_input.buffer_bindings.data);
 
@@ -1692,6 +1700,7 @@ GfxComputePipelineDesc :: struct {
 GfxComputePipeline :: struct {
     layout : GfxPipelineLayout;
     pipeline : VkPipeline;
+    name : string;
     desc : GfxComputePipelineDesc;
 }
 
@@ -1721,12 +1730,13 @@ CreateGfxComputePipeline :: (name : string, desc : GfxComputePipelineDesc) -> Gf
 
     SetDebugName(pipeline, TPrint("Compute Pipeline '%'", name));
 
-    return .{layout=layout, pipeline=pipeline, desc=desc};
+    return .{layout=layout, pipeline=pipeline, name=StringClone(name), desc=desc};
 }
 
 DestroyGfxComputePipeline :: (pipeline : *GfxComputePipeline) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(pipeline.name.data);
     DestroyGfxPipelineLayout(*pipeline.layout);
     vkDestroyPipeline(g_gfx_context.device, pipeline.pipeline, g_vk_alloc_callbacks);
     pipeline.* = .{};
@@ -1756,6 +1766,7 @@ GfxBufferDesc :: struct {
 GfxBuffer :: struct {
     buffer : VkBuffer;
     allocation : VmaAllocation;
+    name : string;
     desc : GfxBufferDesc;
 }
 
@@ -1809,12 +1820,13 @@ CreateGfxBuffer :: (name : string, desc : GfxBufferDesc) -> GfxBuffer {
 
     SetDebugName(buffer, TPrint("Buffer '%'", name));
 
-    return .{buffer=buffer, allocation=allocation, desc=desc};
+    return .{buffer=buffer, allocation=allocation, name=StringClone(name), desc=desc};
 }
 
 DestroyGfxBuffer :: (buffer : *GfxBuffer) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(buffer.name.data);
     vmaDestroyBuffer(g_gfx_context.allocator, buffer.buffer, buffer.allocation);
     buffer.* = .{};
 }
@@ -1955,6 +1967,7 @@ GfxTexture :: struct {
     image : VkImage;
     image_view : VkImageView; // Default view for this texture
     allocation : VmaAllocation;
+    name : string;
     desc : GfxTextureAndViewDesc;
 }
 
@@ -2128,12 +2141,13 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
     SetDebugName(image, TPrint("Image '%'", name));
     SetDebugName(image_view, TPrint("Image View '%'", name));
 
-    return .{image=image, image_view=image_view, allocation=allocation, desc=MakeGfxTextureAndViewDesc(desc)};
+    return .{image=image, image_view=image_view, allocation=allocation, name=StringClone(name), desc=MakeGfxTextureAndViewDesc(desc)};
 }
 
 DestroyGfxTexture :: (texture : *GfxTexture) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(texture.name.data);
     vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     vmaDestroyImage(g_gfx_context.allocator, texture.image, texture.allocation);
     texture.* = .{};
@@ -2190,12 +2204,13 @@ CreateGfxTextureView :: (name : string, desc : GfxTextureViewDesc, texture : *Gf
 
     SetDebugName(image_view, TPrint("Image View '%'", name));
 
-    return .{image=texture.image, image_view=image_view, allocation=texture.allocation, desc=MakeGfxTextureAndViewDesc(texture.desc, desc)};
+    return .{image=texture.image, image_view=image_view, allocation=texture.allocation, name=StringClone(name), desc=MakeGfxTextureAndViewDesc(texture.desc, desc)};
 }
 
 DestroyGfxTextureView :: (texture : *GfxTexture) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(texture.name.data);
     vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     texture.* = .{};
 }
@@ -2275,6 +2290,7 @@ GfxSamplerDesc :: struct {
 
 GfxSampler :: struct {
     sampler : VkSampler;
+    name : string;
     desc : GfxSamplerDesc;
 }
 
@@ -2310,12 +2326,13 @@ CreateGfxSampler :: (name : string, desc : GfxSamplerDesc) -> GfxSampler {
 
     SetDebugName(sampler, TPrint("Sampler '%'", name));
 
-    return .{sampler=sampler, desc=desc};
+    return .{sampler=sampler, name=StringClone(name), desc=desc};
 }
 
 DestroyGfxSampler :: (sampler : *GfxSampler) {
     LogSectionScope(*Log_Vulkan);
 
+    Free(sampler.name.data);
     vkDestroySampler(g_gfx_context.device, sampler.sampler, g_vk_alloc_callbacks);
     sampler.* = .{};
 }
@@ -2514,11 +2531,13 @@ ClearStencil :: inline (pass_desc : *GfxRenderPassDesc, value : u32) {
 }
 
 GfxRenderPass :: struct {
-    desc : GfxRenderPassDesc;
     cmd_buffer : *GfxCommandBuffer;
     profiling_event : *GPUProfilingEvent;
 
     current_pipeline : *GfxGraphicsPipeline;
+
+    name : string;
+    desc : GfxRenderPassDesc;
 }
 
 BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : GfxRenderPassDesc) -> GfxRenderPass {
@@ -2602,7 +2621,7 @@ BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : Gfx
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
     vkCmdBeginRendering(cmd_buffer.cmd_buffer, *render_info);
 
-    return .{desc=desc, cmd_buffer=cmd_buffer, profiling_event=profiling_event};
+    return .{cmd_buffer=cmd_buffer, profiling_event=profiling_event, name=name, desc=desc};
 }
 
 EndGfxRenderPass :: (pass : *GfxRenderPass) {
@@ -2703,11 +2722,12 @@ DrawIndexed :: (
 }
 
 GfxComputePass :: struct {
-    name : string;
     cmd_buffer : *GfxCommandBuffer;
     profiling_event : *GPUProfilingEvent;
 
     current_pipeline : *GfxComputePipeline;
+
+    name : string;
 }
 
 BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxComputePass {
@@ -2716,7 +2736,7 @@ BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCom
     BeginGfxDebugMarker(cmd_buffer, name);
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
 
-    return .{name=name, cmd_buffer=cmd_buffer, profiling_event=profiling_event};
+    return .{cmd_buffer=cmd_buffer, profiling_event=profiling_event, name=name};
 }
 
 EndGfxComputePass :: (pass : *GfxComputePass) {
@@ -2744,9 +2764,9 @@ Dispatch :: (pass : *GfxComputePass, num_groups_x : u32, num_groups_y : u32, num
 }
 
 GfxCopyPass :: struct {
-    name : string;
     cmd_buffer : *GfxCommandBuffer;
     profiling_event : *GPUProfilingEvent;
+    name : string;
 }
 
 BeginGfxCopyPass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCopyPass {
@@ -2755,7 +2775,7 @@ BeginGfxCopyPass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCopyPa
     BeginGfxDebugMarker(cmd_buffer, name);
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
 
-    return .{name=name, cmd_buffer=cmd_buffer, profiling_event=profiling_event};
+    return .{cmd_buffer=cmd_buffer, profiling_event=profiling_event, name=name};
 }
 
 EndGfxCopyPass :: (pass : *GfxCopyPass) {
