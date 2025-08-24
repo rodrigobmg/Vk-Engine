@@ -12,6 +12,7 @@ using Common :: #import "Common";
 #import "Paged_Array";
 #import "Type_Utils";
 #import "String";
+#import "Print_Vars";
 System :: #import "System";
 Math :: #import "Math";
 Basic :: #import "Basic"()(MEMORY_DEBUGGER=false);

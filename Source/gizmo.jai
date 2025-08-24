@@ -85,8 +85,6 @@ GizmoContext :: struct {
     drag_start_translation_offset : Vec3f;
 
     drag_start_scale : Vec3f;
-    drag_start_scale_axis : Vec3f;
-    drag_start_scale_offset : Vec3f;
 
     drag_start_rotation : Quatf;
     drag_start_rotation_axis : Vec3f;
@@ -1121,29 +1119,6 @@ GizmoRotate :: (world : *World, ctx : *GizmoContext, id : string, rotation : *Qu
 }
 
 GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f, flags : GizmoFlags = 0) -> InteractionState {
-    ThreeAxes :: struct {
-        x, y, z : Vec3f;
-
-        #place x;
-        axes : [3]Vec3f;
-    }
-
-    operator * :: (axes : ThreeAxes, vec : Vec3f) -> ThreeAxes {
-        return .{axes.x * vec.x, axes.y * vec.y, axes.z * vec.z};
-    }
-
-    GetScaleOnAxis :: (scale : ThreeAxes, axis : Vec3f) -> float {
-        return Abs(Dot(scale.x, axis)) + Abs(Dot(scale.y, axis)) + Abs(Dot(scale.z, axis));
-    }
-
-    ProjectScale :: (scale : ThreeAxes, onto : ThreeAxes) -> Vec3f {
-        return .{
-            GetScaleOnAxis(scale, onto.x),
-            GetScaleOnAxis(scale, onto.y),
-            GetScaleOnAxis(scale, onto.z),
-        };
-    }
-
     if flags & .NoScale {
         return 0;
     }
@@ -1283,8 +1258,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
 
         if drag_state & .Interacting {
             if drag_state & .Started {
-                ctx.drag_start_scale = ProjectScale(ThreeAxes.{axes=local_axes_vectors} * scale.*, .{axes=axes_vectors});
-                ctx.drag_start_scale_axis = axes_vectors[i];
+                ctx.drag_start_scale = scale.*;
             }
 
             is_behind, proj_center := WorldToCamera(ctx.camera, translation);
@@ -1311,19 +1285,27 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
                     additional_scale = Snap(additional_scale, g_gizmo_style.scale_snap_grid_size);
                 }
 
-                scale_axes := ThreeAxes.{
-                    axes_vectors[0] * ctx.drag_start_scale.n[0],
-                    axes_vectors[1] * ctx.drag_start_scale.n[1],
-                    axes_vectors[2] * ctx.drag_start_scale.n[2],
-                };
-                scale_axes.axes[i] += axes_vectors[i] * additional_scale;
-                scale_on_axis := ctx.drag_start_scale.n[i] + additional_scale;
+                new_scale := Vec3f.{1,1,1};
+                new_scale[i] += additional_scale;
 
-                result = ProjectScale(scale_axes, .{axes=local_axes_vectors});
+                scale_matrix := Mat3fFromRightUpForward(axes_vectors[0], axes_vectors[1], axes_vectors[2]) * Mat3fScale(new_scale);
+
+                new_local_axes := Vec3f.[
+                    scale_matrix * (ctx.drag_start_scale[0] * local_axes_vectors[0]),
+                    scale_matrix * (ctx.drag_start_scale[1] * local_axes_vectors[1]),
+                    scale_matrix * (ctx.drag_start_scale[2] * local_axes_vectors[2]),
+                ];
+
+                result = .{
+                    Length(new_local_axes[0]),
+                    Length(new_local_axes[1]),
+                    Length(new_local_axes[2]),
+                };
 
                 axis_widget_size *= s * ratio;
 
                 // XYZ :: string.["X","Y","Z"];
+                // scale_on_axis := ctx.drag_start_scale.n[i] + additional_scale;
                 // DrawText(
                 //     tprint("%: %", XYZ[i], scale_on_axis),
                 //     proj_center + .{10, 10},
@@ -1386,8 +1368,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
 
         if drag_state & .Interacting {
             if drag_state & .Started {
-                ctx.drag_start_scale = ProjectScale(ThreeAxes.{axes=local_plane_vectors} * scale.*, .{axes=plane_vectors});
-                ctx.drag_start_scale_axis = plane_vectors[i];
+                ctx.drag_start_scale = scale.*;
             }
 
             is_behind, proj_center := WorldToCamera(ctx.camera, translation);
@@ -1422,19 +1403,23 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
                     additional_scale.y = Snap(additional_scale.y, g_gizmo_style.scale_snap_grid_size);
                 }
 
-                scale_axes := ThreeAxes.{
-                    axes_vectors[0] * ctx.drag_start_scale.n[0],
-                    axes_vectors[1] * ctx.drag_start_scale.n[1],
-                    axes_vectors[2] * ctx.drag_start_scale.n[2],
-                };
-                scale_axes.axes[axis0] += axes_vectors[axis0] * additional_scale.x;
-                scale_axes.axes[axis1] += axes_vectors[axis1] * additional_scale.y;
-                scale_on_axis := Vec2f.{
-                    ctx.drag_start_scale.n[axis0] + additional_scale.x,
-                    ctx.drag_start_scale.n[axis1] + additional_scale.y,
-                };
+                new_scale := Vec3f.{1,1,1};
+                new_scale[axis0] += additional_scale.x;
+                new_scale[axis1] += additional_scale.y;
 
-                result = ProjectScale(scale_axes, .{axes=local_plane_vectors});
+                scale_matrix := Mat3fFromRightUpForward(axes_vectors[0], axes_vectors[1], axes_vectors[2]) * Mat3fScale(new_scale);
+
+                new_local_axes := Vec3f.[
+                    scale_matrix * (ctx.drag_start_scale[0] * local_axes_vectors[0]),
+                    scale_matrix * (ctx.drag_start_scale[1] * local_axes_vectors[1]),
+                    scale_matrix * (ctx.drag_start_scale[2] * local_axes_vectors[2]),
+                ];
+
+                result = .{
+                    Length(new_local_axes[0]),
+                    Length(new_local_axes[1]),
+                    Length(new_local_axes[2]),
+                };
 
                 axis_widget_size.x *= s.x * ratio;
                 axis_widget_size.y *= s.y * ratio;
@@ -1502,7 +1487,6 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         if drag_state & .Interacting {
             if drag_state & .Started {
                 ctx.drag_start_scale = scale;
-                ctx.drag_start_scale_axis = .{1,1,1};
             }
 
             is_behind, proj_center := WorldToCamera(ctx.camera, translation);
