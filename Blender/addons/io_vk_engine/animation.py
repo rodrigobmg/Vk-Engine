@@ -168,7 +168,7 @@ def ExportAnimationsForArmature(
         return
 
     for action in actions:
-        output_filename = os.path.join(dirname, action.name) + Exporter.filename_ext
+        output_filename = os.path.join(dirname, action.name) + ".anim"
         if use_action_frame_range:
             frame_begin, frame_end = (
                 int(action.frame_range[0]),
@@ -185,57 +185,67 @@ def ExportAnimationsForArmature(
 
         print(f"Exported animation clip {action.name} to file {output_filename}")
 
+class ActionWrapperProperty(bpy.types.PropertyGroup):
+    action: PointerProperty(
+        name="Action",
+        type=bpy.types.Action
+    )
+
 class AnimExportOptions(bpy.types.PropertyGroup):
     apply_object_transform : BoolProperty(
-        name = "Apply Object Transform",
-        description = "Apply the object transform matrix when exporting.",
-        default = False
+        name="Apply Object Transform",
+        description="Apply the object transform matrix when exporting.",
+        default=False
     )
 
     coordinate_system : StringProperty(
-        name = "Coordinate System",
-        description = "Specify an output coordinate system in the form [+-][XYZ].",
-        default = "+X+Y+Z"
+        name="Coordinate System",
+        description="Specify an output coordinate system in the form [+-][XYZ].",
+        default="+X+Y+Z"
     )
 
     output_directory : StringProperty(
-        name = "Output Directory",
-        description = "Specify the output directory.",
-        subtype = "DIR_PATH",
+        name="Output Directory",
+        description="Specify the output directory.",
+        subtype="DIR_PATH",
         options={"PATH_SUPPORTS_BLEND_RELATIVE"},
-        default = "//Animations"
+        default="//Animations"
     )
 
     control_armature : PointerProperty(
-        name = "Control Armature",
-        description = "Armature object on which the action is applied.",
+        name="Control Armature",
+        description="Armature object on which the action is applied.",
         type=bpy.types.Object
     )
 
     deform_armature : PointerProperty(
-        name = "Deform Armature",
-        description = "Armature object that deforms the mesh.",
+        name="Deform Armature",
+        description="Armature object that deforms the mesh.",
         type=bpy.types.Object
     )
 
-class EXPORTER_OT_VkEngineAnim(bpy.types.Operator):
+    action : PointerProperty(
+        name="Action",
+        description="Action to export.",
+        type=bpy.types.Action
+    )
+
+class EXPORTER_OT_VkEngineAnimation(bpy.types.Operator):
     bl_idname = "export.vk_engine_anim"
     bl_label = "Export Vk-Engine animations (.anim)"
     bl_description = "Export Vk-Engine animations (.anim)"
-    bl_options = { 'REGISTER', 'UNDO' }
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context : bpy.types.Context):
         context.window.cursor_set('WAIT')
 
-        options = context.scene.vk_engine_anim_export_options
+        options = context.scene.vk_engine_animation_export_options
 
-        armature_object : bpy.types.Object = bpy.context.scene.objects[options.control_armature_name]
-        pose_object : bpy.types.Object = bpy.context.scene.objects[options.deform_armature_name]
+        armature_object : bpy.types.Object = options.control_armature
+        pose_object : bpy.types.Object = options.deform_armature
         actions : List[bpy.types.Action] = []
 
-        for act in bpy.context.blend_data.actions:
-            if act is not None and act.name.startswith("Human_"):
-                actions.append(act)
+        actions.append(options.action)
 
         dest_coordinate_system = utils.CoordinateSystem.FromString(options.coordinate_system)
 
@@ -254,9 +264,9 @@ class EXPORTER_OT_VkEngineAnim(bpy.types.Operator):
 
         context.window.cursor_set('DEFAULT')
 
-        return { 'FINISHED' }
+        return {'FINISHED'}
 
-class VIEW3D_PT_VkEngineAnimExport(bpy.types.Panel):
+class VIEW3D_PT_VkEngineAnimationExport(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -265,23 +275,24 @@ class VIEW3D_PT_VkEngineAnimExport(bpy.types.Panel):
 
     def draw(self, context : bpy.types.Context):
         layout = self.layout
-        options = context.scene.vk_engine_anim_export_options
+        options = context.scene.vk_engine_animation_export_options
 
         layout.row().prop(options, "apply_object_transform")
         layout.row().prop(options, "coordinate_system")
         layout.row().prop(options, "output_directory")
         layout.row().prop(options, "control_armature")
         layout.row().prop(options, "deform_armature")
+        layout.row().prop(options, "action")
 
-        valid = options.output_directory != "" and options.control_armature is not None and options.deform_armature is not None
+        valid = options.output_directory != "" and options.control_armature is not None and options.deform_armature is not None and options.action is not None
 
         row = layout.row()
         row.enabled = valid
-        row.operator(EXPORTER_OT_VkEngineAnim.bl_idname, text="Export Animation(s)")
+        row.operator(EXPORTER_OT_VkEngineAnimation.bl_idname, text="Export Animation(s)")
 
 classes = (
-    VIEW3D_PT_VkEngineAnimExport,
-    EXPORTER_OT_VkEngineAnim,
+    VIEW3D_PT_VkEngineAnimationExport,
+    EXPORTER_OT_VkEngineAnimation,
     AnimExportOptions,
 )
 
@@ -289,7 +300,7 @@ def register():
     for cl in classes:
         bpy.utils.register_class(cl)
 
-    bpy.types.Scene.vk_engine_anim_export_options = PointerProperty(type=AnimExportOptions)
+    bpy.types.Scene.vk_engine_animation_export_options = PointerProperty(type=AnimExportOptions)
 
 def unregister():
     for cl in classes:

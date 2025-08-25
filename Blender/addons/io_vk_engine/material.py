@@ -166,7 +166,7 @@ class EXPORTER_OT_VkEngineMaterial(bpy.types.Operator):
     bl_idname = "export.vk_engine_material"
     bl_label = "Export Vk-Engine materials (.mat)"
     bl_description = "Export Vk-Engine materials (.mat)"
-    bl_options = { 'REGISTER', 'UNDO' }
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context : bpy.types.Context):
         context.window.cursor_set('WAIT')
@@ -190,7 +190,7 @@ class EXPORTER_OT_VkEngineMaterial(bpy.types.Operator):
 
         context.window.cursor_set('DEFAULT')
 
-        return { 'FINISHED' }
+        return {'FINISHED'}
 
 class VIEW3D_PT_VkEngineMaterialExport(bpy.types.Panel):
     bl_space_type = "VIEW_3D"

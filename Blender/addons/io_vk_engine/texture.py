@@ -21,7 +21,7 @@ class EXPORTER_OT_VkEngineTexture(bpy.types.Operator):
     bl_idname = "export.vk_engine_texture"
     bl_label = "Export images"
     bl_description = "Export images"
-    bl_options = { 'REGISTER', 'UNDO' }
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context : bpy.types.Context):
         context.window.cursor_set('WAIT')
@@ -46,7 +46,7 @@ class EXPORTER_OT_VkEngineTexture(bpy.types.Operator):
 
         context.window.cursor_set('DEFAULT')
 
-        return { 'FINISHED' }
+        return {'FINISHED'}
 
 class VIEW3D_PT_VkEngineTextureExport(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
