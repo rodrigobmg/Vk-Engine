@@ -26,17 +26,15 @@ ImGui_SDL :: #import "ImGui/Impl/SDL";
     Win32 :: #import "Win32"(File_System=true);
 }
 
-#load "math_and_utils.jai";
-#load "vk_initialization.jai";
-#load "abstraction_layer.jai";
-#load "glsl_packing.jai";
+#load "utils.jai";
 #load "input.jai";
 #load "serialize_deserialize.jai";
 #load "asset.jai";
 #load "entity.jai";
-#load "renderer.jai";
 #load "preferences.jai";
-#load "editor.jai";
+
+#load "Graphics/graphics.jai";
+#load "Editor/editor.jai";
 
 Debug_Vulkan_Allocations :: false;
 Vulkan_Break_On_Error :: true;

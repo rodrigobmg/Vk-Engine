@@ -1,27 +1,3 @@
-#load "mesh.jai";
-#load "texture2d.jai";
-#load "shader.jai";
-#load "material.jai";
-#load "mesh_buffer.jai";
-#load "allocator.jai";
-#load "binding_set_allocator.jai";
-#load "gpu_profiling.jai";
-
-#load "imgui.jai";
-#load "image_based_lighting.jai";
-#load "forward_pass.jai";
-#load "compositing.jai";
-#load "shadow_map.jai";
-#load "point_shadow_map.jai";
-#load "skybox.jai";
-#load "entity_selection.jai";
-#load "bloom.jai";
-#load "debug_draw.jai";
-#load "gizmo_draw.jai";
-#load "kawase_blur.jai";
-
-g_gpu_profiler : GPUFrameProfiler;
-
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
 

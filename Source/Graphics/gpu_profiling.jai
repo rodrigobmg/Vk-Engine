@@ -14,6 +14,8 @@ GPUFrameProfiler :: struct {
     current_event : *GPUProfilingEvent;
 }
 
+g_gpu_profiler : GPUFrameProfiler;
+
 GPUProfilingEvent :: struct {
     name : string;
     index : int;
