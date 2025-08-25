@@ -155,40 +155,29 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_d
         it.* = GetShadowMapViewpoint(shadow_map, light_direction, viewpoint_transform, it_index);
     }
 
-    for * world.MeshEntity_storage {
-        if it.flags & .Hidden {
-            continue;
-        }
-
+    for :AllMeshesToDraw world {
         if !it.cast_shadows {
             continue;
         }
 
-        if !it.mesh {
-            continue;
-        }
-
-        if IsNull(*it.mesh.vertex_buffer) || IsNull(*it.mesh.index_buffer) {
-            continue;
-        }
-
-        aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
-
         is_inside_frustum := false;
-        for frustum : frustums {
-            if AABBIsInFrustum(aabb, frustum) {
-                is_inside_frustum = true;
-                break;
+        if !it.is_skinned {
+            aabb := GetTransformedAABB(it.transform, it.static_bounds);
+            for < frustum : frustums {
+                if AABBIsInFrustum(aabb, frustum) {
+                    is_inside_frustum = true;
+                    break;
+                }
             }
+        } else {
+            is_inside_frustum = true;
         }
 
         if is_inside_frustum {
-            material := ifx it.material then it.material else g_default_material;
-
-            position := TranslationVector(it.world_transform);
+            position := TranslationVector(it.transform);
             depth := TransformPoint(viewpoints[0].view, position).z;
-            key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
-            PushMesh(*shadow_map.mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
+            key := MakeMeshBufferKey(it.vertex_buffer, it.index_buffer, it.material, depth);
+            PushMesh(*shadow_map.mesh_buffer, key, it.entity.guid, it.vertex_buffer, it.index_buffer, it.vertex_count, it.index_count, it.transform, it.material);
         }
     }
 

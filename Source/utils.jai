@@ -325,7 +325,7 @@ RayIntersectsTriangleMollerTrumbore :: (ray_origin : Vec3f, ray_dir : Vec3f, ray
     return false, .{}, 0, .{};
 }
 
-RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, mesh : *Mesh, transform : Mat4f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f, triangle_index : int {
+RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, mesh : *StaticMesh, transform : Mat4f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f, triangle_index : int {
     inv_transform := Inverse(transform);
     model_space_ray_origin := TransformPoint(inv_transform, ray_origin);
     model_space_ray_dir := Normalized(TransformVector(inv_transform, ray_dir));

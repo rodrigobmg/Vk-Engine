@@ -155,7 +155,7 @@ InitAssetCache :: (
     unload_proc : cache.UnloadProc,
     write_proc : cache.WriteProc
 ) {
-    Assert(!cache.initialized, "Asset cache is already initialized");
+    Assert(!cache.initialized, "Asset cache % is already initialized", T);
 
     defer cache.initialized = true;
 
@@ -204,7 +204,7 @@ DestroyAllAssetCaches :: () {
 }
 
 DestroyAssetCache :: (using cache : *AssetCache) {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", T);
 
     LogSectionScope(*log_section);
 
@@ -373,7 +373,7 @@ UnloadAllUnreferencedAssets :: () {
 }
 
 UnloadAllUnreferencedAssets :: (using cache : *AssetCache, max_assets_to_unload := 0) -> int {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", T);
 
     LogSectionScope(*log_section);
 
@@ -409,7 +409,7 @@ UnloadAllUnreferencedAssets :: (using cache : *AssetCache, max_assets_to_unload 
 }
 
 GetLoadedAsset :: (cache : *AssetCache, name : string, location := #caller_location) -> *cache.AssetType {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
 
     asset := HashMapGet(*cache.assets_by_name, name);
     if asset {
@@ -423,7 +423,7 @@ GetLoadedAsset :: (cache : *AssetCache, name : string, location := #caller_locat
 #scope_file
 
 AllocAsset :: (cache : *AssetCache, name : string, flags : AssetFlags = 0, location := #caller_location) -> *cache.AssetType {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
 
     asset := PagedArrayFindSlot(*cache.storage);
     asset.asset_name = StringClone(name ,, cache.assets_by_name.allocator);
@@ -439,7 +439,7 @@ AllocAsset :: (cache : *AssetCache, name : string, flags : AssetFlags = 0, locat
 }
 
 FreeAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
     Assert(cache == asset.asset_cache);
     Assert(asset.ref_count == 0, "Freeing asset '%' but it is still referenced", asset.asset_name);
     Assert(asset.asset_flags & .Permanent == 0, "Freeing permanent asset '%'", asset.asset_name);
@@ -457,7 +457,7 @@ FreeAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
 }
 
 UnloadAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
     Assert(cache.unload_proc != null);
     Assert(cache == asset.asset_cache);
     Assert(asset.ref_count == 0, "Unloading asset '%' but it is still referenced", asset.asset_name);
@@ -497,7 +497,7 @@ AllocNewAsset :: inline ($T : Type, name : string, flags : AssetFlags = 0, locat
 }
 
 AllocNewAsset :: (cache : *AssetCache, name : string, flags : AssetFlags = 0, location := #caller_location) -> *cache.AssetType, is_new : bool {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
 
     asset := GetLoadedAsset(cache, name, location);
     if asset {
@@ -510,7 +510,7 @@ AllocNewAsset :: (cache : *AssetCache, name : string, flags : AssetFlags = 0, lo
 #scope_file
 
 LoadPreallocatedAssetFromMemory :: (cache : *AssetCache, asset : *cache.AssetType, data : []u8) -> bool {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
 
     ok := cache.load_proc(asset, data, asset.asset_name);
 
@@ -529,7 +529,7 @@ LoadPreallocatedAssetFromMemory :: (cache : *AssetCache, asset : *cache.AssetTyp
 #scope_export
 
 AllocAndLoadAssetFromMemory :: (cache : *AssetCache, name : string, data : []u8, flags : AssetFlags = 0, location := #caller_location) -> *cache.AssetType {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
     Assert(cache.load_proc != null);
 
     start_time := Basic.current_time_monotonic();
@@ -560,7 +560,7 @@ LoadAsset :: inline ($T : Type, name : string, location := #caller_location) -> 
 }
 
 LoadAsset :: (cache : *AssetCache, name : string, location := #caller_location) -> *cache.AssetType {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
     Assert(cache.load_proc != null);
 
     LogSectionScope(*cache.log_section);
@@ -601,7 +601,7 @@ LoadAsset :: (cache : *AssetCache, name : string, location := #caller_location) 
 }
 
 TryReloadAsset :: (cache : *AssetCache, name : string, location := #caller_location) -> bool, *cache.AssetType {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
 
     LogSectionScope(*cache.log_section);
 
@@ -769,7 +769,7 @@ LoadPendingAssetsSynchronously :: (using cache : *AssetCache) {
 // This just fires up all the threads in the thread group and waits for everything to be
 // completed
 LoadPendingAssetsInParallel :: (using cache : *AssetCache) {
-    Assert(cache.initialized, "Asset cache is not initialized");
+    Assert(cache.initialized, "Asset cache % is not initialized", T);
 
     LogSectionScope(*log_section);
 

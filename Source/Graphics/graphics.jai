@@ -9,8 +9,10 @@
 #load "shader.jai";
 #load "texture2d.jai";
 #load "mesh.jai";
+#load "skinned_mesh.jai";
 #load "mesh_buffer.jai";
 #load "material.jai";
+#load "animation.jai";
 
 #load "imgui.jai";
 #load "image_based_lighting.jai";

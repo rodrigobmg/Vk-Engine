@@ -261,11 +261,29 @@ DestroyRenderTargets :: () {
 MeshEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
-    mesh : *Asset(Mesh); @Serialize(2)
+    mesh : *Asset(StaticMesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
     cast_point_shadows := false; @Serialize(5)
     aabb : AABB;
+} @Entity
+
+AnimatedMeshEntity :: struct {
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
+
+    mesh : *Asset(SkinnedMesh); @Serialize(2)
+    material : *Asset(Material); @Serialize(3)
+    cast_shadows := true; @Serialize(4)
+    cast_point_shadows := false; @Serialize(5)
+    animation : *Asset(ArmatureAnimation); @Serialize(6);
+    animation_frames_per_second := 30.0; @Serialize(7)
+    animation_time : float;
+    pose : ArmaturePose;
+    skinning_matrices : []Mat4f;
+
+    OnUpdate :: (world : *World, entity : *AnimatedMeshEntity) {
+
+    }
 } @Entity
 
 DirectionalLightEntity :: struct {
@@ -436,6 +454,100 @@ FrameRenderContext :: struct {
 g_mesh_buffer : MeshBuffer;
 g_selected_mesh_buffer : MeshBuffer;
 
+MeshToDraw :: struct {
+    entity : *Entity;
+    transform : Mat4f;
+    vertex_buffer, index_buffer : *GfxBuffer;
+    vertex_count, index_count : u32;
+    static_bounds : AABB;
+    material : *Asset(Material);
+    cast_shadows : bool;
+    cast_point_shadows : bool;
+    is_skinned : bool;
+    skinning_matrices : []Mat4f;
+}
+
+MakeMeshToDraw :: (e : *MeshEntity) -> bool, MeshToDraw {
+    if e.flags & .Hidden || !e.mesh || IsNull(*e.mesh.vertex_buffer) || IsNull(*e.mesh.index_buffer) {
+        return false, .{};
+    }
+
+    return true, .{
+        entity=e,
+        transform=e.world_transform,
+        vertex_buffer=*e.mesh.vertex_buffer,
+        index_buffer=*e.mesh.index_buffer,
+        vertex_count=e.mesh.vertex_count,
+        index_count=e.mesh.index_count,
+        static_bounds=e.mesh.static_bounds,
+        material=ifx e.material then e.material else g_default_material,
+        cast_shadows=e.cast_shadows,
+        cast_point_shadows=e.cast_point_shadows,
+        is_skinned=false,
+    };
+}
+
+MakeMeshToDraw :: (e : *AnimatedMeshEntity) -> bool, MeshToDraw {
+    if e.flags & .Hidden || !e.mesh || IsNull(*e.mesh.vertex_buffer) || IsNull(*e.mesh.index_buffer) {
+        return false, .{};
+    }
+
+    return true, .{
+        entity=e,
+        transform=e.world_transform,
+        vertex_buffer=*e.mesh.vertex_buffer,
+        index_buffer=*e.mesh.index_buffer,
+        vertex_count=e.mesh.vertex_count,
+        index_count=e.mesh.index_count,
+        material=ifx e.material then e.material else g_default_material,
+        cast_shadows=e.cast_shadows,
+        cast_point_shadows=e.cast_point_shadows,
+        is_skinned=true,
+        skinning_matrices=e.skinning_matrices,
+    };
+}
+
+MakeMeshToDraw :: (e : *Entity) -> bool, MeshToDraw {
+    type_id := GetEntityTypeId(e.index);
+    if type_id == {
+    case .MeshEntity;
+        ok, mesh := MakeMeshToDraw(cast(*MeshEntity, e));
+        return ok, mesh;
+    case .AnimatedMeshEntity;
+        ok, mesh := MakeMeshToDraw(cast(*AnimatedMeshEntity, e));
+        return ok, mesh;
+    }
+
+    return false, .{};
+}
+
+AllMeshesToDraw :: (world : *World, body : Code, flags : For_Flags) #expand {
+    `it : MeshToDraw;
+    `it_index : int;
+
+    for * e, i : world.MeshEntity_storage {
+        defer it_index += 1;
+
+        ok:, it = MakeMeshToDraw(e);
+        if !ok {
+            continue;
+        }
+
+        #insert(break=return) body;
+    }
+
+    for * e, i : world.AnimatedMeshEntity_storage {
+        defer it_index += 1;
+
+        ok:, it = MakeMeshToDraw(e);
+        if !ok {
+            continue;
+        }
+
+        #insert(break=return) body;
+    }
+}
+
 RenderFrame :: (world : *World, camera : *Camera) {
     w, h := GetWindowPixelSize(g_window);
 
@@ -449,30 +561,18 @@ RenderFrame :: (world : *World, camera : *Camera) {
     ClearMeshBuffer(*g_mesh_buffer);
 
     frustum := MakePerspectiveFrustum(camera.transform, camera.fov_in_degrees, w / cast(float, h), camera.z_near, camera.z_far);
-    for * world.MeshEntity_storage {
-        if it.flags & .Hidden {
-            continue;
+    for :AllMeshesToDraw world {
+        if !it.is_skinned {
+            aabb := GetTransformedAABB(it.transform, it.static_bounds);
+            if !AABBIsInFrustum(aabb, frustum) {
+                continue;
+            }
         }
 
-        if !it.mesh {
-            continue;
-        }
-
-        if IsNull(*it.mesh.vertex_buffer) || IsNull(*it.mesh.index_buffer) {
-            continue;
-        }
-
-        aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
-        if !AABBIsInFrustum(aabb, frustum) {
-            continue;
-        }
-
-        material := ifx it.material then it.material else g_default_material;
-
-        position := TranslationVector(it.world_transform);
+        position := TranslationVector(it.transform);
         depth := TransformPoint(camera.view, position).z;
-        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
-        PushMesh(*g_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
+        key := MakeMeshBufferKey(it.vertex_buffer, it.index_buffer, it.material, depth);
+        PushMesh(*g_mesh_buffer, key, it.entity.guid, it.vertex_buffer, it.index_buffer, it.vertex_count, it.index_count, it.transform, it.material);
     }
 
     SortMeshBuffer(*g_mesh_buffer);
@@ -481,34 +581,23 @@ RenderFrame :: (world : *World, camera : *Camera) {
     ClearMeshBuffer(*g_selected_mesh_buffer);
 
     for * guid : g_editor_selected_entities {
-        it := GetEntity(world, guid, MeshEntity);
-        if !it {
+        entity := GetEntity(world, guid);
+        draw, it := MakeMeshToDraw(entity);
+        if !draw {
             continue;
         }
 
-        if it.flags & .Hidden {
-            continue;
+        if !it.is_skinned {
+            aabb := GetTransformedAABB(it.transform, it.static_bounds);
+            if !AABBIsInFrustum(aabb, frustum) {
+                continue;
+            }
         }
 
-        if !it.mesh {
-            continue;
-        }
-
-        if IsNull(*it.mesh.vertex_buffer) || IsNull(*it.mesh.index_buffer) {
-            continue;
-        }
-
-        aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
-        if !AABBIsInFrustum(aabb, frustum) {
-            continue;
-        }
-
-        material := ifx it.material then it.material else g_default_material;
-
-        position := TranslationVector(it.world_transform);
+        position := TranslationVector(it.transform);
         depth := TransformPoint(camera.view, position).z;
-        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
-        PushMesh(*g_selected_mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
+        key := MakeMeshBufferKey(it.vertex_buffer, it.index_buffer, it.material, depth);
+        PushMesh(*g_selected_mesh_buffer, key, it.entity.guid, it.vertex_buffer, it.index_buffer, it.vertex_count, it.index_count, it.transform, it.material);
     }
 
     SortMeshBuffer(*g_selected_mesh_buffer);

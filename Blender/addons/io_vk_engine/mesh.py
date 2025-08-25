@@ -385,16 +385,16 @@ class MeshExportOptions(bpy.types.PropertyGroup):
         default = "//Meshes"
     )
 
-class EXPORTER_OT_EngineMesh(bpy.types.Operator):
-    bl_idname = "export.engine_mesh"
-    bl_label = "Export Vk Mesh (.mesh)"
-    bl_description = "Export Vk Mesh (.mesh)"
+class EXPORTER_OT_VkEngineMesh(bpy.types.Operator):
+    bl_idname = "export.vk_engine_mesh"
+    bl_label = "Export Vk-Engine meshes (.mesh)"
+    bl_description = "Export Vk-Engine meshes (.mesh)"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context : bpy.types.Context):
         context.window.cursor_set('WAIT')
 
-        options = context.scene.engine_mesh_export_options
+        options = context.scene.vk_engine_mesh_export_options
 
         objects : List[bpy.types.Object] = []
         if options.only_selected:
@@ -417,16 +417,16 @@ class EXPORTER_OT_EngineMesh(bpy.types.Operator):
 
         return { 'FINISHED' }
 
-class VIEW3D_PT_EngineMeshExport(bpy.types.Panel):
+class VIEW3D_PT_VkEngineMeshExport(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
-    bl_category = "Vk Engine Tools"
+    bl_category = "Vk-Engine Tools"
     bl_label = "Export Mesh(es)"
 
     def draw(self, context : bpy.types.Context):
         layout = self.layout
-        options = context.scene.engine_mesh_export_options
+        options = context.scene.vk_engine_mesh_export_options
 
         layout.row().prop(options, "only_selected")
         layout.row().prop(options, "apply_object_transform")
@@ -438,11 +438,11 @@ class VIEW3D_PT_EngineMeshExport(bpy.types.Panel):
 
         row = layout.row()
         row.enabled = valid
-        row.operator(EXPORTER_OT_EngineMesh.bl_idname, text="Export Meshes")
+        row.operator(EXPORTER_OT_VkEngineMesh.bl_idname, text="Export Meshe(s)")
 
 classes = (
-    VIEW3D_PT_EngineMeshExport,
-    EXPORTER_OT_EngineMesh,
+    VIEW3D_PT_VkEngineMeshExport,
+    EXPORTER_OT_VkEngineMesh,
     MeshExportOptions,
 )
 
@@ -450,7 +450,7 @@ def register():
     for cl in classes:
         bpy.utils.register_class(cl)
 
-    bpy.types.Scene.engine_mesh_export_options = PointerProperty(type=MeshExportOptions)
+    bpy.types.Scene.vk_engine_mesh_export_options = PointerProperty(type=MeshExportOptions)
 
 def unregister():
     for cl in classes:

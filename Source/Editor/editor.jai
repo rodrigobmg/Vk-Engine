@@ -226,7 +226,8 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void, all
     }
 
     if asset_type == {
-    case Mesh;
+    case StaticMesh; #through;
+    case SkinnedMesh;
         browser.selected_filter = 0;
     case Texture2D;
         browser.selected_filter = 1;

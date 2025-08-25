@@ -103,7 +103,7 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
 
         BindGraphicsBindingSet(*pass, 1, *binding_set);
 
-        prev_mesh : *Asset(Mesh);
+        prev_mesh : *Asset(StaticMesh);
         for gizmo_ctx.widgets {
             mesh := gizmo_ctx.meshes.all[it.mesh_id];
             if mesh != prev_mesh {

@@ -117,6 +117,7 @@ struct MeshInstance {
     float4x4 transform;
     float3x3 normal_transform;
     MaterialPerInstance material;
+    uint skinning_matrices_offset;
 };
 
 struct PointLight {

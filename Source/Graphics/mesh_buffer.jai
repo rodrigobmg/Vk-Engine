@@ -3,6 +3,7 @@ MeshInstance :: struct {
     transform : Mat4f;
     normal_transform : Mat3f;
     material : MaterialPerInstance;
+    skinning_matrices_offset : u32;
 } @ShaderType
 
 MeshBuffer :: struct {

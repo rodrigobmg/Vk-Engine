@@ -33,6 +33,20 @@
     layout(location=2) in float4 in_tangent; \
     layout(location=3) in float2 in_tex_coords
 
+#define DECLARE_SKINNED_VERTEX_ATTRIBUTES() \
+    layout(location=0) in float3 in_position; \
+    layout(location=1) in float3 in_normal; \
+    layout(location=2) in float4 in_tangent; \
+    layout(location=3) in float2 in_tex_coords; \
+    layout(location=4) in int4 in_joint_ids; \
+    layout(location=5) in float3 in_joint_weights
+
+#ifdef HAS_SKIN
+#define DECLARE_VERTEX_ATTRIBUTES() DECLARE_SKINNED_VERTEX_ATTRIBUTES()
+#else
+#define DECLARE_VERTEX_ATTRIBUTES() DECLARE_STATIC_VERTEX_ATTRIBUTES()
+#endif
+
 #ifdef SHADER_STAGE_VERTEX
 #define DECLARE_PER_FRAME_PARAMS() \
     layout(set=0, binding=0, std140) uniform FrameData { \
@@ -88,6 +102,9 @@
 #define DECLARE_PER_DRAW_CALL_MESH_PARAMS() \
     layout(set=2, binding=0, std430) readonly buffer MeshData { \
         MeshInstance u_mesh_instances[]; \
+    }; \
+    layout(set=2, binding=1, std430) readonly buffer SkinningData { \
+        float4x4 u_skinning_matrices[]; \
     }
 #endif
 

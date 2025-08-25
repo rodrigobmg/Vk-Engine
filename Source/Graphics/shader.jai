@@ -30,6 +30,7 @@ g_shaders := LoadedShader.[
     .{name="brdf_lut"},
     .{name="compositing"},
     .{name="mesh_geometry"},
+    .{name="skinned_mesh_geometry"},
     .{name="opaque_surface"},
 ];
 

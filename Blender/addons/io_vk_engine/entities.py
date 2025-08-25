@@ -125,7 +125,7 @@ def EntityFromBlenderObject(
 ):
     entity = None
 
-    options = context.scene.engine_entities_export_options
+    options = context.scene.vk_engine_entities_export_options
 
     if obj.type == 'EMPTY':
         entity = EmptyEntity()
@@ -226,16 +226,16 @@ class EntitiesExportOptions(bpy.types.PropertyGroup):
         default = True
     )
 
-class EXPORTER_OT_EngineEntities(bpy.types.Operator):
-    bl_idname = "export.engine_scene"
-    bl_label = "Export Vk Scene (.scene)"
-    bl_description = "Export Vk Scene (.scene)"
+class EXPORTER_OT_VkEngineEntities(bpy.types.Operator):
+    bl_idname = "export.vk_engine_scene"
+    bl_label = "Export Vk-Engine scene (.scene)"
+    bl_description = "Export Vk-Engine scene (.scene)"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context : bpy.types.Context):
         context.window.cursor_set('WAIT')
 
-        options = context.scene.engine_entities_export_options
+        options = context.scene.vk_engine_entities_export_options
 
         objects : List[bpy.types.Object] = []
         if options.only_selected:
@@ -290,16 +290,16 @@ class EXPORTER_OT_EngineEntities(bpy.types.Operator):
 
         return { 'FINISHED' }
 
-class VIEW3D_PT_EngineEntitiesExport(bpy.types.Panel):
+class VIEW3D_PT_VkEngineEntitiesExport(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
-    bl_category = "Vk Engine Tools"
-    bl_label = "Export Entities"
+    bl_category = "Vk-Engine Tools"
+    bl_label = "Export Entitie(s)"
 
     def draw(self, context : bpy.types.Context):
         layout = self.layout
-        options = context.scene.engine_entities_export_options
+        options = context.scene.vk_engine_entities_export_options
 
         layout.row().prop(options, "only_selected")
         layout.row().prop(options, "coordinate_system")
@@ -313,11 +313,11 @@ class VIEW3D_PT_EngineEntitiesExport(bpy.types.Panel):
 
         row = layout.row()
         row.enabled = valid
-        row.operator(EXPORTER_OT_EngineEntities.bl_idname, text="Export Entities")
+        row.operator(EXPORTER_OT_VkEngineEntities.bl_idname, text="Export Entitie(s)")
 
 classes = (
-    VIEW3D_PT_EngineEntitiesExport,
-    EXPORTER_OT_EngineEntities,
+    VIEW3D_PT_VkEngineEntitiesExport,
+    EXPORTER_OT_VkEngineEntities,
     EntitiesExportOptions,
 )
 
@@ -325,7 +325,7 @@ def register():
     for cl in classes:
         bpy.utils.register_class(cl)
 
-    bpy.types.Scene.engine_entities_export_options = PointerProperty(type=EntitiesExportOptions)
+    bpy.types.Scene.vk_engine_entities_export_options = PointerProperty(type=EntitiesExportOptions)
 
 def unregister():
     for cl in classes:

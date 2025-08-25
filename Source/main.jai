@@ -120,10 +120,24 @@ main :: () {
     defer CleanupRenderer();
 
     InitAssetCache(
-        *g_Mesh_asset_cache,
-        load_proc=LoadMeshFromMemory,
+        *g_StaticMesh_asset_cache,
+        load_proc=LoadStaticMeshFromMemory,
         post_load_proc=null,
-        unload_proc=DestroyMesh,
+        unload_proc=DestroyStaticMesh,
+        write_proc=null
+    );
+    InitAssetCache(
+        *g_SkinnedMesh_asset_cache,
+        load_proc=LoadSkinnedMeshFromMemory,
+        post_load_proc=null,
+        unload_proc=DestroySkinnedMesh,
+        write_proc=null
+    );
+    InitAssetCache(
+        *g_ArmatureAnimation_asset_cache,
+        load_proc=LoadArmatureAnimationFromMemory,
+        post_load_proc=null,
+        unload_proc=DestroyArmatureAnimation,
         write_proc=null
     );
     InitAssetCache(

@@ -121,34 +121,22 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *PointShadowMap, li
     frustum := GetShadowMapFrustum(shadow_map, light_position, face);
     viewpoint := GetShadowMapViewpoint(shadow_map, light_position, face);
 
-    for * world.MeshEntity_storage {
-        if it.flags & .Hidden {
-            continue;
-        }
-
+    for :AllMeshesToDraw world {
         if !it.cast_point_shadows {
             continue;
         }
 
-        if !it.mesh {
-            continue;
+        if !it.is_skinned {
+            aabb := GetTransformedAABB(it.transform, it.static_bounds);
+            if !AABBIsInFrustum(aabb, frustum) {
+                continue;
+            }
         }
 
-        if IsNull(*it.mesh.vertex_buffer) || IsNull(*it.mesh.index_buffer) {
-            continue;
-        }
-
-        aabb := GetTransformedAABB(it.world_transform, it.mesh.static_bounds);
-        if !AABBIsInFrustum(aabb, frustum) {
-            continue;
-        }
-
-        material := ifx it.material then it.material else g_default_material;
-
-        position := TranslationVector(it.world_transform);
+        position := TranslationVector(it.transform);
         depth := TransformPoint(viewpoint.view, position).z;
-        key := MakeMeshBufferKey(*it.mesh.vertex_buffer, *it.mesh.index_buffer, material, depth);
-        PushMesh(mesh_buffer, key, it.guid, *it.mesh.vertex_buffer, *it.mesh.index_buffer, it.mesh.vertex_count, it.mesh.index_count, it.world_transform, material);
+        key := MakeMeshBufferKey(it.vertex_buffer, it.index_buffer, it.material, depth);
+        PushMesh(mesh_buffer, key, it.entity.guid, it.vertex_buffer, it.index_buffer, it.vertex_count, it.index_count, it.transform, it.material);
     }
 
     SortMeshBuffer(mesh_buffer);

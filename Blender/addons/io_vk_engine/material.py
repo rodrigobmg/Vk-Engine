@@ -162,16 +162,16 @@ class MaterialExportOptions(bpy.types.PropertyGroup):
         default = "//Materials"
     )
 
-class EXPORTER_OT_EngineMaterial(bpy.types.Operator):
-    bl_idname = "export.engine_material"
-    bl_label = "Export Vk Material (.mat)"
-    bl_description = "Export Vk Material (.mat)"
+class EXPORTER_OT_VkEngineMaterial(bpy.types.Operator):
+    bl_idname = "export.vk_engine_material"
+    bl_label = "Export Vk-Engine materials (.mat)"
+    bl_description = "Export Vk-Engine materials (.mat)"
     bl_options = { 'REGISTER', 'UNDO' }
 
     def execute(self, context : bpy.types.Context):
         context.window.cursor_set('WAIT')
 
-        options = context.scene.engine_material_export_options
+        options = context.scene.vk_engine_material_export_options
 
         output_dir = bpy.path.abspath(options.output_directory)
         os.makedirs(output_dir, exist_ok=True)
@@ -192,16 +192,16 @@ class EXPORTER_OT_EngineMaterial(bpy.types.Operator):
 
         return { 'FINISHED' }
 
-class VIEW3D_PT_EngineMaterialExport(bpy.types.Panel):
+class VIEW3D_PT_VkEngineMaterialExport(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
-    bl_category = "Vk Engine Tools"
+    bl_category = "Vk-Engine Tools"
     bl_label = "Export Material(s)"
 
     def draw(self, context : bpy.types.Context):
         layout = self.layout
-        options = context.scene.engine_material_export_options
+        options = context.scene.vk_engine_material_export_options
 
         layout.row().prop(options, "output_directory")
 
@@ -209,11 +209,11 @@ class VIEW3D_PT_EngineMaterialExport(bpy.types.Panel):
 
         row = layout.row()
         row.enabled = valid
-        row.operator(EXPORTER_OT_EngineMaterial.bl_idname, text="Export Materials")
+        row.operator(EXPORTER_OT_VkEngineMaterial.bl_idname, text="Export Materials")
 
 classes = (
-    VIEW3D_PT_EngineMaterialExport,
-    EXPORTER_OT_EngineMaterial,
+    VIEW3D_PT_VkEngineMaterialExport,
+    EXPORTER_OT_VkEngineMaterial,
     MaterialExportOptions,
 )
 
@@ -221,7 +221,7 @@ def register():
     for cl in classes:
         bpy.utils.register_class(cl)
 
-    bpy.types.Scene.engine_material_export_options = PointerProperty(type=MaterialExportOptions)
+    bpy.types.Scene.vk_engine_material_export_options = PointerProperty(type=MaterialExportOptions)
 
 def unregister():
     for cl in classes:

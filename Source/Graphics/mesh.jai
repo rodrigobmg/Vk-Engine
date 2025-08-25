@@ -7,8 +7,12 @@ StaticVertex :: struct {
     tex_coords : Vec2f;
 }
 
-Mesh :: struct {
-    vertices : []StaticVertex;
+StaticMesh :: struct {
+    #as using _ : Mesh(StaticVertex);
+} @Asset
+
+Mesh :: struct(VertexType : Type) {
+    vertices : []VertexType;
     indices : []u32;
 
     vertex_count : u32;
@@ -20,14 +24,23 @@ Mesh :: struct {
     static_bounds : AABB;
 
     triangles : []MeshTriangle; // For collision, not generated unless needed
-} @Asset
+}
 
 MeshFileFlags :: enum_flags u32 {
     HasTangents;
     HasOctree;
 }
 
-LoadMeshFromMemory :: (mesh : *Mesh, data : []u8, name : string) -> bool {
+DestroyMesh :: (using mesh : *Mesh) {
+    Free(triangles.data);
+    Free(vertices.data);
+    Free(indices.data);
+    QueueDestroyGfxBuffer(*vertex_buffer);
+    QueueDestroyGfxBuffer(*index_buffer);
+    mesh.* = .{};
+}
+
+LoadStaticMeshFromMemory :: (mesh : *StaticMesh, data : []u8, name : string) -> bool {
     #import "Binary_Reader";
 
     reader := MakeBinaryReader(data);
@@ -135,13 +148,8 @@ LoadMeshFromMemory :: (mesh : *Mesh, data : []u8, name : string) -> bool {
     return true;
 }
 
-DestroyMesh :: (using mesh : *Mesh) {
-    Free(triangles.data);
-    Free(vertices.data);
-    Free(indices.data);
-    QueueDestroyGfxBuffer(*vertex_buffer);
-    QueueDestroyGfxBuffer(*index_buffer);
-    mesh.* = .{};
+DestroyStaticMesh :: (mesh : *StaticMesh) {
+    DestroyMesh(mesh);
 }
 
 CalculateStaticBounds :: (using mesh : *Mesh) {

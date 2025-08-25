@@ -12,11 +12,13 @@
 #error No extension available for usage of gl_Layer inside vertex shader.
 #endif
 
-DECLARE_STATIC_VERTEX_ATTRIBUTES();
+DECLARE_VERTEX_ATTRIBUTES();
 
 DECLARE_PER_FRAME_PARAMS();
 DECLARE_FORWARD_PASS_PARAMS();
 DECLARE_PER_DRAW_CALL_MESH_PARAMS();
+
+#include "skinning.glsl"
 
 layout(location=0) out float3 out_viewpoint_position;
 layout(location=1) out flat uint out_instance_index;
@@ -33,9 +35,21 @@ void main() {
 
     MeshInstance mesh = u_mesh_instances[out_instance_index];
 
-    float3 world_space_position = (mesh.transform * float4(in_position, 1)).xyz;
-    float3 world_space_normal = normalize(mesh.normal_transform * in_normal);
-    float3 world_space_tangent = normalize(mesh.normal_transform * in_tangent.xyz);
+    float3 model_space_position = in_position;
+    float3 model_space_normal   = in_normal;
+    float3 model_space_tangent  = in_tangent.xyz;
+
+#ifdef HAS_SKIN
+    ApplySkinning(
+        mesh.skinning_matrices_offset,
+        in_joint_ids, in_joint_weights,
+        model_space_position, model_space_normal, model_space_tangent
+    );
+#endif
+
+    float3 world_space_position = (mesh.transform * float4(model_space_position, 1)).xyz;
+    float3 world_space_normal = normalize(mesh.normal_transform * model_space_normal);
+    float3 world_space_tangent = normalize(mesh.normal_transform * model_space_tangent);
     world_space_tangent = normalize(world_space_tangent - dot(world_space_tangent, world_space_normal) * world_space_normal);
 
     out_viewpoint_position = viewpoint.position;

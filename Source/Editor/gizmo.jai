@@ -94,20 +94,20 @@ GizmoContext :: struct {
     // texts_to_draw : [..]GizmoTextToDraw;
 
     meshes : struct {
-        cube : *Asset(Mesh);
-        sphere : *Asset(Mesh);
-        sphere_quarter : *Asset(Mesh);
-        plane : *Asset(Mesh);
-        translate_plane : *Asset(Mesh);
-        arrow : *Asset(Mesh);
-        square_arrow : *Asset(Mesh);
-        rotate_full_thin : *Asset(Mesh);
-        rotate_full : *Asset(Mesh);
-        rotate_half : *Asset(Mesh);
-        rotate_quarter : *Asset(Mesh);
+        cube : *Asset(StaticMesh);
+        sphere : *Asset(StaticMesh);
+        sphere_quarter : *Asset(StaticMesh);
+        plane : *Asset(StaticMesh);
+        translate_plane : *Asset(StaticMesh);
+        arrow : *Asset(StaticMesh);
+        square_arrow : *Asset(StaticMesh);
+        rotate_full_thin : *Asset(StaticMesh);
+        rotate_full : *Asset(StaticMesh);
+        rotate_half : *Asset(StaticMesh);
+        rotate_quarter : *Asset(StaticMesh);
 
         #place cube;
-        all : [11]*Asset(Mesh);
+        all : [11]*Asset(StaticMesh);
     };
 
     color_texture : GfxTexture;
@@ -244,17 +244,17 @@ GizmoMesh :: enum u8 {
 InitGizmoContext :: (ctx : *GizmoContext) {
     using ctx.meshes;
 
-    cube = LoadAsset(Mesh, "Editor/Gizmos/Cube.mesh");
-    sphere = LoadAsset(Mesh, "Editor/Gizmos/Sphere.mesh");
-    sphere_quarter = LoadAsset(Mesh, "Editor/Gizmos/SphereQuarter.mesh");
-    plane = LoadAsset(Mesh, "Editor/Gizmos/Plane.mesh");
-    translate_plane = LoadAsset(Mesh, "Editor/Gizmos/TranslatePlane.mesh");
-    arrow = LoadAsset(Mesh, "Editor/Gizmos/Arrow.mesh");
-    square_arrow = LoadAsset(Mesh, "Editor/Gizmos/SquareArrow.mesh");
-    rotate_full_thin = LoadAsset(Mesh, "Editor/Gizmos/RotateFullThin.mesh");
-    rotate_full = LoadAsset(Mesh, "Editor/Gizmos/RotateFull.mesh");
-    rotate_half = LoadAsset(Mesh, "Editor/Gizmos/RotateHalf.mesh");
-    rotate_quarter = LoadAsset(Mesh, "Editor/Gizmos/RotateQuarter.mesh");
+    cube = LoadAsset(StaticMesh, "Editor/Gizmos/Cube.mesh");
+    sphere = LoadAsset(StaticMesh, "Editor/Gizmos/Sphere.mesh");
+    sphere_quarter = LoadAsset(StaticMesh, "Editor/Gizmos/SphereQuarter.mesh");
+    plane = LoadAsset(StaticMesh, "Editor/Gizmos/Plane.mesh");
+    translate_plane = LoadAsset(StaticMesh, "Editor/Gizmos/TranslatePlane.mesh");
+    arrow = LoadAsset(StaticMesh, "Editor/Gizmos/Arrow.mesh");
+    square_arrow = LoadAsset(StaticMesh, "Editor/Gizmos/SquareArrow.mesh");
+    rotate_full_thin = LoadAsset(StaticMesh, "Editor/Gizmos/RotateFullThin.mesh");
+    rotate_full = LoadAsset(StaticMesh, "Editor/Gizmos/RotateFull.mesh");
+    rotate_half = LoadAsset(StaticMesh, "Editor/Gizmos/RotateHalf.mesh");
+    rotate_quarter = LoadAsset(StaticMesh, "Editor/Gizmos/RotateQuarter.mesh");
 
     for ctx.meshes.all {
         BuildTriangleList(it);
