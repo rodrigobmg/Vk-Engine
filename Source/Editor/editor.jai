@@ -449,6 +449,8 @@ UpdateEditor :: (world : *World) {
     ShowEntityInspector(world, entity_to_inspect);
 
     for :AllEntities entity : world {
+        EntityCallback(world, entity, "OnEditorUpdate");
+
         if entity.flags & .Hidden {
             continue;
         }
