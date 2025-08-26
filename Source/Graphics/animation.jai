@@ -57,7 +57,7 @@ AllocArmatureAnimationData :: (anim : *ArmatureAnimation, joint_count : int, pos
     HashMapInitFromPreallocatedMemory(*anim.name_to_joint_id, map_data, capacity, Trap);
 }
 
-GetJointNamesArray :: inline (using anim : ArmatureAnimation) -> [][Max_Armature_Joint_Name_Length]u8 {
+GetJointNamesArray :: inline (using anim : *ArmatureAnimation) -> [][Max_Armature_Joint_Name_Length]u8 {
     result : [][Max_Armature_Joint_Name_Length]u8 = ---;
     result.count = joint_count;
     result.data = memory_block + size_of(JointSample) * joint_count * pose_count;
@@ -65,7 +65,7 @@ GetJointNamesArray :: inline (using anim : ArmatureAnimation) -> [][Max_Armature
     return result;
 }
 
-GetJointName :: inline (anim : ArmatureAnimation, joint_id : s16) -> string {
+GetJointName :: inline (anim : *ArmatureAnimation, joint_id : s16) -> string {
     Assert(joint_id >= 0 && joint_id < anim.joint_count, "Invalid joint id %", joint_id);
 
     names_data := cast(*[Max_Armature_Joint_Name_Length]u8) (anim.memory_block + size_of(JointSample) * anim.joint_count * anim.pose_count);
@@ -73,7 +73,7 @@ GetJointName :: inline (anim : ArmatureAnimation, joint_id : s16) -> string {
     return MakeString(names_data[joint_id].data);
 }
 
-GetJointSample :: inline (using anim : ArmatureAnimation, joint_id : s16, pose_index : int) -> *JointSample {
+GetJointSample :: inline (using anim : *ArmatureAnimation, joint_id : s16, pose_index : int) -> *JointSample {
     Assert(joint_id >= 0 && joint_id < joint_count, "Invalid joint id %", joint_id);
     Assert(pose_index >= 0 && pose_index < pose_count, "Pose index % out of bounds %", pose_index, pose_count);
 
@@ -216,7 +216,7 @@ InterpolateJointSamples :: inline (
 }
 
 SampleAnimation :: (
-    anim : ArmatureAnimation,
+    anim : *ArmatureAnimation,
     pose_index : float,
     output_pose : *ArmaturePose
 ) {
@@ -253,7 +253,18 @@ CalculatePoseTransforms :: (using pose : *ArmaturePose) {
     }
 }
 
-CopyPose :: (dest : *ArmaturePose, src : ArmaturePose) {
+CalculateSkinningMatrices :: (pose : *ArmaturePose, matrices : *[]Mat4f) {
+    if matrices.count != pose.joints.count {
+        Free(matrices.data);
+        matrices.* = AllocArray(Mat4f, pose.joints.count);
+    }
+
+    for * matrices.* {
+        it.* = pose.joints[it_index].model_space_transform * pose.mesh.joints[it_index].inverse_bind_transform;
+    }
+}
+
+CopyPose :: (dest : *ArmaturePose, src : *ArmaturePose) {
     Assert(dest.mesh == src.mesh, "Armatures do not match");
 
     for * dest.joints {
@@ -261,7 +272,7 @@ CopyPose :: (dest : *ArmaturePose, src : ArmaturePose) {
     }
 }
 
-BlendPoses :: (dest : *ArmaturePose, a : ArmaturePose, b : ArmaturePose, t : float) {
+BlendPoses :: (dest : *ArmaturePose, a : *ArmaturePose, b : *ArmaturePose, t : float) {
     Assert(dest.mesh == a.mesh, "Armatures do not match");
     Assert(dest.mesh == b.mesh, "Armatures do not match");
 
@@ -270,7 +281,7 @@ BlendPoses :: (dest : *ArmaturePose, a : ArmaturePose, b : ArmaturePose, t : flo
     }
 }
 
-AddPoses :: (dest : *ArmaturePose, other : ArmaturePose, weight := 1.0) {
+AddPoses :: (dest : *ArmaturePose, other : *ArmaturePose, weight := 1.0) {
     Assert(dest.mesh == other.mesh);
 
     for * dest.joints {
@@ -280,7 +291,7 @@ AddPoses :: (dest : *ArmaturePose, other : ArmaturePose, weight := 1.0) {
     }
 }
 
-SubtractPoses :: (dest : *ArmaturePose, other : ArmaturePose, weight := 1.0) {
+SubtractPoses :: (dest : *ArmaturePose, other : *ArmaturePose, weight := 1.0) {
     Assert(dest.mesh == other.mesh);
 
     for * dest.joints {

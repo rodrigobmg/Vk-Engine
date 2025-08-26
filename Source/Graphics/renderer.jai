@@ -275,14 +275,34 @@ AnimatedMeshEntity :: struct {
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
     cast_point_shadows := false; @Serialize(5)
-    animation : *Asset(ArmatureAnimation); @Serialize(6);
+    animation : *Asset(ArmatureAnimation); @Serialize(6)
     animation_frames_per_second := 30.0; @Serialize(7)
     animation_time : float;
     pose : ArmaturePose;
     skinning_matrices : []Mat4f;
 
-    OnUpdate :: (world : *World, entity : *AnimatedMeshEntity) {
+    OnEditorUpdate :: (world : *World, using entity : *AnimatedMeshEntity) {
+        if pose.mesh != mesh {
+            FreeArmaturePose(*pose);
+            if mesh {
+                InitArmaturePose(*pose, mesh);
+            }
+        }
 
+        if !mesh {
+            return;
+        }
+
+        if animation {
+            SampleAnimation(animation, animation_time, *pose);
+            animation_time += g_last_frame_time * animation_frames_per_second;
+        } else {
+            ResetToBindPose(*pose);
+            animation_time = 0;
+        }
+
+        CalculatePoseTransforms(*pose);
+        CalculateSkinningMatrices(*pose, *skinning_matrices);
     }
 } @Entity
 
