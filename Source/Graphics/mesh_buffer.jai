@@ -41,11 +41,12 @@ MeshBuffer :: struct {
 
 MeshBindingSet :: struct {
     mesh_instances : GfxBindingStorageBuffer; @Binding(0) @VertexStage @FragmentStage
-    base_color : GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage
-    normal_map : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
-    metallic_roughness_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage @AllowNull
-    emissive : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
-    depth_map : GfxBindingCombinedTextureSampler; @Binding(5) @FragmentStage @AllowNull
+    skinning_matrices : GfxBindingStorageBuffer; @Binding(1) @VertexStage @AllowNull
+    base_color : GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage
+    normal_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
+    metallic_roughness_map : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage @AllowNull
+    emissive : GfxBindingCombinedTextureSampler; @Binding(5) @FragmentStage
+    depth_map : GfxBindingCombinedTextureSampler; @Binding(6) @FragmentStage @AllowNull
 } @BindingSet
 
 ClearMeshBuffer :: (buffer : *MeshBuffer) {
@@ -151,6 +152,8 @@ PushMesh :: (
     entry.material = material;
     entry.is_skinned = is_skinned;
     entry.skinning_matrices = skinning_matrices;
+
+    buffer.total_num_skinning_matrices += xx skinning_matrices.count;
 }
 
 SortMeshBuffer :: (buffer : *MeshBuffer) {
@@ -166,6 +169,13 @@ CanInstantiateMeshes :: (a : MeshBuffer.Entry, b : MeshBuffer.Entry) -> bool {
 }
 
 AllocDrawData :: (buffer : *MeshBuffer) {
+    skinning_matrices : *Mat4f;
+    current_skinning_matrices_offset : u32;
+
+    if buffer.total_num_skinning_matrices > 0 {
+        buffer.skinning_matrices_offset, skinning_matrices = AllocFrameData(xx (size_of(Mat4f) * buffer.total_num_skinning_matrices));
+    }
+
     i := 0;
     while i < buffer.meshes.count {
         instance_count : u32 = 1;
@@ -184,6 +194,7 @@ AllocDrawData :: (buffer : *MeshBuffer) {
         draw.vertex_count = mesh.vertex_count;
         draw.index_count = mesh.index_count;
         draw.instance_count = instance_count;
+        draw.is_skinned = mesh.is_skinned;
 
         draw.material = MakeMaterialPerDrawCall(mesh.material);
 
@@ -199,13 +210,18 @@ AllocDrawData :: (buffer : *MeshBuffer) {
             instance.transform = mesh.transform;
             instance.normal_transform = ToMat3f(Transposed(Inverse(mesh.transform)));
             instance.material = MakeMaterialPerInstance(mesh.material);
+            instance.skinning_matrices_offset = current_skinning_matrices_offset;
 
             PackToGLSLStd(instance, packed_instances, .Std430);
             packed_instances += GLSLStd430Size(MeshInstance);
+
+            memcpy(skinning_matrices + current_skinning_matrices_offset, mesh.skinning_matrices.data, size_of(Mat4f) * mesh.skinning_matrices.count);
+            current_skinning_matrices_offset += xx mesh.skinning_matrices.count;
         }
 
         bindings : MeshBindingSet;
         bindings.mesh_instances = .{buffer=FrameDataBuffer(), offset=xx draw.instances_offset, size=xx (GLSLStd430Size(MeshInstance) * instance_count)};
+        bindings.skinning_matrices = .{buffer=FrameDataBuffer(), size=xx (size_of(Mat4f) * buffer.total_num_skinning_matrices)};
         bindings.base_color = .{
             texture=ifx mesh.material.base_color && !IsNull(*mesh.material.base_color.texture)
                 then *mesh.material.base_color.texture
