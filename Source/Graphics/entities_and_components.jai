@@ -65,8 +65,9 @@ AnimatedMeshEntity :: struct {
         entity.mesh = CreateComponent(world, SkinnedMeshComponent, entity);
     }
 
-    OnDespawn :: (world : *World, entity : *AnimatedMeshEntity) {
-        DestroyComponent(world, entity.mesh);
+    OnDespawn :: (world : *World, using entity : *AnimatedMeshEntity) {
+        DestroyComponent(world, mesh);
+        FreeArmaturePose(*pose);
     }
 
     OnEditorUpdate :: (world : *World, using entity : *AnimatedMeshEntity) {
