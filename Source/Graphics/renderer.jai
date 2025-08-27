@@ -1,18 +1,36 @@
 StaticMeshComponent :: struct {
-    #as using _ : Component; @Serialize(1)
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(StaticMesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
+    cast_shadows := true; @Serialize(4)
+    cast_point_shadows := false; @Serialize(5)
 } @Component
 
 SkinnedMeshComponent :: struct {
-    #as using _ : Component; @Serialize(1)
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(SkinnedMesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
+    cast_shadows := true; @Serialize(4)
+    cast_point_shadows := false; @Serialize(5)
     pose : ArmaturePose;
     skinning_matrices : []Mat4f;
 } @Component
+
+StaticMeshEntity :: struct {
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
+
+    mesh : *StaticMeshComponent; @Serialize(2)
+
+    OnSpawn :: (world : *World, entity : *StaticMeshEntity) {
+        entity.mesh = CreateComponent(world, StaticMeshComponent, entity);
+    }
+
+    OnDespawn :: (world : *World, entity : *StaticMeshEntity) {
+        DestroyComponent(world, entity.mesh);
+    }
+} @Entity
 
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
@@ -281,7 +299,6 @@ MeshEntity :: struct {
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
     cast_point_shadows := false; @Serialize(5)
-    aabb : AABB;
 } @Entity
 
 AnimatedMeshEntity :: struct {
@@ -509,68 +526,76 @@ MeshToDraw :: struct {
     skinning_matrices : []Mat4f;
 }
 
-MakeMeshToDraw :: (e : *MeshEntity) -> bool, MeshToDraw {
-    if e.flags & .Hidden || !e.mesh || IsNull(*e.mesh.vertex_buffer) || IsNull(*e.mesh.index_buffer) {
+MakeMeshToDraw :: (entity : *Entity, component : *StaticMeshComponent) -> bool, MeshToDraw {
+    if entity.flags & .Hidden || !component.mesh || IsNull(*component.mesh.vertex_buffer) || IsNull(*component.mesh.index_buffer) {
         return false, .{};
     }
 
     return true, .{
-        entity=e,
-        transform=e.world_transform,
-        vertex_buffer=*e.mesh.vertex_buffer,
-        index_buffer=*e.mesh.index_buffer,
-        vertex_count=e.mesh.vertex_count,
-        index_count=e.mesh.index_count,
-        static_bounds=e.mesh.static_bounds,
-        material=ifx e.material then e.material else g_default_material,
-        cast_shadows=e.cast_shadows,
-        cast_point_shadows=e.cast_point_shadows,
+        entity=entity,
+        transform=entity.world_transform,
+        vertex_buffer=*component.mesh.vertex_buffer,
+        index_buffer=*component.mesh.index_buffer,
+        vertex_count=component.mesh.vertex_count,
+        index_count=component.mesh.index_count,
+        static_bounds=component.mesh.static_bounds,
+        material=ifx component.material then component.material else g_default_material,
+        cast_shadows=component.cast_shadows,
+        cast_point_shadows=component.cast_point_shadows,
         is_skinned=false,
     };
 }
 
-MakeMeshToDraw :: (e : *AnimatedMeshEntity) -> bool, MeshToDraw {
-    if e.flags & .Hidden || !e.mesh || IsNull(*e.mesh.vertex_buffer) || IsNull(*e.mesh.index_buffer) {
+MakeMeshToDraw :: (world : *World, component : *StaticMeshComponent) -> bool, MeshToDraw {
+    entity := GetEntity(world, component.entity);
+    if !entity {
+        LogError("Could not get entity %", component.entity);
+        return false, .{};
+    }
+
+    ok, mesh := MakeMeshToDraw(entity, component);
+    return ok, mesh;
+}
+
+MakeMeshToDraw :: (entity : *Entity, component : *SkinnedMeshComponent) -> bool, MeshToDraw {
+    if entity.flags & .Hidden || !component.mesh || IsNull(*component.mesh.vertex_buffer) || IsNull(*component.mesh.index_buffer) {
         return false, .{};
     }
 
     return true, .{
-        entity=e,
-        transform=e.world_transform,
-        vertex_buffer=*e.mesh.vertex_buffer,
-        index_buffer=*e.mesh.index_buffer,
-        vertex_count=e.mesh.vertex_count,
-        index_count=e.mesh.index_count,
-        material=ifx e.material then e.material else g_default_material,
-        cast_shadows=e.cast_shadows,
-        cast_point_shadows=e.cast_point_shadows,
+        entity=entity,
+        transform=entity.world_transform,
+        vertex_buffer=*component.mesh.vertex_buffer,
+        index_buffer=*component.mesh.index_buffer,
+        vertex_count=component.mesh.vertex_count,
+        index_count=component.mesh.index_count,
+        material=ifx component.material then component.material else g_default_material,
+        cast_shadows=component.cast_shadows,
+        cast_point_shadows=component.cast_point_shadows,
         is_skinned=true,
-        skinning_matrices=e.skinning_matrices,
+        skinning_matrices=component.skinning_matrices,
     };
 }
 
-MakeMeshToDraw :: (e : *Entity) -> bool, MeshToDraw {
-    type_id := GetEntityTypeId(e.index);
-    if type_id == {
-    case .MeshEntity;
-        ok, mesh := MakeMeshToDraw(cast(*MeshEntity, e));
-        return ok, mesh;
-    case .AnimatedMeshEntity;
-        ok, mesh := MakeMeshToDraw(cast(*AnimatedMeshEntity, e));
-        return ok, mesh;
+MakeMeshToDraw :: (world : *World, component : *SkinnedMeshComponent) -> bool, MeshToDraw {
+    entity := GetEntity(world, component.entity);
+    if !entity {
+        LogError("Could not get entity");
+        return false, .{};
     }
 
-    return false, .{};
+    ok, mesh := MakeMeshToDraw(entity, component);
+    return ok, mesh;
 }
 
 AllMeshesToDraw :: (world : *World, body : Code, flags : For_Flags) #expand {
     `it : MeshToDraw;
     `it_index : int;
 
-    for * e, i : world.MeshEntity_storage {
+    for * c, i : world.StaticMeshComponent_storage {
         defer it_index += 1;
 
-        ok:, it = MakeMeshToDraw(e);
+        ok:, it = MakeMeshToDraw(world, c);
         if !ok {
             continue;
         }
@@ -578,10 +603,10 @@ AllMeshesToDraw :: (world : *World, body : Code, flags : For_Flags) #expand {
         #insert(break=return) body;
     }
 
-    for * e, i : world.AnimatedMeshEntity_storage {
+    for * c, i : world.SkinnedMeshComponent_storage {
         defer it_index += 1;
 
-        ok:, it = MakeMeshToDraw(e);
+        ok:, it = MakeMeshToDraw(world, c);
         if !ok {
             continue;
         }
@@ -624,7 +649,20 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     for * guid : g_editor_selected_entities {
         entity := GetEntity(world, guid);
-        draw, it := MakeMeshToDraw(entity);
+
+        draw : bool;
+        it : MeshToDraw;
+
+        static_mesh := GetComponent(entity, StaticMeshComponent);
+        if static_mesh {
+            draw, it = MakeMeshToDraw(entity, static_mesh);
+        } else {
+            skinned_mesh := GetComponent(entity, SkinnedMeshComponent);
+            if skinned_mesh {
+                draw, it = MakeMeshToDraw(entity, skinned_mesh);
+            }
+        }
+
         if !draw {
             continue;
         }
