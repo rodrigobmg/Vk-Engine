@@ -1,7 +1,0 @@
-@_ 1:
-  @guid 1: 0xdb84b1d6c33240a49f16de597b1524f5
-  @name 2: "2nd_floor"
-  @local_position 3: [0, 0, 0]
-  @local_rotation 4: [0, 0, 0, 1]
-  @local_scale 5: [1, 1, 1]
-  @parent 6: 0xd4fd13fe2a9f4e97b6bf6f12817b7794
