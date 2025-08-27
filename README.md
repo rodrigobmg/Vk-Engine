@@ -19,6 +19,7 @@ Supports Linux and Windows.
 * Omnidirectional shadow maps
 * Simple editor with gizmos
 * Simple GPU profiler
+* Skinned meshes
 
 ## To explore/implement next:
 * Global illumination

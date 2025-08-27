@@ -101,7 +101,7 @@ LoadArmatureAnimationFromMemory :: (anim : *ArmatureAnimation, data : []u8, name
 
     pose_count:, ok = ReadValue(*reader, u32);
     if !ok {
-        LogError("Could not read joint count");
+        LogError("Could not read pose count");
         return false;
     }
 
@@ -220,16 +220,16 @@ SampleAnimation :: (
     pose_index : float,
     output_pose : *ArmaturePose
 ) {
-    pose_index = Math.fmod_cycling(pose_index, cast(float) anim.pose_count);
+    pose_index = Math.fmod_cycling(pose_index, cast(float, anim.pose_count));
 
     for * pose_joint : output_pose.joints {
-        joint_name := GetJointName(output_pose.armature, cast(s16) it_index);
+        joint_name := GetJointName(output_pose.armature, cast(s16, it_index));
         anim_joint_id, exists := HashMapGet(*anim.name_to_joint_id, joint_name);
         if !exists {
             continue;
         }
 
-        first_pose_index  := cast(s64) pose_index;
+        first_pose_index  := cast(s64, pose_index);
         second_pose_index := (first_pose_index + 1) % anim.pose_count;
         first  := GetJointSample(anim, anim_joint_id, first_pose_index);
         second := GetJointSample(anim, anim_joint_id, second_pose_index);

@@ -223,7 +223,10 @@ AllocDrawData :: (buffer : *MeshBuffer) {
             PackToGLSLStd(instance, packed_instances, .Std430);
             packed_instances += GLSLStd430Size(MeshInstance);
 
-            memcpy(skinning_matrices + current_skinning_matrices_offset, mesh.skinning_matrices.data, size_of(Mat4f) * mesh.skinning_matrices.count);
+            for mesh.skinning_matrices {
+                (skinning_matrices + current_skinning_matrices_offset)[it_index] = Transposed(it);
+            }
+
             current_skinning_matrices_offset += xx mesh.skinning_matrices.count;
         }
 
