@@ -449,13 +449,13 @@ UpdateEditor :: (world : *World) {
     ShowEntityInspector(world, entity_to_inspect);
 
     for :AllEntities entity : world {
-        EntityCallback(world, entity, "OnEditorUpdate");
+        CallEntityCallback(world, entity, "OnEditorUpdate");
 
         if entity.flags & .Hidden {
             continue;
         }
 
-        EntityCallback(world, entity, "OnDebugDraw");
+        CallEntityCallback(world, entity, "OnDebugDraw");
     }
 
     if g_editor_requested_save_world {

@@ -1,3 +1,19 @@
+StaticMeshComponent :: struct {
+    #as using _ : Component; @Serialize(1)
+
+    mesh : *Asset(StaticMesh); @Serialize(2)
+    material : *Asset(Material); @Serialize(3)
+} @Component
+
+SkinnedMeshComponent :: struct {
+    #as using _ : Component; @Serialize(1)
+
+    mesh : *Asset(SkinnedMesh); @Serialize(2)
+    material : *Asset(Material); @Serialize(3)
+    pose : ArmaturePose;
+    skinning_matrices : []Mat4f;
+} @Component
+
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
 
