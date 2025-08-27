@@ -861,6 +861,8 @@ DestroyWorld :: (using world : *World) {
 
             Appendln(*builder, "for * %_storage {", type);
             Appendln(*builder, "    #if #exists(%1.OnDespawn) {", type);
+            Appendln(*builder, "        it.parent = Null_Entity_GUID;");
+            Appendln(*builder, "        ArrayClear(*it.children);");
             Appendln(*builder, "        it.OnDespawn(world, it);");
             Appendln(*builder, "    }");
             Appendln(*builder, "    UnreferenceAllAssets(it);");
