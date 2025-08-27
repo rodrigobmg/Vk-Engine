@@ -3,20 +3,25 @@
 // This system creates pipelines for all the variations and for a given render pass
 // based on a template desc and a description of the shaders each material type uses
 
+// TLDR:
+//  * MaterialDesc defines stuff per material type
+//  * MaterialRenderPass defines stuff per render pass
+//  * MaterialPipelines defines the pipelines for each variation of a given material (though MaterialRenderPass
+// caches these so material types that end up using the same params will use the same pipelines)
+
 MaterialDesc :: struct {
     vertex_shader : string;
     shading_fragment_shader : string;
-
-    Num_Material_Fragment_Shaders :: 1;
-
-    #place shading_fragment_shader;
-    fragment_shaders : [Num_Material_Fragment_Shaders]string;
 }
 
+// This array describes shaders to be used per material type. The vertex shader is always used in any render pass
+// that draws meshes. The fragment shaders can be used or not, depending on the render pass.
 g_material_descs : [Num_Material_Types]MaterialDesc = .[
+    // Opaque
     .{vertex_shader="mesh_geometry", shading_fragment_shader="opaque_surface"},
 ];
 
+// MaterialPipelines stores pipelines for one material depending on variations (e.g. skinned, wireframe, skinned and wireframe)
 MaterialPipelineFlags :: enum_flags {
     Skinned;
 }
@@ -102,13 +107,16 @@ HashMaterialPipelinesKey :: (key : MaterialPipelinesKey) -> u64 {
     return h;
 }
 
+// MaterialRenderPass stores pipelines cached for a specific render pass (pipelines can be shared per material,
+// as in certain render passes materials use the same vertex and fragment shader, or none).
+// It defines certain pipeline parameters, the binding set to be used for the whole pass, and the fragment shader
 MaterialRenderPass :: struct {
     initialized : bool;
 
     name : string;
 
     // The shader name or one of the following special values:
-    // FORWARD_SHADING will use MaterialDesc.shading_fragment_shader
+    //  * FORWARD_SHADING will use MaterialDesc.shading_fragment_shader
     fragment_shader : string;
 
     pipeline_template : GfxGraphicsPipelineDesc;
