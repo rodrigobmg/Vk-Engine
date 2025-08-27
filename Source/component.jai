@@ -24,27 +24,27 @@ IsInComponentTypesArray :: (type : Type) -> bool {
     return false;
 }
 
-CreateComponent :: (world : *World, storage : *ComponentStorage, entity : EntityGUID) -> *storage.T {
+CreateComponent :: (world : *World, storage : *ComponentStorage($T), entity : EntityGUID) -> *T {
     component, index := PagedArrayFindSlot(storage);
     component.entity = entity;
     component.index = index;
 
-    #if #exists(storage.T.OnCreate) {
-        component.OnCreate(world, component);
+    #if #exists(T.OnCreate) {
+        T.OnCreate(world, component);
     }
 
     return component;
 }
 
-DestroyComponent :: (world : *World, storage : *ComponentStorage, component : *storage.T) {
+DestroyComponent :: (world : *World, storage : *ComponentStorage($T), component : *T) {
     if !component {
         return;
     }
 
     UnreferenceAllAssets(component);
 
-    #if #exists(storage.T.OnDestroy) {
-        component.OnDestroy(world, component);
+    #if #exists(T.OnDestroy) {
+        T.OnDestroy(world, component);
     }
 
     PagedArrayFreeSlot(storage, component.index);
