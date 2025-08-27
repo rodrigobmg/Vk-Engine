@@ -232,7 +232,7 @@ AllocDrawData :: (buffer : *MeshBuffer) {
 
         bindings : MeshBindingSet;
         bindings.mesh_instances = .{buffer=FrameDataBuffer(), offset=xx draw.instances_offset, size=xx (GLSLStd430Size(MeshInstance) * instance_count)};
-        bindings.skinning_matrices = .{buffer=FrameDataBuffer(), size=xx (size_of(Mat4f) * buffer.total_num_skinning_matrices)};
+        bindings.skinning_matrices = .{buffer=FrameDataBuffer(), offset=xx buffer.skinning_matrices_offset, size=xx (size_of(Mat4f) * buffer.total_num_skinning_matrices)};
         bindings.base_color = .{
             texture=ifx mesh.material.base_color && !IsNull(*mesh.material.base_color.texture)
                 then *mesh.material.base_color.texture
