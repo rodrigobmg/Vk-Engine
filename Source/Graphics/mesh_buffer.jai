@@ -39,6 +39,14 @@ MeshBuffer :: struct {
     draw_calls : [..]DrawCall;
 }
 
+GetPipeline :: (pass : *MaterialRenderPass, draw_call : MeshBuffer.DrawCall, flags : MaterialPipelineFlags = 0) -> *GfxGraphicsPipeline {
+    if draw_call.is_skinned {
+        flags |= .Skinned;
+    }
+
+    return GetPipeline(pass, draw_call.material.type, flags);
+}
+
 MeshBindingSet :: struct {
     mesh_instances : GfxBindingStorageBuffer; @Binding(0) @VertexStage @FragmentStage
     skinning_matrices : GfxBindingStorageBuffer; @Binding(1) @VertexStage @AllowNull

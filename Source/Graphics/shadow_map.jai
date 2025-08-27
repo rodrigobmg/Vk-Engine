@@ -189,29 +189,17 @@ ShadowMapPassBindingSet :: struct {
     viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
 } @BindingSet
 
-g_shadow_map_pipeline : GfxGraphicsPipeline;
-
-CreateShadowMapPipeline :: () {
-    desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("mesh_geometry");
-    desc.depth_format = g_depth_texture.desc.pixel_format;
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
-
-    desc.vertex_input = MakeVertexInputDesc(StaticVertex, 0);
-
-    desc.layout.binding_sets = .[
-        g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.ShadowMapPassBindingSet,
-        g_binding_set_layouts.MeshBindingSet,
-    ];
-
-    ok := CreateGfxGraphicsPipeline(*g_shadow_map_pipeline, "Shadow Map", desc);
-    Assert(ok, "Could not create shadow map pipeline");
-}
+g_shadow_map_material_pass := MaterialRenderPass.{
+    name="Shadow Map",
+    pipeline_template=.{
+        depth_format=.Depth32Float,
+        depth_state=.{test_enabled=true, write_enabled=true},
+    },
+};
 
 ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, light_direction : Vec3f, camera : *Camera) {
-    if IsNull(*g_shadow_map_pipeline) {
-        CreateShadowMapPipeline();
+    if !g_shadow_map_material_pass.initialized {
+        InitMaterialRenderPass(*g_shadow_map_material_pass, *g_binding_set_layouts.ShadowMapPassBindingSet);
     }
 
     if IsNull(*shadow_map.depth_texture) {
@@ -240,13 +228,15 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, ligh
 
     pass := BeginGfxRenderPass(cmd_buffer, "Shadow Map", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_shadow_map_pipeline);
         SetViewport(*pass, .{width=xx shadow_map.resolution, height=xx shadow_map.resolution});
         SetScissor(*pass, .{w=xx shadow_map.resolution, h=xx shadow_map.resolution});
 
-        BindGraphicsBindingSet(*pass, 1, *binding_set);
+        BindGraphicsBindingSet(cmd_buffer, *g_shadow_map_material_pass.pipeline_layout, 1, *binding_set);
 
         for shadow_map.mesh_buffer.draw_calls {
+            pipeline := GetPipeline(*g_shadow_map_material_pass, it);
+            BindGraphicsPipeline(*pass, pipeline);
+
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
             BindIndexBuffer(*pass, .UInt32, it.index_buffer);

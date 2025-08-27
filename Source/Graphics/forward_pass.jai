@@ -6,38 +6,20 @@ ForwardPassBindingSet :: struct {
     environment_map : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
 } @BindingSet
 
-g_forward_pipeline : GfxGraphicsPipeline;
-g_skinned_forward_pipeline : GfxGraphicsPipeline;
-
-CreateForwardPipeline :: () {
-    desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("mesh_geometry");
-    desc.fragment_shader = GetFragmentShader("opaque_surface");
-    AddColorAttachment(*desc, g_color_texture.desc.pixel_format);
-    desc.depth_format = g_depth_texture.desc.pixel_format;
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
-
-    desc.vertex_input = MakeVertexInputDesc(StaticVertex, 0);
-
-    desc.layout.binding_sets = .[
-        g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.ForwardPassBindingSet,
-        g_binding_set_layouts.MeshBindingSet,
-    ];
-
-    ok := CreateGfxGraphicsPipeline(*g_forward_pipeline, "Forward (static)", desc);
-    Assert(ok, "Could not create forward pass pipeline");
-
-    desc.vertex_shader = GetVertexShader("skinned_mesh_geometry");
-    desc.vertex_input = MakeVertexInputDesc(SkinnedVertex, 0);
-
-    ok = CreateGfxGraphicsPipeline(*g_skinned_forward_pipeline, "Forward (skinned)", desc);
-    Assert(ok, "Could not create forward pass pipeline");
-}
+g_forward_material_pass := MaterialRenderPass.{
+    name="Forward",
+    fragment_shader="FORWARD_SHADING",
+    pipeline_template=.{
+        num_color_attachments=1,
+        color_formats[0]=.RGBA16Float,
+        depth_format=.Depth32Float,
+        depth_state=.{test_enabled=true, write_enabled=true},
+    },
+};
 
 ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer : *MeshBuffer) {
-    if IsNull(*g_forward_pipeline) {
-        CreateForwardPipeline();
+    if !g_forward_material_pass.initialized {
+        InitMaterialRenderPass(*g_forward_material_pass, *g_binding_set_layouts.ForwardPassBindingSet);
     }
 
     w, h := GetWindowPixelSize(g_window);
@@ -109,14 +91,11 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
         SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
-        BindGraphicsBindingSet(cmd_buffer, *g_forward_pipeline.layout, 1, *binding_set);
+        BindGraphicsBindingSet(cmd_buffer, *g_forward_material_pass.pipeline_layout, 1, *binding_set);
 
         for mesh_buffer.draw_calls {
-            if it.is_skinned {
-                BindGraphicsPipeline(*pass, *g_skinned_forward_pipeline);
-            } else {
-                BindGraphicsPipeline(*pass, *g_forward_pipeline);
-            }
+            pipeline := GetPipeline(*g_forward_material_pass, it);
+            BindGraphicsPipeline(*pass, pipeline);
 
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);

@@ -217,14 +217,10 @@ CreateAllPipelines :: () {
     g_dummy_frame_pipeline_layout = CreateGfxPipelineLayout("Dummy Frame", frame_layout_desc);
     Assert(!IsNull(*g_dummy_frame_pipeline_layout), "Could not create dummy frame pipeline layout");
 
-    CreateForwardPipeline();
     CreateCompositingPipeline();
-    CreateShadowMapPipeline();
-    CreatePointShadowMapPipeline();
     CreateSkyboxPipeline();
     CreateIrradianceMapPipeline();
     CreateEnvironmentMapPipeline();
-    CreateEntityGUIDPipeline();
     CreateBloomFilterComputePipeline();
     CreateBloomDownsampleComputePipeline();
     CreateBloomUpsampleComputePipeline();
@@ -236,6 +232,11 @@ CreateAllPipelines :: () {
 }
 
 DestroyAllPipelines :: () {
+    DestroyMaterialRenderPass(*g_forward_material_pass);
+    DestroyMaterialRenderPass(*g_shadow_map_material_pass);
+    DestroyMaterialRenderPass(*g_point_shadow_map_material_pass);
+    DestroyMaterialRenderPass(*g_entity_guid_material_pass);
+
     DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
@@ -244,14 +245,9 @@ DestroyAllPipelines :: () {
     DestroyGfxComputePipeline(*g_bloom_upsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_downsample_compute_pipeline);
     DestroyGfxComputePipeline(*g_bloom_filter_compute_pipeline);
-    DestroyGfxGraphicsPipeline(*g_entity_guid_pipeline);
     DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_skybox_pipeline);
-    DestroyGfxGraphicsPipeline(*g_skinned_forward_pipeline);
-    DestroyGfxGraphicsPipeline(*g_forward_pipeline);
-    DestroyGfxGraphicsPipeline(*g_point_shadow_map_pipeline);
-    DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
 
     DestroyGfxGraphicsPipeline(*g_compositing_pipeline);
     DestroyGfxSampler(*g_entity_guid_sampler);

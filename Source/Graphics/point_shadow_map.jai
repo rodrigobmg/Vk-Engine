@@ -153,26 +153,14 @@ PointShadowMapPassBindingSet :: struct {
     viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
 } @BindingSet
 
-g_point_shadow_map_pipeline : GfxGraphicsPipeline;
-
-CreatePointShadowMapPipeline :: () {
-    desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("mesh_geometry");
-    desc.fragment_shader = GetFragmentShader("point_shadow_map");
-    desc.depth_format = .Depth32Float;
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
-
-    desc.vertex_input = MakeVertexInputDesc(StaticVertex, 0);
-
-    desc.layout.binding_sets = .[
-        g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.PointShadowMapPassBindingSet,
-        g_binding_set_layouts.MeshBindingSet,
-    ];
-
-    ok := CreateGfxGraphicsPipeline(*g_point_shadow_map_pipeline, "Point Shadow Map", desc);
-    Assert(ok, "Could not create shadow map pipeline");
-}
+g_point_shadow_map_material_pass := MaterialRenderPass.{
+    name="Point Shadow Map",
+    fragment_shader="point_shadow_map",
+    pipeline_template=.{
+        depth_format=.Depth32Float,
+        depth_state=.{test_enabled=true, write_enabled=true},
+    },
+};
 
 PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) {
     viewpoints : ViewpointsData;
@@ -191,13 +179,15 @@ PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShado
 
     pass := BeginGfxRenderPass(cmd_buffer, TPrint("Point Shadow Map, %", face), pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_point_shadow_map_pipeline);
         SetViewport(*pass, .{width=xx shadow_map.resolution, height=xx shadow_map.resolution});
         SetScissor(*pass, .{w=xx shadow_map.resolution, h=xx shadow_map.resolution});
 
-        BindGraphicsBindingSet(*pass, 1, *binding_set);
+        BindGraphicsBindingSet(cmd_buffer, *g_point_shadow_map_material_pass.pipeline_layout, 1, *binding_set);
 
         for shadow_map.mesh_buffers[face].draw_calls {
+            pipeline := GetPipeline(*g_point_shadow_map_material_pass, it);
+            BindGraphicsPipeline(*pass, pipeline);
+
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
             BindIndexBuffer(*pass, .UInt32, it.index_buffer);
@@ -206,12 +196,11 @@ PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShado
         }
     }
     EndGfxRenderPass(*pass);
-
 }
 
 PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShadowMap, light_position : Vec3f) {
-    if IsNull(*g_point_shadow_map_pipeline) {
-        CreatePointShadowMapPipeline();
+    if !g_point_shadow_map_material_pass.initialized {
+        InitMaterialRenderPass(*g_point_shadow_map_material_pass, *g_binding_set_layouts.PointShadowMapPassBindingSet);
     }
 
     if IsNull(*shadow_map.depth_texture) {

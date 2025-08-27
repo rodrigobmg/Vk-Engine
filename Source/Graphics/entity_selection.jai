@@ -1,10 +1,5 @@
-EntityGUIDPassBindingSet :: struct {
-    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
-} @BindingSet
-
 g_entity_guid_texture : GfxTexture;
 g_selected_entity_guid_texture : GfxTexture;
-g_entity_guid_pipeline : GfxGraphicsPipeline;
 g_entity_guid_readback_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
 g_entity_guid_readback_ptrs : [Gfx_Num_Frames_In_Flight]*EntityGUID;
 
@@ -58,29 +53,24 @@ CreateEntityGUIDTextures :: () {
     }
 }
 
-CreateEntityGUIDPipeline :: () {
-    desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("mesh_geometry");
-    desc.fragment_shader = GetFragmentShader("entity_guid");
-    AddColorAttachment(*desc, g_entity_guid_texture.desc.pixel_format);
-    desc.depth_format = g_depth_texture.desc.pixel_format;
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
+EntityGUIDPassBindingSet :: struct {
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
+} @BindingSet
 
-    desc.vertex_input = MakeVertexInputDesc(StaticVertex, 0);
-
-    desc.layout.binding_sets = .[
-        g_binding_set_layouts.FrameBindingSet,
-        g_binding_set_layouts.EntityGUIDPassBindingSet,
-        g_binding_set_layouts.MeshBindingSet,
-    ];
-
-    ok := CreateGfxGraphicsPipeline(*g_entity_guid_pipeline, "Entity GUID", desc);
-    Assert(ok, "Could not create entity GUID pipeline");
-}
+g_entity_guid_material_pass := MaterialRenderPass.{
+    name="Entity GUID",
+    fragment_shader="entity_guid",
+    pipeline_template=.{
+        num_color_attachments=1,
+        color_formats[0]=.RGBA32UInt,
+        depth_format=.Depth32Float,
+        depth_state=.{test_enabled=true, write_enabled=true},
+    },
+};
 
 EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth_texture : *GfxTexture, camera : *Camera, mesh_buffer : *MeshBuffer) {
-    if IsNull(*g_entity_guid_pipeline) {
-        CreateEntityGUIDPipeline();
+    if !g_entity_guid_material_pass.initialized {
+        InitMaterialRenderPass(*g_entity_guid_material_pass, *g_binding_set_layouts.EntityGUIDPassBindingSet);
     }
 
     w, h := GetWindowPixelSize(g_window);
@@ -103,13 +93,15 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
 
     pass := BeginGfxRenderPass(cmd_buffer, "Entity GUID", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_entity_guid_pipeline);
         SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
-        BindGraphicsBindingSet(*pass, 1, *binding_set);
+        BindGraphicsBindingSet(cmd_buffer, *g_entity_guid_material_pass.pipeline_layout, 1, *binding_set);
 
         for mesh_buffer.draw_calls {
+            pipeline := GetPipeline(*g_entity_guid_material_pass, it);
+            BindGraphicsPipeline(*pass, pipeline);
+
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
             BindIndexBuffer(*pass, .UInt32, it.index_buffer);

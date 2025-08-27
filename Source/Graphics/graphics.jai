@@ -5,6 +5,7 @@
 #load "binding_set_allocator.jai";
 #load "gpu_profiling.jai";
 #load "renderer.jai";
+#load "material_pipelines.jai";
 
 #load "shader.jai";
 #load "texture2d.jai";
