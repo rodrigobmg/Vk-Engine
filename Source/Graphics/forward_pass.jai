@@ -13,7 +13,7 @@ g_forward_material_pass := MaterialRenderPass.{
         num_color_attachments=1,
         color_formats[0]=.RGBA16Float,
         depth_format=.Depth32Float,
-        depth_state=.{test_enabled=true, write_enabled=true},
+        depth_state=.{test_enabled=true, write_enabled=false},
     },
 };
 
@@ -94,7 +94,7 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
     AddColorAttachment(*pass_desc, *g_color_texture);
     AddDepthAttachment(*pass_desc, *g_depth_texture);
     ClearColor(*pass_desc, 0, Vec4f.{0,0,0,1});
-    ClearDepth(*pass_desc, 1);
+    // ClearDepth(*pass_desc, 1);
 
     pass := BeginGfxRenderPass(cmd_buffer, "Forward Pass", pass_desc);
     {

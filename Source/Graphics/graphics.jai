@@ -20,6 +20,7 @@
 
 #load "imgui.jai";
 #load "image_based_lighting.jai";
+#load "depth_prepass.jai";
 #load "forward_pass.jai";
 #load "compositing.jai";
 #load "shadow_map.jai";

@@ -101,6 +101,7 @@ CreateAllPipelines :: () {
 
 DestroyAllPipelines :: () {
     DestroyMaterialRenderPass(*g_forward_material_pass);
+    DestroyMaterialRenderPass(*g_depth_prepass_material_pass);
     DestroyMaterialRenderPass(*g_shadow_map_material_pass);
     DestroyMaterialRenderPass(*g_point_shadow_map_material_pass);
     DestroyMaterialRenderPass(*g_entity_guid_material_pass);
@@ -667,6 +668,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AddTextureBarriers(*cmd_buffer, .Undefined, .ColorAttachment, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
+    DepthPrepass(*ctx, camera, *g_mesh_buffer);
     ForwardPass(*ctx, camera, *g_mesh_buffer);
     DebugLinesPass(*ctx, camera);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);

@@ -24,7 +24,6 @@ Supports Linux and Windows.
 ## To explore/implement next:
 * Global illumination
 * Non pre-baked reflections
-* Depth prepass
 * Clustered forward rendering
 * GTAO
 * Subsurface scattering
