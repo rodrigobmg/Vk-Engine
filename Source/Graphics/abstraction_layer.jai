@@ -45,6 +45,8 @@ GfxContext :: struct {
     allocation_callbacks : VkAllocationCallbacks;
     allocator : VmaAllocator;
     limits : GfxLimits;
+    last_frame_statistics : GfxFrameStatistics;
+    frame_statistics : GfxFrameStatistics;
 
     texture_view_collectors : [Gfx_Num_Frames_In_Flight]GfxGarbageCollector(GfxTexture, DestroyGfxTextureView);
     texture_collectors : [Gfx_Num_Frames_In_Flight]GfxGarbageCollector(GfxTexture);
@@ -58,6 +60,21 @@ GfxContext :: struct {
     vkCmdEndDebugUtilsLabelEXT : PFN_vkCmdEndDebugUtilsLabelEXT;
     vkQueueBeginDebugUtilsLabelEXT : PFN_vkQueueBeginDebugUtilsLabelEXT;
     vkQueueEndDebugUtilsLabelEXT : PFN_vkQueueEndDebugUtilsLabelEXT;
+}
+
+GfxFrameStatistics :: struct {
+    num_draw_calls : int;
+    num_dispatch_calls : int;
+    num_render_passes : int;
+    num_compute_passes : int;
+    num_graphics_binding_set_binds : int;
+    num_compute_binding_set_binds : int;
+    num_graphics_pipeline_binds : int;
+    num_compute_pipeline_binds : int;
+}
+
+GetGfxFrameStatistics :: () -> GfxFrameStatistics {
+    return g_gfx_context.last_frame_statistics;
 }
 
 // Tool to defer destroying objects after the last frame they were used is finished processing on the GPU
@@ -127,6 +144,9 @@ GetGfxLimits :: inline () -> GfxLimits {
 
 BeginFrame :: () {
     ctx := *g_gfx_context;
+
+    ctx.last_frame_statistics = ctx.frame_statistics;
+    ctx.frame_statistics = .{};
 
     ctx.frame_in_flight += 1;
     ctx.frame_in_flight %= Gfx_Num_Frames_In_Flight;
@@ -2621,6 +2641,8 @@ BeginGfxRenderPass :: (cmd_buffer : *GfxCommandBuffer, name : string, desc : Gfx
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
     vkCmdBeginRendering(cmd_buffer.cmd_buffer, *render_info);
 
+    g_gfx_context.frame_statistics.num_render_passes += 1;
+
     return .{cmd_buffer=cmd_buffer, profiling_event=profiling_event, name=name, desc=desc};
 }
 
@@ -2641,6 +2663,8 @@ BindGraphicsPipeline :: (pass : *GfxRenderPass, pipeline : *GfxGraphicsPipeline)
 
     pass.current_pipeline = pipeline;
     vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .GRAPHICS, pipeline.pipeline);
+
+    g_gfx_context.frame_statistics.num_graphics_pipeline_binds += 1;
 }
 
 BindGraphicsBindingSet :: (pass : *GfxRenderPass, index : u32, set : *GfxBindingSet) {
@@ -2683,10 +2707,12 @@ BindVertexBuffer :: (pass : *GfxRenderPass, binding : u32, buffer : *GfxBuffer, 
 
 BindGraphicsBindingSet :: (cmd_buffer : *GfxCommandBuffer, layout : *GfxPipelineLayout, index : u32, set : *GfxBindingSet) {
     vkCmdBindDescriptorSets(cmd_buffer.cmd_buffer, .GRAPHICS, layout.layout, index, 1, *set.set, 0, null);
+    g_gfx_context.frame_statistics.num_graphics_binding_set_binds += 1;
 }
 
 BindComputeBindingSet :: (cmd_buffer : *GfxCommandBuffer, layout : *GfxPipelineLayout, index : u32, set : *GfxBindingSet) {
     vkCmdBindDescriptorSets(cmd_buffer.cmd_buffer, .COMPUTE, layout.layout, index, 1, *set.set, 0, null);
+    g_gfx_context.frame_statistics.num_compute_binding_set_binds += 1;
 }
 
 GfxIndexType :: enum {
@@ -2712,6 +2738,7 @@ Draw :: (
     base_instance : u32 = 0
 ) {
     vkCmdDraw(pass.cmd_buffer.cmd_buffer, vertex_count, instance_count, base_vertex, base_instance);
+    g_gfx_context.frame_statistics.num_draw_calls += 1;
 }
 
 DrawIndexed :: (
@@ -2723,6 +2750,7 @@ DrawIndexed :: (
     base_instance : u32 = 0
 ) {
     vkCmdDrawIndexed(pass.cmd_buffer.cmd_buffer, index_count, instance_count, base_index, xx base_vertex, base_instance);
+    g_gfx_context.frame_statistics.num_draw_calls += 1;
 }
 
 GfxComputePass :: struct {
@@ -2739,6 +2767,7 @@ BeginGfxComputePass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCom
 
     BeginGfxDebugMarker(cmd_buffer, name);
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
+    g_gfx_context.frame_statistics.num_compute_passes += 1;
 
     return .{cmd_buffer=cmd_buffer, profiling_event=profiling_event, name=name};
 }
@@ -2755,6 +2784,7 @@ EndGfxComputePass :: (pass : *GfxComputePass) {
 BindComputePipeline :: (pass : *GfxComputePass, pipeline : *GfxComputePipeline) {
     pass.current_pipeline = pipeline;
     vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .COMPUTE, pipeline.pipeline);
+    g_gfx_context.frame_statistics.num_compute_pipeline_binds += 1;
 }
 
 BindComputeBindingSet :: (pass : *GfxComputePass, index : u32, set : *GfxBindingSet) {
@@ -2765,6 +2795,7 @@ BindComputeBindingSet :: (pass : *GfxComputePass, index : u32, set : *GfxBinding
 
 Dispatch :: (pass : *GfxComputePass, num_groups_x : u32, num_groups_y : u32, num_groups_z : u32) {
     vkCmdDispatch(pass.cmd_buffer.cmd_buffer, num_groups_x, num_groups_y, num_groups_z);
+    g_gfx_context.frame_statistics.num_dispatch_calls += 1;
 }
 
 GfxCopyPass :: struct {

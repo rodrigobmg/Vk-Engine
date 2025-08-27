@@ -938,7 +938,7 @@ ShowEngineSettings :: () {
     }
 }
 
-ShowGPUProfiler :: () {
+ShowGPUProfilerTimings :: () {
     ShowEvent :: (event : *GPUProfilingEvent) {
         label := CTPrint("% - % ms###%", event.name, event.elapsed_time_ms, event.index);
         flags := ImGui.TreeNodeFlags.DefaultOpen | .OpenOnArrow | .SpanFullWidth;
@@ -957,19 +957,6 @@ ShowGPUProfiler :: () {
             }
         }
     }
-
-    if !g_show_gpu_profiler {
-        return;
-    }
-
-    defer ImGui.End();
-
-    ImGui.SetNextWindowSize(.{450, 700}, .FirstUseEver);
-    if !ImGui.Begin("GPU Profiler", *g_show_gpu_profiler, flags=.HorizontalScrollbar) {
-        return;
-    }
-
-    ImGui.SeparatorText("GPU Timings");
 
     prev_format_float := context.print_style.default_format_float;
     defer context.print_style.default_format_float = prev_format_float;
@@ -996,5 +983,44 @@ ShowGPUProfiler :: () {
         }
 
         ImGui.TreePop();
+    }
+}
+
+ShowGPUFrameStatistics :: () {
+    stats := GetGfxFrameStatistics();
+    ImGui.LabelText("Draw Calls", "%", stats.num_draw_calls);
+    ImGui.LabelText("Dispatch Calls", "%", stats.num_dispatch_calls);
+    ImGui.LabelText("Render Passes", "%", stats.num_render_passes);
+    ImGui.LabelText("Compute Passes", "%", stats.num_compute_passes);
+    ImGui.LabelText("Graphics Binding Set Binds", "%", stats.num_graphics_binding_set_binds);
+    ImGui.LabelText("Compute Binding Set Binds", "%", stats.num_compute_binding_set_binds);
+    ImGui.LabelText("Graphics Pipeline Binds", "%", stats.num_graphics_pipeline_binds);
+    ImGui.LabelText("Compute Pipeline Binds", "%", stats.num_compute_pipeline_binds);
+}
+
+ShowGPUProfiler :: () {
+    if !g_show_gpu_profiler {
+        return;
+    }
+
+    defer ImGui.End();
+
+    ImGui.SetNextWindowSize(.{450, 700}, .FirstUseEver);
+    if !ImGui.Begin("GPU Profiler", *g_show_gpu_profiler, flags=.HorizontalScrollbar) {
+        return;
+    }
+
+    if ImGui.BeginTabBar("gpu_profiler") {
+        if ImGui.BeginTabItem("Timings") {
+            ShowGPUProfilerTimings();
+            ImGui.EndTabItem();
+        }
+
+        if ImGui.BeginTabItem("Statistics") {
+            ShowGPUFrameStatistics();
+            ImGui.EndTabItem();
+        }
+
+        ImGui.EndTabBar();
     }
 }
