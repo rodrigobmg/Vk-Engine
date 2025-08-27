@@ -15,6 +15,24 @@ Serializer :: struct {
 IsTypeSerializable :: (type : *Type_Info, dependency_stack : *[..]*Type_Info = null) -> bool {
     type = Devariantize(type);
 
+    if type == type_info(Vec2f)
+    || type == type_info(Vec3f)
+    || type == type_info(Vec4f)
+    || type == type_info(Quatf) {
+        return true;
+    }
+
+    if type == type_info(Math.Vector2)
+    || type == type_info(Math.Vector3)
+    || type == type_info(Math.Vector4)
+    || type == type_info(Math.Quaternion) {
+        return true;
+    }
+
+    if type == type_info(EntityGUID) {
+        return true;
+    }
+
     if type.runtime_size <= 0 {
         return false;
     }
