@@ -37,6 +37,12 @@ CreateComponent :: (world : *World, storage : *ComponentStorage, entity : Entity
 }
 
 DestroyComponent :: (world : *World, storage : *ComponentStorage, component : *storage.T) {
+    if !component {
+        return;
+    }
+
+    UnreferenceAllAssets(component);
+
     #if #exists(storage.T.OnDestroy) {
         component.OnDestroy(world, component);
     }
@@ -58,7 +64,7 @@ DestroyComponent :: (world : *World, component : *$T)
 
 #scope_file
 
-AppendGetComponent :: (builder : *StringBuilder, entity : *Type_Info_Struct, component : *Type_Info_Struct) {
+AppendGetComponent :: (builder : *StringBuilder, name : string, entity : *Type_Info_Struct, component : *Type_Info_Struct) {
     found := false;
     for entity.members {
         // @Todo: handle array of components, structs containing components
@@ -68,7 +74,7 @@ AppendGetComponent :: (builder : *StringBuilder, entity : *Type_Info_Struct, com
 
         type := cast(*Type_Info_Pointer, it.type).pointer_to;
         if type == component {
-            Appendln(builder, "return *entity.%;", it.name);
+            Appendln(builder, "return %.%;", name, it.name);
             found = true;
             break;
         }
@@ -91,7 +97,8 @@ GetComponent :: (entity : *Entity, $T : Type) -> *T
 
         for i : 1..Entity_Types.count - 1 {
             Appendln(*builder, "case .%1;", Entity_Types[i]);
-            AppendGetComponent(*builder, cast(*Type_Info, Entity_Types[i]), type_info(T));
+            Appendln(*builder, "    e := cast(*%, entity);", Entity_Types[i]);
+            AppendGetComponent(*builder, "e", xx cast(*Type_Info, Entity_Types[i]), type_info(T));
         }
 
         Appendln(*builder, "}");
@@ -107,7 +114,7 @@ GetComponent :: inline (entity : *$E, $T : Type) -> *T
     #insert -> string {
         builder : StringBuilder;
 
-        AppendGetComponent(*builder, type_info(E), type_info(T));
+        AppendGetComponent(*builder, "entity", type_info(E), type_info(T));
 
         return StringBuilderBuild(*builder);
     }
