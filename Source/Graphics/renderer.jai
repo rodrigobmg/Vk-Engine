@@ -15,6 +15,10 @@ SkinnedMeshComponent :: struct {
     cast_shadows := true; @Serialize(4)
     cast_point_shadows := false; @Serialize(5)
     skinning_matrices : []Mat4f;
+
+    OnDestroy :: (world : *World, using comp : *SkinnedMeshComponent) {
+        Free(skinning_matrices.data);
+    }
 } @Component
 
 SetPose :: (using component : *SkinnedMeshComponent, pose : *ArmaturePose) {
