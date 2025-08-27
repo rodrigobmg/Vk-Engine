@@ -585,7 +585,6 @@ SpawnEntity :: (using world : *World, type : EntityTypeId, name := "", guid := N
         for i : 1..Entity_Types.count - 1 {
             Appendln(*builder, "case .%;", Entity_Types[i]);
             Appendln(*builder, "    entity, slot_info = PagedArrayFindSlot(*%_storage);", Entity_Types[i]);
-            Appendln(*builder, "    #if #exists(%1.OnSpawn) { %1.OnSpawn(world, xx entity); }", Entity_Types[i]);
         }
 
         Appendln(*builder, "}");
@@ -611,6 +610,8 @@ SpawnEntity :: (using world : *World, type : EntityTypeId, name := "", guid := N
     if name {
         SetEntityName(world, entity, name);
     }
+
+    CallEntityCallback(world, entity, "OnSpawn");
 
     if name {
         LogMessage("Spawned entity % (%, %)",
