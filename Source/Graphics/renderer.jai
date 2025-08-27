@@ -441,6 +441,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     for * guid : g_editor_selected_entities {
         entity := GetEntity(world, guid);
+        if !entity {
+            continue;
+        }
 
         draw : bool;
         it : MeshToDraw;
