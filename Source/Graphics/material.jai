@@ -2,6 +2,8 @@ MaterialType :: enum u8 {
     Opaque;
 } @ShaderType
 
+Num_Material_Types :: #run type_info(MaterialType).values.count;
+
 Material :: struct {
     type : MaterialType; @Serialize(1)
     base_color_tint : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
