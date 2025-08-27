@@ -14,9 +14,20 @@ SkinnedMeshComponent :: struct {
     material : *Asset(Material); @Serialize(3)
     cast_shadows := true; @Serialize(4)
     cast_point_shadows := false; @Serialize(5)
-    pose : ArmaturePose;
     skinning_matrices : []Mat4f;
 } @Component
+
+SetPose :: (using component : *SkinnedMeshComponent, pose : *ArmaturePose) {
+    if !pose.mesh {
+        return;
+    }
+
+    if pose.mesh != mesh {
+        LogError("Mismatching mesh when setting pose ('%' vs '%')", mesh.asset_name, pose.mesh.asset_name);
+    }
+
+    CalculateSkinningMatrices(pose, *skinning_matrices);
+}
 
 StaticMeshEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
@@ -29,6 +40,50 @@ StaticMeshEntity :: struct {
 
     OnDespawn :: (world : *World, entity : *StaticMeshEntity) {
         DestroyComponent(world, entity.mesh);
+    }
+} @Entity
+
+AnimatedMeshEntity :: struct {
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
+
+    mesh : *SkinnedMeshComponent; @Serialize(2)
+
+    animation : *Asset(ArmatureAnimation); @Serialize(3)
+    animation_frames_per_second := 30.0; @Serialize(4)
+    animation_time : float;
+    pose : ArmaturePose;
+
+    OnSpawn :: (world : *World, entity : *AnimatedMeshEntity) {
+        entity.mesh = CreateComponent(world, SkinnedMeshComponent, entity);
+    }
+
+    OnDespawn :: (world : *World, entity : *AnimatedMeshEntity) {
+        DestroyComponent(world, entity.mesh);
+    }
+
+    OnEditorUpdate :: (world : *World, using entity : *AnimatedMeshEntity) {
+        if pose.mesh != mesh.mesh {
+            FreeArmaturePose(*pose);
+
+            if mesh {
+                InitArmaturePose(*pose, mesh.mesh);
+            }
+        }
+
+        if !mesh.mesh {
+            return;
+        }
+
+        if animation {
+            SampleAnimation(animation, animation_time, *pose);
+            animation_time += g_last_frame_time * animation_frames_per_second;
+        } else {
+            ResetToBindPose(*pose);
+            animation_time = 0;
+        }
+
+        CalculatePoseTransforms(*pose);
+        SetPose(mesh, *pose);
     }
 } @Entity
 
@@ -193,6 +248,7 @@ DestroyAllPipelines :: () {
     DestroyGfxGraphicsPipeline(*g_environment_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_irradiance_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_skybox_pipeline);
+    DestroyGfxGraphicsPipeline(*g_skinned_forward_pipeline);
     DestroyGfxGraphicsPipeline(*g_forward_pipeline);
     DestroyGfxGraphicsPipeline(*g_point_shadow_map_pipeline);
     DestroyGfxGraphicsPipeline(*g_shadow_map_pipeline);
@@ -292,53 +348,6 @@ DestroyRenderTargets :: () {
     DestroyBloomTextures();
 }
 
-MeshEntity :: struct {
-    #as using _ : Entity; @Serialize(1) @InspectorNoTree
-
-    mesh : *Asset(StaticMesh); @Serialize(2)
-    material : *Asset(Material); @Serialize(3)
-    cast_shadows := true; @Serialize(4)
-    cast_point_shadows := false; @Serialize(5)
-} @Entity
-
-AnimatedMeshEntity :: struct {
-    #as using _ : Entity; @Serialize(1) @InspectorNoTree
-
-    mesh : *Asset(SkinnedMesh); @Serialize(2)
-    material : *Asset(Material); @Serialize(3)
-    cast_shadows := true; @Serialize(4)
-    cast_point_shadows := false; @Serialize(5)
-    animation : *Asset(ArmatureAnimation); @Serialize(6)
-    animation_frames_per_second := 30.0; @Serialize(7)
-    animation_time : float;
-    pose : ArmaturePose;
-    skinning_matrices : []Mat4f;
-
-    OnEditorUpdate :: (world : *World, using entity : *AnimatedMeshEntity) {
-        if pose.mesh != mesh {
-            FreeArmaturePose(*pose);
-            if mesh {
-                InitArmaturePose(*pose, mesh);
-            }
-        }
-
-        if !mesh {
-            return;
-        }
-
-        if animation {
-            SampleAnimation(animation, animation_time, *pose);
-            animation_time += g_last_frame_time * animation_frames_per_second;
-        } else {
-            ResetToBindPose(*pose);
-            animation_time = 0;
-        }
-
-        CalculatePoseTransforms(*pose);
-        CalculateSkinningMatrices(*pose, *skinning_matrices);
-    }
-} @Entity
-
 DirectionalLightEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
@@ -372,7 +381,7 @@ DirectionalLightEntity :: struct {
     }
 } @Entity
 
-Global_Point_Light_Intensity_Threshold :: 0.01;
+Global_Point_Light_Intensity_Threshold :: 0.001;
 
 PointLightEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
@@ -885,57 +894,6 @@ RenderFrame :: (world : *World, camera : *Camera) {
     SubmitGfxCommandBuffer(*cmd_buffer);
 
     SubmitFrame();
-}
-
-g_brdf_lut : GfxTexture;
-g_brdf_lut_compute_pipeline : GfxComputePipeline;
-
-BRDF_LUT_Resolution : u32 : 512;
-BRDF_LUT_Compute_Work_Group_Size :: 16;
-
-BRDFLUTBindingSet :: struct {
-    dst_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
-} @BindingSet
-
-RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
-    texture_desc : GfxTextureDesc;
-    texture_desc.type = .Texture2D;
-    texture_desc.pixel_format = .RGBA16Float;
-    texture_desc.width = BRDF_LUT_Resolution;
-    texture_desc.height = BRDF_LUT_Resolution;
-    texture_desc.usage = .Storage | .Sampled;
-
-    g_brdf_lut = CreateGfxTexture("BRDF LUT", texture_desc);
-    Assert(!IsNull(*g_brdf_lut), "Could not create BRDF LUT texture");
-
-    pipeline_desc : GfxComputePipelineDesc;
-    pipeline_desc.shader = GetComputeShader("brdf_lut");
-    pipeline_desc.layout.binding_sets = .[
-        g_binding_set_layouts.BRDFLUTBindingSet,
-    ];
-
-    g_brdf_lut_compute_pipeline = CreateGfxComputePipeline("BRDF LUT", pipeline_desc);
-    Assert(!IsNull(*g_brdf_lut_compute_pipeline), "Could not create BRDF LUT pipeline");
-
-    AddTextureBarrier(cmd_buffer, .Undefined, .General, *g_brdf_lut);
-
-    pass := BeginGfxComputePass(cmd_buffer, "BRDF LUT");
-    {
-        BindComputePipeline(*pass, *g_brdf_lut_compute_pipeline);
-
-        bindings := BRDFLUTBindingSet.{
-            dst_image=.{*g_brdf_lut},
-        };
-        binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
-        BindComputeBindingSet(*pass, 0, *binding_set);
-
-        num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(g_brdf_lut.desc, 0, BRDF_LUT_Compute_Work_Group_Size);
-
-        Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
-    }
-    EndGfxComputePass(*pass);
-
-    AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *g_brdf_lut);
 }
 
 Plane :: struct {

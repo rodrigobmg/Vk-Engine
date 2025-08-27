@@ -188,3 +188,54 @@ GenerateEnvironmentMaps :: (cmd_buffer : *GfxCommandBuffer) {
         AddTextureBarriers(cmd_buffer, .ColorAttachment, .ShaderReadOnly, .[*it.irradiance_map, *it.environment_map]);
     }
 }
+
+g_brdf_lut : GfxTexture;
+g_brdf_lut_compute_pipeline : GfxComputePipeline;
+
+BRDF_LUT_Resolution : u32 : 512;
+BRDF_LUT_Compute_Work_Group_Size :: 16;
+
+BRDFLUTBindingSet :: struct {
+    dst_image : GfxBindingStorageImage; @Binding(0) @ComputeStage
+} @BindingSet
+
+RenderBRDFLUT :: (cmd_buffer : *GfxCommandBuffer) {
+    texture_desc : GfxTextureDesc;
+    texture_desc.type = .Texture2D;
+    texture_desc.pixel_format = .RGBA16Float;
+    texture_desc.width = BRDF_LUT_Resolution;
+    texture_desc.height = BRDF_LUT_Resolution;
+    texture_desc.usage = .Storage | .Sampled;
+
+    g_brdf_lut = CreateGfxTexture("BRDF LUT", texture_desc);
+    Assert(!IsNull(*g_brdf_lut), "Could not create BRDF LUT texture");
+
+    pipeline_desc : GfxComputePipelineDesc;
+    pipeline_desc.shader = GetComputeShader("brdf_lut");
+    pipeline_desc.layout.binding_sets = .[
+        g_binding_set_layouts.BRDFLUTBindingSet,
+    ];
+
+    g_brdf_lut_compute_pipeline = CreateGfxComputePipeline("BRDF LUT", pipeline_desc);
+    Assert(!IsNull(*g_brdf_lut_compute_pipeline), "Could not create BRDF LUT pipeline");
+
+    AddTextureBarrier(cmd_buffer, .Undefined, .General, *g_brdf_lut);
+
+    pass := BeginGfxComputePass(cmd_buffer, "BRDF LUT");
+    {
+        BindComputePipeline(*pass, *g_brdf_lut_compute_pipeline);
+
+        bindings := BRDFLUTBindingSet.{
+            dst_image=.{*g_brdf_lut},
+        };
+        binding_set := CreateGfxBindingSet(GlobalBindingSetAllocator(), bindings);
+        BindComputeBindingSet(*pass, 0, *binding_set);
+
+        num_groups_x, num_groups_y := GetNumComputeWorkGroupsForTexture(g_brdf_lut.desc, 0, BRDF_LUT_Compute_Work_Group_Size);
+
+        Dispatch(*pass, num_groups_x, num_groups_y, num_groups_z=1);
+    }
+    EndGfxComputePass(*pass);
+
+    AddTextureBarrier(cmd_buffer, .General, .ShaderReadOnly, *g_brdf_lut);
+}
