@@ -1,0 +1,14 @@
+@_ 1:
+  @guid 1: 0xee677cc5573c5fa4fc336edc224c14a1
+  @flags 7: 0x0
+  @name 2: ""
+  @local_position 3: [0, 0, 0]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
+  @parent 6: 0x00000000000000000000000000000000
+@mesh 2:
+  @mesh 2: "Meshes/Shapes.mesh"
+  @cast_shadows 4: true
+  @cast_point_shadows 5: false
+@animation 3: "Animations/Shape_Ballet.anim"
+@animation_frames_per_second 4: 30
