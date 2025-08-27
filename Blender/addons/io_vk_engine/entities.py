@@ -63,10 +63,10 @@ class EmptyEntity(Entity):
     def WriteToFile(self, file):
         super().WriteToFile(file)
 
-class MeshEntity(Entity):
+class StaticMeshEntity(Entity):
     def __init__(self):
         super().__init__()
-        self.type = 'MeshEntity'
+        self.type = 'StaticMeshEntity'
         self.mesh_name : str = ""
         self.material_name : str = ""
         self.cast_shadows : bool = True
@@ -76,13 +76,15 @@ class MeshEntity(Entity):
 
         fw = file.write
 
+        fw(f"@mesh 2:\n")
+
         if len(self.mesh_name) > 0:
-            fw(f"@mesh 2: \"{self.mesh_name}\"\n")
+            fw(f"  @mesh 2: \"{self.mesh_name}\"\n")
 
         if len(self.material_name) > 0:
-            fw(f"@material 3: \"{self.material_name}\"\n")
+            fw(f"  @material 3: \"{self.material_name}\"\n")
 
-        fw(f"@cast_shadows 4: {self.cast_shadows}\n")
+        fw(f"  @cast_shadows 4: {self.cast_shadows}\n")
 
 class PointLightEntity(Entity):
     def __init__(self):
@@ -96,9 +98,10 @@ class PointLightEntity(Entity):
         super().WriteToFile(file)
 
         fw = file.write
-        fw(f"@color 2: [{self.light_color[0]}, {self.light_color[1]}, {self.light_color[2]}]\n")
-        fw(f"@intensity 3: {self.light_intensity}\n")
-        fw(f"@cast_shadows 4: {self.cast_shadows}\n")
+        fw(f"@light 2:\n")
+        fw(f"  @color 2: [{self.light_color[0]}, {self.light_color[1]}, {self.light_color[2]}]\n")
+        fw(f"  @intensity 3: {self.light_intensity}\n")
+        fw(f"  @cast_shadows 4: {self.cast_shadows}\n")
 
 class DirectionalLightEntity(Entity):
     def __init__(self):
@@ -112,9 +115,10 @@ class DirectionalLightEntity(Entity):
         super().WriteToFile(file)
 
         fw = file.write
-        fw(f"@color 2: [{self.light_color[0]}, {self.light_color[1]}, {self.light_color[2]}]\n")
-        fw(f"@intensity 3: {self.light_intensity}\n")
-        fw(f"@cast_shadows 4: {self.cast_shadows}\n")
+        fw(f"@light 2:\n")
+        fw(f"  @color 2: [{self.light_color[0]}, {self.light_color[1]}, {self.light_color[2]}]\n")
+        fw(f"  @intensity 3: {self.light_intensity}\n")
+        fw(f"  @cast_shadows 4: {self.cast_shadows}\n")
 
 def EntityFromBlenderObject(
     context : bpy.types.Context,
@@ -136,7 +140,7 @@ def EntityFromBlenderObject(
         filename = f"{filename}.mesh"
         filename = os.path.join(bpy.path.abspath(options.meshes_directory), filename)
 
-        entity = MeshEntity()
+        entity = StaticMeshEntity()
         entity.mesh_name = utils.GetAssetName(filename)
 
         if len(obj.material_slots) > 0:
