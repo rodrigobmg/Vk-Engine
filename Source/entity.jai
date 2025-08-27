@@ -77,13 +77,15 @@ CreateComponent :: (world : *World, storage : *ComponentStorage, entity : Entity
     component.entity = entity;
     component.index = index;
 
-    #if exists(storage.T.OnCreate) {
+    #if #exists(storage.T.OnCreate) {
         component.OnCreate(world, component);
     }
+
+    return component;
 }
 
 DestroyComponent :: (world : *World, storage : *ComponentStorage, component : *storage.T) {
-    #if exists(storage.T.OnDestroy) {
+    #if #exists(storage.T.OnDestroy) {
         component.OnDestroy(world, component);
     }
 
@@ -91,13 +93,13 @@ DestroyComponent :: (world : *World, storage : *ComponentStorage, component : *s
 }
 
 CreateComponent :: (world : *World, $T : Type, entity : EntityGUID) -> *T {
-    storage := #insert TPrint("*world.%_storage;", T);
+    storage := #insert #run TPrint("*world.%_storage;", T);
     return CreateComponent(world, storage, entity);
 }
 
 DestroyComponent :: (world : *World, component : *$T) {
-    storage := #insert TPrint("*world.%_storage;", T);
-    return DestroyComponent(world, storage, component);
+    storage := #insert #run TPrint("*world.%_storage;", T);
+    DestroyComponent(world, storage, component);
 }
 
 EntityFlags :: enum_flags {
@@ -880,16 +882,26 @@ DestroyWorld :: (using world : *World) {
             Appendln(*builder, "    FreeEntity(world, it);");
             Appendln(*builder, "    PagedArrayFreeSlot(*%_storage, GetSlotInfo(it.index));", type);
             Appendln(*builder, "}\n");
+
         }
-
-        return StringBuilderBuild(*builder);
-    }
-
-    #insert -> string {
-        builder : StringBuilder;
 
         for i : 1..Entity_Types.count - 1 {
             Appendln(*builder, "PagedArrayReset(*%_storage);", Entity_Types[i]);
+        }
+
+        for i : 1..Component_Types.count - 1 {
+            type := Component_Types[i];
+
+            Appendln(*builder, "if %_storage.count > 0 {", type);
+            Appendln(*builder, "    LogWarning(\"When destroying world, component storage %1 has \% components that were not destroyed\", %1_storage.count);", type);
+            Appendln(*builder, "    #if #exists(%.OnDestroy) {", type);
+            Appendln(*builder, "        for * %_storage {", type);
+            Appendln(*builder, "            %.OnDestroy(world, it);", type);
+            Appendln(*builder, "        }");
+            Appendln(*builder, "    }");
+            Appendln(*builder, "}");
+
+            Appendln(*builder, "PagedArrayReset(*%_storage);", type);
         }
 
         return StringBuilderBuild(*builder);

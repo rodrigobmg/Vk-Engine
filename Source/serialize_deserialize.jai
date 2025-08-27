@@ -1,5 +1,7 @@
 #import "Lexer";
 
+// @Todo: create components upon deserializing, so entities can have null components
+
 Detect_Infinite_Type_Recursion :: true; // @PossibleOptimization
 Panic_On_Infinite_Type_Recursion :: false; // @PossibleOptimization
 
