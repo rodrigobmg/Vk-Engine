@@ -389,6 +389,12 @@ GetPointLightAttenuationDistance :: (intensity : float, intensity_threshold : fl
     return (4 * intensity * intensity_threshold) / (2 * intensity_threshold);
 }
 
+GetNumComputeWorkGroupsForTexture :: (desc : GfxTextureAndViewDesc, mipmap_level : int, work_group_size : u32) -> x : u32, y : u32 {
+    w, h := GetTextureMipSize(desc, mipmap_level);
+
+    return (w  + work_group_size - 1) / work_group_size, (h + work_group_size - 1) / work_group_size;
+}
+
 EmptyBindingSet :: struct {
 } @BindingSet
 

@@ -107,14 +107,6 @@ DestroyBloomTextures :: () {
 
 Bloom_Compute_Work_Group_Size :: 16;
 
-GetNumComputeWorkGroupsForTexture :: (desc : GfxTextureAndViewDesc, mipmap_level : int, work_group_size : u32) -> x : u32, y : u32 {
-    w, h := GetTextureMipSize(desc, mipmap_level);
-    size_x := w / work_group_size + cast(u32, w % work_group_size != 0);
-    size_y := h / work_group_size + cast(u32, h % work_group_size != 0);
-
-    return size_x, size_y;
-}
-
 BloomComputeBindingSet :: struct {
     src_texture : GfxBindingCombinedTextureSampler; @Binding(0) @ComputeStage
     dst_image : GfxBindingStorageImage; @Binding(1) @ComputeStage
