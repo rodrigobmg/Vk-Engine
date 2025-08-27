@@ -176,8 +176,8 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *ShadowMap, light_d
         if is_inside_frustum {
             position := TranslationVector(it.transform);
             depth := TransformPoint(viewpoints[0].view, position).z;
-            key := MakeMeshBufferKey(it.vertex_buffer, it.index_buffer, it.material, depth);
-            PushMesh(*shadow_map.mesh_buffer, key, it.entity.guid, it.vertex_buffer, it.index_buffer, it.vertex_count, it.index_count, it.transform, it.material);
+            key := MakeMeshBufferKey(it, depth);
+            PushMesh(*shadow_map.mesh_buffer, key, it);
         }
     }
 

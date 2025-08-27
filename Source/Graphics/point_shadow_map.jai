@@ -135,8 +135,8 @@ PopulateShadowMapMeshBuffer :: (world : *World, shadow_map : *PointShadowMap, li
 
         position := TranslationVector(it.transform);
         depth := TransformPoint(viewpoint.view, position).z;
-        key := MakeMeshBufferKey(it.vertex_buffer, it.index_buffer, it.material, depth);
-        PushMesh(mesh_buffer, key, it.entity.guid, it.vertex_buffer, it.index_buffer, it.vertex_count, it.index_count, it.transform, it.material);
+        key := MakeMeshBufferKey(it, depth);
+        PushMesh(mesh_buffer, key, it);
     }
 
     SortMeshBuffer(mesh_buffer);

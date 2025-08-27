@@ -16,6 +16,8 @@ MeshBuffer :: struct {
         index_count : u32;
         transform : Mat4f;
         material : *Material;
+        is_skinned : bool;
+        skinning_matrices : []Mat4f;
     }
 
     DrawCall :: struct {
@@ -23,13 +25,16 @@ MeshBuffer :: struct {
         index_buffer : *GfxBuffer;
         vertex_count : u32;
         index_count : u32;
+        material : MaterialPerDrawCall;
         instances_offset : u64;
         instance_count : u32;
-        material : MaterialPerDrawCall;
+        is_skinned : bool;
 
         binding_set : GfxBindingSet;
     }
 
+    total_num_skinning_matrices : u64;
+    skinning_matrices_offset : u64;
     meshes : [..]Entry;
     draw_calls : [..]DrawCall;
 }
@@ -44,16 +49,24 @@ MeshBindingSet :: struct {
 } @BindingSet
 
 ClearMeshBuffer :: (buffer : *MeshBuffer) {
+    buffer.total_num_skinning_matrices = 0;
+    buffer.skinning_matrices_offset = 0;
     ArrayClear(*buffer.meshes);
     ArrayClear(*buffer.draw_calls);
 }
 
 FreeMeshBuffer :: (buffer : *MeshBuffer) {
+    buffer.total_num_skinning_matrices = 0;
+    buffer.skinning_matrices_offset = 0;
     ArrayFree(*buffer.meshes);
     ArrayFree(*buffer.draw_calls);
 }
 
-MakeMeshBufferKey :: (vertex_buffer : *GfxBuffer, index_buffer : *GfxBuffer, material : *Material, depth : float) -> u64 {
+MakeMeshBufferKey :: (mesh_to_draw : MeshToDraw, depth : float) -> u64 {
+    return MakeMeshBufferKey(mesh_to_draw.vertex_buffer, mesh_to_draw.index_buffer, mesh_to_draw.material, mesh_to_draw.is_skinned, depth);
+}
+
+MakeMeshBufferKey :: (vertex_buffer : *GfxBuffer, index_buffer : *GfxBuffer, material : *Material, is_skinned : bool, depth : float) -> u64 {
     mesh_buffers : [2]*GfxBuffer = .[vertex_buffer, index_buffer];
 
     textures : [5]*Asset(Texture2D) = .[
@@ -77,18 +90,41 @@ MakeMeshBufferKey :: (vertex_buffer : *GfxBuffer, index_buffer : *GfxBuffer, mat
     Textures_Bits :: 16;
 
     Material_Type_Offset :: Textures_Offset + Textures_Bits;
-    Material_Type_Bits :: 8;
+    Material_Type_Bits :: 7;
 
-    End :: Material_Type_Offset + Material_Type_Bits;
+    #assert Num_Material_Types < 0b1111111;
+
+    Is_Skinned_Offset :: Material_Type_Offset + Material_Type_Bits;
+    Is_Skinned_Bits :: 1;
+
+    End :: Is_Skinned_Offset + Is_Skinned_Bits;
     #assert End <= 64;
-
     result : u64;
     result |= (cast,no_check(u64, depth) & 0xffffff) << Depth_Offset; // 24 bits for depth
     result |= cast(u64, mesh_buffers_hash & 0xffff) << Mesh_Offset; // 16 bits for mesh
     result |= cast(u64, textures_hash & 0xffff) << Textures_Offset; // 16 bits for textures
-    result |= cast(u64, material.type & 0xff) << Material_Type_Offset; // 8 bits for material type
+    result |= cast(u64, material.type & 0b1111111) << Material_Type_Offset; // 7 bits for material type
+    result |= cast(u64, is_skinned) << Is_Skinned_Offset; // 1 bit for skinning
 
     return result;
+}
+
+PushMesh :: (
+    buffer : *MeshBuffer,
+    key : u64,
+    mesh_to_draw : MeshToDraw
+) {
+    PushMesh(
+        buffer,
+        key,
+        mesh_to_draw.entity.guid,
+        mesh_to_draw.vertex_buffer, mesh_to_draw.index_buffer,
+        mesh_to_draw.vertex_count, mesh_to_draw.index_count,
+        mesh_to_draw.transform,
+        mesh_to_draw.material,
+        mesh_to_draw.is_skinned,
+        mesh_to_draw.skinning_matrices
+    );
 }
 
 PushMesh :: (
@@ -100,7 +136,9 @@ PushMesh :: (
     vertex_count : u32,
     index_count : u32,
     transform : Mat4f,
-    material : *Material
+    material : *Material,
+    is_skinned : bool,
+    skinning_matrices : []Mat4f
 ) {
     entry := ArrayPush(*buffer.meshes);
     entry.key = key;
@@ -111,6 +149,8 @@ PushMesh :: (
     entry.index_count = index_count;
     entry.transform = transform;
     entry.material = material;
+    entry.is_skinned = is_skinned;
+    entry.skinning_matrices = skinning_matrices;
 }
 
 SortMeshBuffer :: (buffer : *MeshBuffer) {
