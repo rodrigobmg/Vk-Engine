@@ -131,15 +131,19 @@ EmptyEntity :: struct {
 
 Entity_Index_Type_Id_Bits   :: 8;
 Entity_Index_Type_Id_Offset :: Entity_Index_Version_Offset + Entity_Index_Version_Bits;
+Entity_Index_Type_Id_Mask   :: 0xff << Entity_Index_Type_Id_Offset;
 
 Entity_Index_Version_Bits   :: 24;
 Entity_Index_Version_Offset :: Entity_Index_Page_Index_Offset + Entity_Index_Page_Index_Bits;
+Entity_Index_Version_Mask   :: 0xffffff << Entity_Index_Version_Offset;
 
 Entity_Index_Page_Index_Bits   :: 24;
 Entity_Index_Page_Index_Offset :: Entity_Index_Slot_Index_Offset + Entity_Index_Slot_Index_Bits;
+Entity_Index_Page_Index_Mask   :: 0xffffff << Entity_Index_Page_Index_Offset;
 
 Entity_Index_Slot_Index_Bits   :: 8;
 Entity_Index_Slot_Index_Offset :: 0;
+Entity_Index_Slot_Index_Mask   :: 0xff << Entity_Index_Slot_Index_Offset;
 
 #assert Entity_Index_Type_Id_Offset + Entity_Index_Type_Id_Bits <= size_of(EntityIndex) * 8;
 
@@ -183,6 +187,9 @@ GenerateEntityGUID :: () -> EntityGUID {
 }
 
 CompareEntityIndex :: inline (a : EntityIndex, b : EntityIndex) -> int {
+    a &= ~Entity_Index_Version_Mask;
+    b &= ~Entity_Index_Version_Mask;
+
     if a < b {
         return -1;
     }
