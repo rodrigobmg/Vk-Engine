@@ -201,6 +201,7 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void, all
         .{"Images", ".png;.jpg;.jpeg;.tga;.hdr"},
         .{"Images (HDR)", ".hdr"},
         .{"Materials", ".mat"},
+        .{"Animations", ".anim"},
 
         // Additional filters
         .{"Images (Non HDR)", ".png;.jpg;.jpeg;.tga"},
@@ -235,6 +236,8 @@ OpenAssetBrowserPopupFor :: (asset_type : Type, pointer_to_pointer : **void, all
         browser.selected_filter = 2;
     case Material;
         browser.selected_filter = 3;
+    case ArmatureAnimation;
+        browser.selected_filter = 4;
     case;
         browser.selected_filter = -1;
     }
