@@ -31,6 +31,8 @@ ImGui_SDL :: #import "ImGui/Impl/SDL";
 #load "serialize_deserialize.jai";
 #load "asset.jai";
 #load "entity.jai";
+#load "component.jai";
+#load "world.jai";
 #load "preferences.jai";
 
 #load "Graphics/graphics.jai";

@@ -39,16 +39,14 @@ HandleDeclarationForEntity :: (decl : *Code_Declaration) {
         struct_type = (cast(*Code_Struct) decl.expression).defined_type;
     }
 
-    if decl.enclosing_load.fully_pathed_filename == StringJoin(GetRootDirectory(), "Source/entity.jai") {
-        if decl.name == {
-        case "Entity";
+    if decl.name == "Entity" && decl.enclosing_load.fully_pathed_filename == StringJoin(GetRootDirectory(), "Source/entity.jai") {
             g_entity_type = struct_type;
             LogMessage("Found Entity type");
+    }
 
-        case "Component";
-            g_component_type = struct_type;
-            LogMessage("Found Component type");
-        }
+    if decl.name == "Component" && decl.enclosing_load.fully_pathed_filename == StringJoin(GetRootDirectory(), "Source/component.jai") {
+        g_component_type = struct_type;
+        LogMessage("Found Component type");
     }
 
     if has_entity_note {
