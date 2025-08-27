@@ -43,8 +43,13 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
     }
 
     shadow_map_index := 0;
-    for * world.DirectionalLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.DirectionalLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
@@ -61,8 +66,13 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
     }
 
     point_shadow_map_index := 0;
-    for * world.PointLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.PointLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 

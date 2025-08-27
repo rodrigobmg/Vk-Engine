@@ -77,7 +77,7 @@ DestroyShadowMap :: (shadow_map : *PointShadowMap) {
     }
 }
 
-UpdatePointShadowMapFarPlane :: (light : *PointLightEntity, intensity_threshold := Global_Point_Light_Intensity_Threshold) {
+UpdatePointShadowMapFarPlane :: (light : *PointLightComponent, intensity_threshold := Global_Point_Light_Intensity_Threshold) {
     light.shadow_map.z_far = GetPointLightAttenuationDistance(light.intensity, light.intensity * intensity_threshold);
 }
 

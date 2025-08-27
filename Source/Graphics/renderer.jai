@@ -87,6 +87,101 @@ AnimatedMeshEntity :: struct {
     }
 } @Entity
 
+DirectionalLightComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
+    intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
+    cast_shadows : bool; @Serialize(4)
+    shadow_map : ShadowMap;
+
+    OnDestroy :: (world : *World, using component : *DirectionalLightComponent) {
+        DestroyShadowMap(*shadow_map);
+    }
+} @Component
+
+DirectionalLightEntity :: struct {
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
+
+    light : *DirectionalLightComponent; @Serialize(2)
+
+    OnSpawn :: (world : *World, light : *DirectionalLightEntity) {
+        light.light = CreateComponent(world, DirectionalLightComponent, light);
+    }
+
+    OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
+        DestroyComponent(world, light.light);
+    }
+
+    OnDebugDraw :: (world : *World, using entity : *DirectionalLightEntity) {
+        if EntityIsSelected(guid) {
+            position := TranslationVector(world_transform);
+            right := RightVector(world_transform);
+            up := UpVector(world_transform);
+            direction := ForwardVector(world_transform);
+
+            p0 := position + right * 0.3;
+            p1 := position - right * 0.3;
+            p2 := position + up * 0.3;
+            p3 := position - up * 0.3;
+
+            DebugDrawCircleOutline(.{1,1,1,1}, position, right, up, 0.3);
+            DebugDrawLine(.{1,1,1,1}, p0, p0 + direction);
+            DebugDrawLine(.{1,1,1,1}, p1, p1 + direction);
+            DebugDrawLine(.{1,1,1,1}, p2, p2 + direction);
+            DebugDrawLine(.{1,1,1,1}, p3, p3 + direction);
+        }
+    }
+} @Entity
+
+PointLightComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
+    intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
+    cast_shadows : bool; @Serialize(4)
+    shadow_map : PointShadowMap;
+
+    OnDestroy :: (world : *World, using component : *PointLightComponent) {
+        DestroyShadowMap(*shadow_map);
+    }
+} @Component
+
+PointLightEntity :: struct {
+    #as using _ : Entity; @Serialize(1) @InspectorNoTree
+
+    light : *PointLightComponent; @Serialize(2)
+
+    OnSpawn :: (world : *World, light : *PointLightEntity) {
+        light.light = CreateComponent(world, PointLightComponent, light);
+    }
+
+    OnDespawn :: (world : *World, light : *PointLightEntity) {
+        DestroyComponent(world, light.light);
+    }
+
+    OnDebugDraw :: (world : *World, using entity : *PointLightEntity) {
+        if EntityIsSelected(guid) {
+            position := TranslationVector(world_transform);
+            distance := GetPointLightAttenuationDistance(light.intensity, light.intensity * Global_Point_Light_Intensity_Threshold);
+            DebugDrawSphereOutline(.{0,1,0,1}, position, distance);
+        }
+    }
+} @Entity
+
+Global_Point_Light_Intensity_Threshold :: 0.001;
+
+GetPointLightAttenuationDistance :: (intensity : float, intensity_threshold : float) -> float {
+    // Light intensity at distance D for base intensity I is I/D^2
+    // Solve for I/D^2 < T
+    //   I/D^2 < T
+    //   I < T*D^2
+    //   0 < T*D^2-I
+    //   T*D^2-I > 0
+
+    return (4 * intensity * intensity_threshold) / (2 * intensity_threshold);
+}
+
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
 
@@ -342,73 +437,6 @@ DestroyRenderTargets :: () {
     }
 
     DestroyBloomTextures();
-}
-
-DirectionalLightEntity :: struct {
-    #as using _ : Entity; @Serialize(1) @InspectorNoTree
-
-    color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
-    intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
-    cast_shadows : bool; @Serialize(4)
-    shadow_map : ShadowMap;
-
-    OnDebugDraw :: (world : *World, light : *DirectionalLightEntity) {
-        if  EntityIsSelected(light.guid) {
-            position := TranslationVector(light.world_transform);
-            right := RightVector(light.world_transform);
-            up := UpVector(light.world_transform);
-            direction := ForwardVector(light.world_transform);
-
-            p0 := position + right * 0.3;
-            p1 := position - right * 0.3;
-            p2 := position + up * 0.3;
-            p3 := position - up * 0.3;
-
-            DebugDrawCircleOutline(.{1,1,1,1}, position, right, up, 0.3);
-            DebugDrawLine(.{1,1,1,1}, p0, p0 + direction);
-            DebugDrawLine(.{1,1,1,1}, p1, p1 + direction);
-            DebugDrawLine(.{1,1,1,1}, p2, p2 + direction);
-            DebugDrawLine(.{1,1,1,1}, p3, p3 + direction);
-        }
-    }
-
-    OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
-        DestroyShadowMap(*light.shadow_map);
-    }
-} @Entity
-
-Global_Point_Light_Intensity_Threshold :: 0.001;
-
-PointLightEntity :: struct {
-    #as using _ : Entity; @Serialize(1) @InspectorNoTree
-
-    color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
-    intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
-    cast_shadows : bool; @Serialize(4)
-    shadow_map : PointShadowMap;
-
-    OnDebugDraw :: (world : *World, light : *PointLightEntity) {
-        if EntityIsSelected(light.guid) {
-            position := TranslationVector(light.world_transform);
-            distance := GetPointLightAttenuationDistance(light.intensity, light.intensity * Global_Point_Light_Intensity_Threshold);
-            DebugDrawSphereOutline(.{0,1,0,1}, position, distance);
-        }
-    }
-
-    OnDespawn :: (world : *World, light : *PointLightEntity) {
-        DestroyShadowMap(*light.shadow_map);
-    }
-} @Entity
-
-GetPointLightAttenuationDistance :: (intensity : float, intensity_threshold : float) -> float {
-    // Light intensity at distance D for base intensity I is I/D^2
-    // Solve for I/D^2 < T
-    //   I/D^2 < T
-    //   I < T*D^2
-    //   0 < T*D^2-I
-    //   T*D^2-I > 0
-
-    return (4 * intensity * intensity_threshold) / (2 * intensity_threshold);
 }
 
 GetNumComputeWorkGroupsForTexture :: (desc : GfxTextureAndViewDesc, mipmap_level : int, work_group_size : u32) -> x : u32, y : u32 {
@@ -688,24 +716,34 @@ RenderFrame :: (world : *World, camera : *Camera) {
     SortMeshBuffer(*g_selected_mesh_buffer);
     AllocDrawData(*g_selected_mesh_buffer);
 
-    for * world.DirectionalLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.DirectionalLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
         if it.cast_shadows {
-            PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(it.world_transform), camera.transform);
+            PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(entity.world_transform), camera.transform);
         }
     }
 
-    for * world.PointLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.PointLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
         if it.cast_shadows {
             UpdatePointShadowMapFarPlane(it);
-            PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(it.world_transform));
+            PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(entity.world_transform));
         }
     }
 
@@ -719,12 +757,17 @@ RenderFrame :: (world : *World, camera : *Camera) {
         RenderBRDFLUT(ctx.cmd_buffer);
     }
 
-    num_directional_lights : u64 = xx world.DirectionalLightEntity_storage.count;
+    num_directional_lights : u64 = xx world.DirectionalLightComponent_storage.count;
     directional_lights_size := GLSLStd430Size(DirectionalLight) * num_directional_lights;
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
     shadow_map_index : s32 = 0;
-    for * world.DirectionalLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.DirectionalLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
@@ -733,7 +776,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
 
         directional_light := DirectionalLight.{
-            direction=ForwardVector(it.world_transform),
+            direction=ForwardVector(entity.world_transform),
             color=it.color,
             intensity=it.intensity,
             shadow_map_index=ifx it.cast_shadows then shadow_map_index else -1,
@@ -751,12 +794,17 @@ RenderFrame :: (world : *World, camera : *Camera) {
         directional_lights_ptr += PackToGLSLStd(directional_light, directional_lights_ptr, .Std430);
     }
 
-    num_point_lights : u64 = xx world.PointLightEntity_storage.count;
+    num_point_lights : u64 = xx world.PointLightComponent_storage.count;
     point_lights_size := GLSLStd430Size(PointLight) * num_point_lights;
     point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
     point_shadow_map_index : s32 = 0;
-    for * world.PointLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.PointLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
@@ -765,7 +813,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
 
         point_light := PointLight.{
-            position=TranslationVector(it.world_transform),
+            position=TranslationVector(entity.world_transform),
             color=it.color,
             intensity=it.intensity,
             shadow_map_index=ifx it.cast_shadows then point_shadow_map_index else -1,
@@ -816,23 +864,33 @@ RenderFrame :: (world : *World, camera : *Camera) {
     TextureUploadPass(*cmd_buffer);
     GenerateEnvironmentMaps(*cmd_buffer);
 
-    for * world.DirectionalLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.DirectionalLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
         if it.cast_shadows {
-            ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(it.world_transform), camera);
+            ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(entity.world_transform), camera);
         }
     }
 
-    for * world.PointLightEntity_storage {
-        if it.flags & .Hidden {
+    for * world.PointLightComponent_storage {
+        entity := GetEntity(world, it.entity);
+        if !entity {
+            continue;
+        }
+
+        if entity.flags & .Hidden {
             continue;
         }
 
         if it.cast_shadows {
-            PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(it.world_transform));
+            PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(entity.world_transform));
         }
     }
 
