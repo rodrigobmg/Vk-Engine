@@ -7,6 +7,7 @@ ForwardPassBindingSet :: struct {
 } @BindingSet
 
 g_forward_pipeline : GfxGraphicsPipeline;
+g_skinned_forward_pipeline : GfxGraphicsPipeline;
 
 CreateForwardPipeline :: () {
     desc : GfxGraphicsPipelineDesc;
@@ -24,7 +25,13 @@ CreateForwardPipeline :: () {
         g_binding_set_layouts.MeshBindingSet,
     ];
 
-    ok := CreateGfxGraphicsPipeline(*g_forward_pipeline, "Forward", desc);
+    ok := CreateGfxGraphicsPipeline(*g_forward_pipeline, "Forward (static)", desc);
+    Assert(ok, "Could not create forward pass pipeline");
+
+    desc.vertex_shader = GetVertexShader("skinned_mesh_geometry");
+    desc.vertex_input = MakeVertexInputDesc(SkinnedVertex, 0);
+
+    ok = CreateGfxGraphicsPipeline(*g_skinned_forward_pipeline, "Forward (skinned)", desc);
     Assert(ok, "Could not create forward pass pipeline");
 }
 
@@ -99,13 +106,18 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     pass := BeginGfxRenderPass(cmd_buffer, "Forward Pass", pass_desc);
     {
-        BindGraphicsPipeline(*pass, *g_forward_pipeline);
         SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
-        BindGraphicsBindingSet(*pass, 1, *binding_set);
+        BindGraphicsBindingSet(cmd_buffer, *g_forward_pipeline.layout, 1, *binding_set);
 
         for mesh_buffer.draw_calls {
+            if it.is_skinned {
+                BindGraphicsPipeline(*pass, *g_skinned_forward_pipeline);
+            } else {
+                BindGraphicsPipeline(*pass, *g_forward_pipeline);
+            }
+
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
             BindIndexBuffer(*pass, .UInt32, it.index_buffer);
