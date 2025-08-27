@@ -479,6 +479,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     AllocDrawData(*g_selected_mesh_buffer);
 
     for * world.DirectionalLightComponent_storage {
+        if !it.cast_shadows {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;
@@ -488,12 +492,14 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        if it.cast_shadows {
-            PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(entity.world_transform), camera.transform);
-        }
+        PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(entity.world_transform), camera.transform);
     }
 
     for * world.PointLightComponent_storage {
+        if !it.cast_shadows {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;
@@ -503,10 +509,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        if it.cast_shadows {
-            UpdatePointShadowMapFarPlane(it);
-            PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(entity.world_transform));
-        }
+        UpdatePointShadowMapFarPlane(it);
+        PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(entity.world_transform));
     }
 
     ctx : FrameRenderContext;
@@ -627,6 +631,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     GenerateEnvironmentMaps(*cmd_buffer);
 
     for * world.DirectionalLightComponent_storage {
+        if !it.cast_shadows {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;
@@ -636,12 +644,14 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        if it.cast_shadows {
-            ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(entity.world_transform), camera);
-        }
+        ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(entity.world_transform), camera);
     }
 
     for * world.PointLightComponent_storage {
+        if !it.cast_shadows {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;
@@ -651,9 +661,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        if it.cast_shadows {
-            PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(entity.world_transform));
-        }
+        PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(entity.world_transform));
     }
 
     AddTextureBarriers(*cmd_buffer, .Undefined, .ColorAttachment, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);

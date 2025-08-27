@@ -44,20 +44,20 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     shadow_map_index := 0;
     for * world.DirectionalLightComponent_storage {
+        if shadow_map_index >= Max_Shadow_Maps {
+            break;
+        }
+
+        if !it.cast_shadows {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;
         }
 
         if entity.flags & .Hidden {
-            continue;
-        }
-
-        if shadow_map_index >= Max_Shadow_Maps {
-            break;
-        }
-
-        if !it.cast_shadows {
             continue;
         }
 
@@ -67,20 +67,20 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     point_shadow_map_index := 0;
     for * world.PointLightComponent_storage {
+        if point_shadow_map_index >= Max_Point_Shadow_Maps {
+            break;
+        }
+
+        if !it.cast_shadows {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;
         }
 
         if entity.flags & .Hidden {
-            continue;
-        }
-
-        if point_shadow_map_index >= Max_Point_Shadow_Maps {
-            break;
-        }
-
-        if !it.cast_shadows {
             continue;
         }
 
