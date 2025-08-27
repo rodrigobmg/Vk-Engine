@@ -63,10 +63,6 @@ World :: struct {
 }
 #placeholder Component_Types;
 
-ComponentGUID :: struct {
-    low, high : u64;
-}
-
 Component :: struct {
     index : PagedArraySlotInfo;
     entity : EntityGUID;

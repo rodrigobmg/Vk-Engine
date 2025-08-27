@@ -252,8 +252,8 @@ TypecheckComponentStruct :: (struct_node : *Code_Struct) {
             compiler_report("Entity struct contains a pointer to an entity, which is forbidden. An EntityGUID should be used to reference another entity.", loc = make_location(it));
         }
 
-        if !(decl.flags & .IS_CONSTANT) && ContainsPointerToComponent(it.type) {
-            compiler_report("Component struct contains a pointer to a component, which is forbidden. An ComponentGUID should be used to reference another component.", loc = make_location(it));
-        }
+        // if !(decl.flags & .IS_CONSTANT) && ContainsPointerToComponent(it.type) {
+        //     compiler_report("Component struct contains a pointer to a component, which is forbidden. An ComponentGUID should be used to reference another component.", loc = make_location(it));
+        // }
     }
 }
