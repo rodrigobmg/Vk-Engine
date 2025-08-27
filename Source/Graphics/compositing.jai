@@ -49,7 +49,7 @@ CompositingPass :: (using ctx : *FrameRenderContext) {
 
     if g_editor_settings.use_blur_effect {
         bindings.blurred_color_texture = .{
-            texture=GetFinalTexture(*g_blurred_color),
+            texture=GetFinalTexture(*g_editor_background_blur),
             sampler=*g_linear_clamp_sampler
         };
     }

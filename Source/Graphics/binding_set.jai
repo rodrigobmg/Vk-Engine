@@ -1,3 +1,46 @@
+#placeholder Shader_Binding_Set_Types;
+
+IsInShaderBindingSetTypesArray :: (type : Type) -> bool {
+    return ArrayFindFirst(Shader_Binding_Set_Types, type) != -1;
+}
+
+g_binding_set_layouts : struct {
+    #insert -> string {
+        builder : StringBuilder;
+
+        for Shader_Binding_Set_Types {
+            Appendln(*builder, "%1 : GfxBindingSetLayout;", it);
+        }
+
+        return StringBuilderBuild(*builder);
+    }
+}
+
+CreateAllBindingSetLayouts :: () {
+    #insert -> string {
+        builder : StringBuilder;
+
+        for Shader_Binding_Set_Types {
+            Appendln(*builder, "g_binding_set_layouts.%1 = CreateGfxBindingSetLayout(%1);", it);
+            Appendln(*builder, "Assert(!IsNull(*g_binding_set_layouts.%1), \"Could not create shader binding set layout for type %1\");", it);
+        }
+
+        return StringBuilderBuild(*builder);
+    }
+}
+
+DestroyAllBindingSetLayouts :: () {
+    #insert -> string {
+        builder : StringBuilder;
+
+        for Shader_Binding_Set_Types {
+            Appendln(*builder, "DestroyGfxBindingSetLayout(*g_binding_set_layouts.%1);", it);
+        }
+
+        return StringBuilderBuild(*builder);
+    }
+}
+
 BindingSetAllocator :: struct {
     name : string;
     base_pool_desc : GfxBindingPoolDesc;

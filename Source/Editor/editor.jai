@@ -24,6 +24,8 @@ EntityOutlineParams :: struct {
     color : Vec4f = .{0.972, 1, 0.498, 1}; @ShowInInspector @ColorEdit
 } @ShaderType
 
+g_editor_background_blur : KawaseBlur;
+
 g_editor_settings : EditorSettings;
 
 g_show_imgui_demo := false;
@@ -910,7 +912,7 @@ ShowEngineSettings :: () {
 
     if memcmp(*prev_editor_settings, *g_editor_settings, size_of(EditorSettings)) != 0 {
         if !g_editor_settings.use_blur_effect {
-            DestroyKawaseBlur(*g_blurred_color);
+            DestroyKawaseBlur(*g_editor_background_blur);
         } else {
             w, h := GetWindowPixelSize(g_window);
 
@@ -922,7 +924,7 @@ ShowEngineSettings :: () {
 
             g_editor_settings.blur_effect_iterations = Clamp(g_editor_settings.blur_effect_iterations, 2, 10);
 
-            CreateKawaseBlurTextures(*g_blurred_color, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+            CreateKawaseBlurTextures(*g_editor_background_blur, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
         }
     }
 

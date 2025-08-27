@@ -2,10 +2,9 @@
 #load "vk_initialization.jai";
 #load "glsl_packing.jai";
 #load "allocator.jai";
-#load "binding_set_allocator.jai";
+#load "binding_set.jai";
 #load "gpu_profiling.jai";
 #load "renderer.jai";
-#load "material_pipelines.jai";
 
 #load "shader.jai";
 #load "texture2d.jai";
@@ -14,6 +13,8 @@
 #load "mesh_buffer.jai";
 #load "material.jai";
 #load "animation.jai";
+#load "material_pipelines.jai";
+#load "entities_and_components.jai";
 
 #load "imgui.jai";
 #load "image_based_lighting.jai";

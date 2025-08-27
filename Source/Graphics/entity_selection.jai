@@ -1,5 +1,6 @@
 g_entity_guid_texture : GfxTexture;
 g_selected_entity_guid_texture : GfxTexture;
+g_selected_entities_depth_texture : GfxTexture;
 g_entity_guid_readback_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
 g_entity_guid_readback_ptrs : [Gfx_Num_Frames_In_Flight]*EntityGUID;
 
@@ -10,6 +11,10 @@ CreateEntityGUIDTextures :: () {
 
     if !IsNull(*g_selected_entity_guid_texture) {
         DestroyGfxTexture(*g_selected_entity_guid_texture);
+    }
+
+    if !IsNull(*g_selected_entities_depth_texture) {
+        DestroyGfxTexture(*g_selected_entities_depth_texture);
     }
 
     for * g_entity_guid_readback_buffers {
@@ -35,6 +40,12 @@ CreateEntityGUIDTextures :: () {
 
     g_selected_entity_guid_texture = CreateGfxTexture("Selected Entity GUID", texture_desc);
     Assert(!IsNull(*g_selected_entity_guid_texture), "Could not create entity GUID texture");
+
+    texture_desc.pixel_format = .Depth32Float;
+    texture_desc.usage = .DepthStencilAttachment;
+
+    g_selected_entities_depth_texture = CreateGfxTexture("Selected Entities Depth", texture_desc);
+    Assert(!IsNull(*g_selected_entities_depth_texture), "Could not create selected entities depth texture");
 
     for * g_entity_guid_readback_buffers {
         buffer_desc : GfxBufferDesc;
