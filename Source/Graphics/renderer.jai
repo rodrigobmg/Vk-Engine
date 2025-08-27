@@ -445,34 +445,34 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        draw : bool;
-        it : MeshToDraw;
-
-        static_mesh := GetComponent(entity, StaticMeshComponent);
-        if static_mesh {
-            draw, it = MakeMeshToDraw(entity, static_mesh);
-        } else {
-            skinned_mesh := GetComponent(entity, SkinnedMeshComponent);
-            if skinned_mesh {
-                draw, it = MakeMeshToDraw(entity, skinned_mesh);
+        for :AllStaticMeshComponents comp : entity {
+            draw, it := MakeMeshToDraw(entity, comp);
+            if !draw {
+                continue;
             }
-        }
 
-        if !draw {
-            continue;
-        }
-
-        if !it.is_skinned {
             aabb := GetTransformedAABB(it.transform, it.static_bounds);
             if !AABBIsInFrustum(aabb, frustum) {
                 continue;
             }
+
+            position := TranslationVector(it.transform);
+            depth := TransformPoint(camera.view, position).z;
+            key := MakeMeshBufferKey(it, depth);
+            PushMesh(*g_selected_mesh_buffer, key, it);
         }
 
-        position := TranslationVector(it.transform);
-        depth := TransformPoint(camera.view, position).z;
-        key := MakeMeshBufferKey(it, depth);
-        PushMesh(*g_selected_mesh_buffer, key, it);
+        for :AllSkinnedMeshComponents comp : entity {
+            draw, it := MakeMeshToDraw(entity, comp);
+            if !draw {
+                continue;
+            }
+
+            position := TranslationVector(it.transform);
+            depth := TransformPoint(camera.view, position).z;
+            key := MakeMeshBufferKey(it, depth);
+            PushMesh(*g_selected_mesh_buffer, key, it);
+        }
     }
 
     SortMeshBuffer(*g_selected_mesh_buffer);
