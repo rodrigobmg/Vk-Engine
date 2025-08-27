@@ -78,7 +78,7 @@ IsTypeSerializable :: (type : *Type_Info, dependency_stack : *[..]*Type_Info = n
         }
 
         for struct_info.members {
-            if !(it.flags & .CONSTANT) && IsTypeSerializable(it.type, dependency_stack) {
+            if !(it.flags & .CONSTANT) && GetSerializeFieldId(it.notes) > 0 && IsTypeSerializable(it.type, dependency_stack) {
                 return true;
             }
         }
