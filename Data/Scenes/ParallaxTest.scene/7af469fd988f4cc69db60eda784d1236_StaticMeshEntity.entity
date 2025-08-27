@@ -5,7 +5,8 @@
   @local_rotation 4: [0, 0, 0, 1]
   @local_scale 5: [10, 10, 10]
   @parent 6: 0x00000000000000000000000000000000
-@mesh 2: "Meshes/ParallaxTestPlanes.mesh"
-@material 3: "Materials/Pebbles.mat"
-@cast_shadows 4: true
-@cast_point_shadows 5: false
+@mesh 2:
+  @mesh 2: "Meshes/ParallaxTestPlanes.mesh"
+  @material 3: "Materials/Pebbles.mat"
+  @cast_shadows 4: true
+  @cast_point_shadows 5: false

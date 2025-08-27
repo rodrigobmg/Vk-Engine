@@ -5,6 +5,7 @@
   @local_rotation 4: [0, 0, 0, 1]
   @local_scale 5: [1, 1, 1]
   @parent 6: 0x00000000000000000000000000000000
-@color 2: [1, 1, 1]
-@intensity 3: 40
-@cast_shadows 4: false
+@light 2:
+  @color 2: [1, 1, 1]
+  @intensity 3: 40
+  @cast_shadows 4: false
