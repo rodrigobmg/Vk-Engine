@@ -14,67 +14,6 @@ Component :: struct {
     entity : EntityGUID;
 }
 
-AllComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
-#modify { return (E == Entity || IsInEntityTypesArray(E)) && IsInComponentTypesArray(T); } #expand {
-    `it : *T;
-    `it_index := 0;
-
-    #if E == Entity {
-        #insert -> string {
-            builder : StringBuilder;
-
-            Appendln(*builder, "// AllComponents(T=%, E=%)", T, E);
-            Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
-
-            comp := type_info(T);
-            for i : 1..Entity_Types.count - 1 {
-                Appendln(*builder, "case .%1;", Entity_Types[i]);
-
-                info := cast(*Type_Info_Struct, Entity_Types[i]);
-                for info.members {
-                    if it.type.type != .POINTER {
-                        continue;
-                    }
-
-                    type := cast(*Type_Info_Pointer, it.type).pointer_to;
-                    if type == comp {
-                        Appendln(*builder, "    it = cast(*%1, entity).%2;", Entity_Types[i], it.name);
-                        Appendln(*builder, "    #insert(break=return, continue={}) body;");
-                        Appendln(*builder, "    it_index += 1;");
-                    }
-                }
-            }
-
-            Appendln(*builder, "}");
-
-            return StringBuilderBuild(*builder);
-        }
-    } else {
-        #insert -> string {
-            builder : StringBuilder;
-
-            Appendln(*builder, "// AllComponents(T=%, E=%)", T, E);
-
-            comp := type_info(T);
-            info := type_info(E);
-            for info.members {
-                if it.type.type != .POINTER {
-                    continue;
-                }
-
-                type := cast(*Type_Info_Pointer, it.type).pointer_to;
-                if type == comp {
-                    Appendln(*builder, "it = entity.%;", it.name);
-                    Appendln(*builder, "#insert(break=return, continue={}) body;");
-                    Appendln(*builder, "it_index += 1");
-                }
-            }
-
-            return StringBuilderBuild(*builder);
-        }
-    }
-}
-
 IsInComponentTypesArray :: (type : Type) -> bool {
     for i : 1..Component_Types.count - 1 {
         if Component_Types[i] == type {
@@ -178,5 +117,66 @@ GetComponent :: inline (entity : *$E, $T : Type) -> *T
         AppendGetComponent(*builder, "entity", type_info(E), type_info(T));
 
         return StringBuilderBuild(*builder);
+    }
+}
+
+AllComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
+#modify { return (E == Entity || IsInEntityTypesArray(E)) && IsInComponentTypesArray(T); } #expand {
+    `it : *T;
+    `it_index := 0;
+
+    #if E == Entity {
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "// AllComponents(T=%, E=%)", T, E);
+            Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
+
+            comp := type_info(T);
+            for i : 1..Entity_Types.count - 1 {
+                Appendln(*builder, "case .%1;", Entity_Types[i]);
+
+                info := cast(*Type_Info_Struct, Entity_Types[i]);
+                for info.members {
+                    if it.type.type != .POINTER {
+                        continue;
+                    }
+
+                    type := cast(*Type_Info_Pointer, it.type).pointer_to;
+                    if type == comp {
+                        Appendln(*builder, "    it = cast(*%1, entity).%2;", Entity_Types[i], it.name);
+                        Appendln(*builder, "    #insert(break=return, continue={}) body;");
+                        Appendln(*builder, "    it_index += 1;");
+                    }
+                }
+            }
+
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    } else {
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "// AllComponents(T=%, E=%)", T, E);
+
+            comp := type_info(T);
+            info := type_info(E);
+            for info.members {
+                if it.type.type != .POINTER {
+                    continue;
+                }
+
+                type := cast(*Type_Info_Pointer, it.type).pointer_to;
+                if type == comp {
+                    Appendln(*builder, "it = entity.%;", it.name);
+                    Appendln(*builder, "#insert(break=return, continue={}) body;");
+                    Appendln(*builder, "it_index += 1");
+                }
+            }
+
+            return StringBuilderBuild(*builder);
+        }
     }
 }
