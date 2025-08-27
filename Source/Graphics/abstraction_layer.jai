@@ -2635,6 +2635,10 @@ EndGfxRenderPass :: (pass : *GfxRenderPass) {
 }
 
 BindGraphicsPipeline :: (pass : *GfxRenderPass, pipeline : *GfxGraphicsPipeline) {
+    if pass.current_pipeline == pipeline {
+        return;
+    }
+
     pass.current_pipeline = pipeline;
     vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .GRAPHICS, pipeline.pipeline);
 }
