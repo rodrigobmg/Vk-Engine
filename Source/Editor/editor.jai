@@ -327,6 +327,8 @@ ShowGizmoControls :: (ctx : *GizmoContext) {
 UpdateEditor :: (world : *World) {
     LogSectionScope(*Log_Editor);
 
+    ImGui.DockSpaceOverViewport(flags=.PassthruCentralNode);
+
     if ImGui.BeginMainMenuBar() {
         if ImGui.BeginMenu("World") {
             if ImGui.MenuItem("New") {
