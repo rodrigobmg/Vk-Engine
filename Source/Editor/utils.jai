@@ -470,7 +470,15 @@ DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : 
         ImGui.PopItemWidth();
     }
 
-    ImGui.Text("%", to_string(label));
+    s := MakeString(label);
+    hash_index := find_index_from_left(s, "##");
+    if hash_index >= 0 {
+        s.count = hash_index;
+    }
+
+    if s.count > 0 {
+        ImGui.Text("%", s);
+    }
 
     return state, activated, edited_value;
 }
@@ -570,8 +578,8 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.Header] = .{0.141, 0.162, 0.206, 1};
     style.Colors[ImGui.Col.HeaderHovered] = .{0.186, 0.178, 0.178, 1};
     style.Colors[ImGui.Col.HeaderActive] = .{0.078, 0.086, 0.101, 1};
-    style.Colors[ImGui.Col.Separator] = .{0.129, 0.147, 0.193, 1};
-    style.Colors[ImGui.Col.SeparatorHovered] = .{0.156, 0.184, 0.250, 1};
+    style.Colors[ImGui.Col.Separator] = .{0.141, 0.161, 0.208, 0.2};
+    style.Colors[ImGui.Col.SeparatorHovered] = .{0.156, 0.184, 0.250, 0.78};
     style.Colors[ImGui.Col.SeparatorActive] = .{0.156, 0.184, 0.250, 1};
     style.Colors[ImGui.Col.ResizeGrip] = .{0.145, 0.145, 0.145, 1};
     style.Colors[ImGui.Col.ResizeGripHovered] = .{0.972, 1, 0.498, 1};
@@ -587,7 +595,7 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.PlotHistogramHovered] = .{0.957, 0.957, 0.957, 1};
     style.Colors[ImGui.Col.TableHeaderBg] = .{0.089, 0.100, 0.122, 1};
     style.Colors[ImGui.Col.TableBorderStrong] = .{0.047, 0.054, 0.070, 1};
-    style.Colors[ImGui.Col.TableBorderLight] = .{0, 0, 0, 1};
+    style.Colors[ImGui.Col.TableBorderLight] = .{0.141, 0.161, 0.208, 0.2};
     style.Colors[ImGui.Col.TableRowBg] = .{0.117, 0.133, 0.149, 1};
     style.Colors[ImGui.Col.TableRowBgAlt] = .{0.098, 0.105, 0.121, 1};
     style.Colors[ImGui.Col.TextSelectedBg] = .{0.935, 0.935, 0.935, 0.376};
@@ -618,6 +626,10 @@ SetEditorStyleOpaque :: () {
     style.Colors[ImGui.Col.HeaderHovered].a = 1;
     style.Colors[ImGui.Col.HeaderActive].a = 1;
     style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.501;
+    style.Colors[ImGui.Col.Tab].a = 1;
+    style.Colors[ImGui.Col.TabHovered].a = 1;
+    style.Colors[ImGui.Col.TabActive].a = 1;
+    style.Colors[ImGui.Col.TabUnfocused].a = 1;
     style.Colors[ImGui.Col.TableHeaderBg].a = 1;
     style.Colors[ImGui.Col.TableRowBg].a = 1;
     style.Colors[ImGui.Col.TableRowBgAlt].a = 1;
@@ -647,6 +659,10 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
     style.Colors[ImGui.Col.HeaderActive].a = 0.39;
     style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.78;
+    style.Colors[ImGui.Col.Tab].a = 0.78;
+    style.Colors[ImGui.Col.TabHovered].a = 0.78;
+    style.Colors[ImGui.Col.TabActive].a = 0.78;
+    style.Colors[ImGui.Col.TabUnfocused].a = 0.78;
     style.Colors[ImGui.Col.TableHeaderBg].a = 0.78;
     style.Colors[ImGui.Col.TableRowBg].a = 0.78;
     style.Colors[ImGui.Col.TableRowBgAlt].a = 0.78;

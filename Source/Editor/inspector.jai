@@ -59,8 +59,6 @@ ResetButton :: (using ctx : *InspectorContext, value : Any) -> InteractionState 
         return 0;
     }
 
-    ImGui.SameLine();
-
     state : InteractionState;
     if ImGui.Button(Icon_Refresh_MDI) {
         ResetValue(ctx, value);
@@ -127,7 +125,10 @@ InspectEntityGUID :: (label : *u8, using ctx : *InspectorContext, any : Any, not
 
     not_editable := ArrayFindFirst(notes, "NotEditable") != -1;
 
-    LabelTextButton(label, "%", guid.*);
+    BeginInspectorLine(label);
+
+    LabelTextButton(CTPrint("###inspector.%", MakeString(label)), "%", guid.*);
+
     state := LastItemInteractionState();
 
     if !not_editable {
@@ -185,7 +186,9 @@ InspectEntityGUID :: (label : *u8, using ctx : *InspectorContext, any : Any, not
     }
 
     if !not_editable {
-        state |= ResetButton(ctx, any);
+        state |= EndInspectorLineWithReset(ctx, any);
+    } else {
+        EndInspectorLine();
     }
 
     return state;
@@ -202,10 +205,12 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
         label = "<unnamed field>";
     }
 
+    BeginInspectorLine(label);
+
     if !value {
-        LabelTextButton(label, "(null % asset)", asset_type);
+        LabelTextButton(CTPrint("###inspector.%", MakeString(label)), "(null % asset)", asset_type);
     } else {
-        LabelTextButton(label, "%", value.asset_name);
+        LabelTextButton(CTPrint("###inspector.%", MakeString(label)), "%", value.asset_name);
     }
 
     if IsItemDoubleClicked() {
@@ -289,7 +294,9 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
 
     if !not_editable {
         old_asset := cast(**void, any.value_pointer).*;
-        state |= ResetButton(ctx, any);
+
+        state |= EndInspectorLineWithReset(ctx, any);
+
         new_asset := cast(**void, any.value_pointer).*;
 
         if old_asset && old_asset != new_asset {
@@ -299,18 +306,24 @@ InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, n
         if new_asset && old_asset != new_asset {
             AddRefDynamic(asset_type, new_asset);
         }
+    } else {
+        EndInspectorLine();
     }
 
     return state;
 }
 
 InspectAsset :: (label : *u8, using ctx : *InspectorContext, any : Any, notes : []string, data : *void) -> InteractionState {
+    BeginInspectorLine(label);
+
     asset := cast(*AssetCommonData) any.value_pointer;
     if label {
-        ImGui.LabelText(label, asset.asset_name);
+        ImGui.Text("%", asset.asset_name);
     } else {
-        ImGui.LabelText("<unnamed field>", asset.asset_name);
+        ImGui.Text("%", asset.asset_name);
     }
+
+    EndInspectorLine();
 
     return 0;
 }
@@ -351,9 +364,11 @@ InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q
         }
     }
 
-    state, _, edited_value := DragVector(label, euler_angles.n, step=0.1);
+    BeginInspectorLine(label);
 
-    ImGui.SameLine();
+    state, _, edited_value := DragVector(CTPrint("###inspector.%", MakeString(label)), euler_angles.n, step=0.1);
+
+    EndInspectorLine();
 
     if ImGui.Button(Icon_Refresh_MDI) {
         q.* = .{};
@@ -402,6 +417,46 @@ Capitalize :: (str : string) -> string {
     return str;
 }
 
+NewInspectorLine :: () {
+    ImGui.TableNextRow();
+    ImGui.TableSetColumnIndex(0);
+}
+
+BeginInspectorLine :: (label : *u8) {
+    ImGui.TableNextRow();
+
+    ImGui.TableSetColumnIndex(0);
+    ImGui.Text("%", MakeString(label));
+
+    ImGui.TableSetColumnIndex(1);
+    ImGui.PushItemWidth(-1);
+}
+
+EndInspectorLine :: () {
+    ImGui.PopItemWidth();
+}
+
+EndInspectorLineWithReset :: (ctx : *InspectorContext, any : Any) -> InteractionState {
+    ImGui.PopItemWidth();
+
+    ImGui.TableSetColumnIndex(2);
+
+    return ResetButton(ctx, any);
+}
+
+BeginInspectorTable :: (id : *u8) -> bool {
+    if ImGui.BeginTable(id, 3, .Resizable) {
+        ImGui.TableSetupColumn("Name", .WidthStretch, 0.4);
+        ImGui.TableSetupColumn("Value", .WidthStretch, 0.6);
+        reset_button_width := ImGui.CalcTextSize(Icon_Refresh_MDI).x + ImGui.GetStyle().ItemInnerSpacing.x + ImGui.GetStyle().FramePadding.x;
+        ImGui.TableSetupColumn("Reset", .WidthFixed, reset_button_width);
+
+        return true;
+    }
+
+    return false;
+}
+
 ShowInspector :: (label : *u8, world : *World, any : Any, notes : []string = .[], use_custom_inspector := true) -> InteractionState {
     type := Devariantize(any.type);
 
@@ -409,7 +464,13 @@ ShowInspector :: (label : *u8, world : *World, any : Any, notes : []string = .[]
     ctx.world = world;
     InitInspectorContext(*ctx, any.type);
 
-    return ShowInspector(label, *ctx, any, notes, use_custom_inspector);
+    if BeginInspectorTable("inspector") {
+        defer ImGui.EndTable();
+
+        return ShowInspector(label, *ctx, any, notes, use_custom_inspector);
+    }
+
+    return 0;
 }
 
 ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes : []string = .[], use_custom_inspector := true) -> InteractionState {
@@ -444,46 +505,56 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
 
     if (type == type_info(Vec3f) || type == type_info(Vec4f))
     && ArrayFindFirst(notes, "ColorEdit") != -1 {
+        BeginInspectorLine(label);
+        id := CTPrint("###inspector.%", MakeString(label));
+
         if type == type_info(Vec3f) {
-            ImGui.ColorEdit3(label, (cast(*[3]float) ptr));
+            ImGui.ColorEdit3(id, (cast(*[3]float) ptr));
         } else {
-            ImGui.ColorEdit4(label, (cast(*[4]float) ptr));
+            ImGui.ColorEdit4(id, (cast(*[4]float) ptr));
         }
 
         state := LastItemInteractionState();
-        state |= ResetButton(ctx, any);
+        state |= EndInspectorLineWithReset(ctx, any);
 
         return state;
     }
 
     if #complete type.type == {
     case .BOOL;
-        ImGui.Checkbox(label, cast(*bool) ptr);
+        BeginInspectorLine(label);
+        id := CTPrint("###inspector.%", MakeString(label));
+
+        ImGui.Checkbox(id, cast(*bool) ptr);
+
         state := LastItemInteractionState();
-        state |= ResetButton(ctx, any);
+        state |= EndInspectorLineWithReset(ctx, any);
 
         return state;
 
     case .INTEGER;
+        BeginInspectorLine(label);
+        id := CTPrint("###inspector.%", MakeString(label));
+
         int_info := cast(*Type_Info_Integer) type;
         if int_info.signed {
             if type.runtime_size == {
-            case 1; ImGui.DragScalar(label, .S8, ptr);
-            case 2; ImGui.DragScalar(label, .S16, ptr);
-            case 4; ImGui.DragScalar(label, .S32, ptr);
-            case 8; ImGui.DragScalar(label, .S64, ptr);
+            case 1; ImGui.DragScalar(id, .S8, ptr);
+            case 2; ImGui.DragScalar(id, .S16, ptr);
+            case 4; ImGui.DragScalar(id, .S32, ptr);
+            case 8; ImGui.DragScalar(id, .S64, ptr);
             }
         } else {
             if type.runtime_size == {
-            case 1; ImGui.DragScalar(label, .U8, ptr);
-            case 2; ImGui.DragScalar(label, .U16, ptr);
-            case 4; ImGui.DragScalar(label, .U32, ptr);
-            case 8; ImGui.DragScalar(label, .U64, ptr);
+            case 1; ImGui.DragScalar(id, .U8, ptr);
+            case 2; ImGui.DragScalar(id, .U16, ptr);
+            case 4; ImGui.DragScalar(id, .U32, ptr);
+            case 8; ImGui.DragScalar(id, .U64, ptr);
             }
         }
 
         state := LastItemInteractionState();
-        state |= ResetButton(ctx, any);
+        state |= EndInspectorLineWithReset(ctx, any);
 
         return state;
 
@@ -522,6 +593,9 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
             }
         }
 
+        BeginInspectorLine(label);
+        id := CTPrint("###inspector.%", MakeString(label));
+
         if type.runtime_size == 4 {
             min32 := cast(float) min;
             max32 := cast(float) max;
@@ -531,7 +605,7 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                 p_max = *max32;
             }
 
-            ImGui.DragScalar(label, .Float, ptr, v_speed=speed, p_min=p_min, p_max=p_max);
+            ImGui.DragScalar(id, .Float, ptr, v_speed=speed, p_min=p_min, p_max=p_max);
         } else {
             p_min, p_max : *float64;
             if has_range {
@@ -539,11 +613,11 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                 p_max = *max;
             }
 
-            ImGui.DragScalar(label, .Double, ptr, p_min=p_min, p_max=p_max);
+            ImGui.DragScalar(id, .Double, ptr, p_min=p_min, p_max=p_max);
         }
 
         state := LastItemInteractionState();
-        state |= ResetButton(ctx, any);
+        state |= EndInspectorLineWithReset(ctx, any);
 
         return state;
 
@@ -568,14 +642,19 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                 speed = 0.01;
             }
 
-            state = DragVector(label, TypeInfoToImGuiDataType(vector_T), ptr, xx vector_N, speed);
-            state |= ResetButton(ctx, any);
+            BeginInspectorLine(label);
+            id := CTPrint("###inspector.%", MakeString(label));
+
+            state = DragVector(id, TypeInfoToImGuiDataType(vector_T), ptr, xx vector_N, speed);
+
+            state |= EndInspectorLineWithReset(ctx, any);
 
             return state;
         }
 
         opened := true;
         if !no_tree {
+            NewInspectorLine();
             opened = ImGui.TreeNodeEx(label);
         }
 
@@ -659,11 +738,9 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         && TypeGetSourcePolymorph(xx info_pointer.pointer_to) == TypeGetSourcePolymorph(type_info(DummyAsset)) {
             return InspectAssetPointer(label, ctx, any, notes, null);
         } else if !value {
-            if label {
-                ImGui.LabelText(label, "(null)");
-            } else {
-                ImGui.LabelText("<unnamed field>", "(null)");
-            }
+            BeginInspectorLine(label);
+            ImGui.Text("(null)");
+            EndInspectorLine();
 
             return 0;
         }
@@ -675,7 +752,9 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         return ShowInspector(label, ctx, pointer, notes=notes, use_custom_inspector=use_custom_inspector);
 
     case .STRING;
-        ImGui.LabelText(label, "%", any);
+        BeginInspectorLine(label);
+        ImGui.Text("%", any);
+        EndInspectorLine();
 
     case .ARRAY;
         array_info := cast(*Type_Info_Array) type;
@@ -702,6 +781,7 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
 
         opened := true;
         if !no_tree {
+            NewInspectorLine();
             opened = ImGui.TreeNodeEx(label);
         }
 
@@ -746,8 +826,11 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         case 8; current_value = cast(s64) (cast(*s64) ptr).*;
         }
 
+        BeginInspectorLine(label);
+        id := CTPrint("###inspector.%", MakeString(label));
+
         state : InteractionState;
-        if ImGui.BeginCombo(label, CTPrint("%", any)) {
+        if ImGui.BeginCombo(id, CTPrint("%", any)) {
             for enum_info.values {
                 name := enum_info.names[it_index];
                 selected := ifx is_flags then current_value & it == it else current_value == it;
@@ -784,7 +867,7 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
             ImGui.EndCombo();
         }
 
-        state |= ResetButton(ctx, any);
+        state |= EndInspectorLineWithReset(ctx, any);
 
         return state;
 

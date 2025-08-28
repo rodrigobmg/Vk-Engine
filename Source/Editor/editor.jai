@@ -810,15 +810,25 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
         SelectEntity(entity.guid);
     }
 
-    ImGui.LabelText("Type", "%", GetNiceEntityTypeName(entity));
+    if BeginInspectorTable("entity_type_and_name") {
+        defer ImGui.EndTable();
 
-    name_buffer : [200]u8 = ---;
-    name_len := Min(name_buffer.count - 1, entity.name.count);
-    memcpy(name_buffer.data, entity.name.data, name_len);
-    name_buffer[name_len] = 0;
+        BeginInspectorLine("Type");
+        ImGui.Text("%", GetNiceEntityTypeName(entity));
+        EndInspectorLine();
 
-    if ImGui.InputTextWithHint("Name", "Unnamed", name_buffer.data, name_buffer.count) {
-        SetEntityName(world, entity, MakeString(name_buffer.data));
+        name_buffer : [200]u8 = ---;
+        name_len := Min(name_buffer.count - 1, entity.name.count);
+        memcpy(name_buffer.data, entity.name.data, name_len);
+        name_buffer[name_len] = 0;
+
+        BeginInspectorLine("Name");
+
+        if ImGui.InputTextWithHint("##entity_name", "Unnamed", name_buffer.data, name_buffer.count) {
+            SetEntityName(world, entity, MakeString(name_buffer.data));
+        }
+
+        EndInspectorLine();
     }
 
     ShowInspector("GUID", world, entity.guid, notes=.["NotEditable"]);
