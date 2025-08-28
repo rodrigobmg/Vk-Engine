@@ -996,6 +996,9 @@ ShowGPUFrameStatistics :: () {
     ImGui.LabelText("Compute Binding Set Binds", "%", stats.num_compute_binding_set_binds);
     ImGui.LabelText("Graphics Pipeline Binds", "%", stats.num_graphics_pipeline_binds);
     ImGui.LabelText("Compute Pipeline Binds", "%", stats.num_compute_pipeline_binds);
+    ImGui.LabelText("Texture Barriers", "%", stats.num_texture_barriers);
+    ImGui.LabelText("Memory Barriers", "%", stats.num_memory_barriers);
+    ImGui.LabelText("Execution Barriers", "%", stats.num_execution_barriers);
 }
 
 ShowGPUProfiler :: () {

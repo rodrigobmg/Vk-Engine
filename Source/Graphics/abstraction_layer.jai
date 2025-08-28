@@ -71,6 +71,9 @@ GfxFrameStatistics :: struct {
     num_compute_binding_set_binds : int;
     num_graphics_pipeline_binds : int;
     num_compute_pipeline_binds : int;
+    num_texture_barriers : int;
+    num_memory_barriers : int;
+    num_execution_barriers : int;
 }
 
 GetGfxFrameStatistics :: () -> GfxFrameStatistics {
@@ -2989,6 +2992,8 @@ AddBarrier :: (
         bufferMemoryBarrierCount=0, pBufferMemoryBarriers=null,
         imageMemoryBarrierCount=0, pImageMemoryBarriers=null,
     );
+
+    g_gfx_context.frame_statistics.num_execution_barriers += 1;
 }
 
 AddBarrier :: inline (cmd_buffer : *GfxCommandBuffer) {
@@ -3014,6 +3019,8 @@ AddMemoryBarrier :: (
         bufferMemoryBarrierCount=0, pBufferMemoryBarriers=null,
         imageMemoryBarrierCount=0, pImageMemoryBarriers=null,
     );
+
+    g_gfx_context.frame_statistics.num_memory_barriers += 1;
 }
 
 GfxTextureLayout :: enum {
@@ -3067,6 +3074,8 @@ AddTextureBarrier :: (
         bufferMemoryBarrierCount=0, pBufferMemoryBarriers=null,
         imageMemoryBarrierCount=1, pImageMemoryBarriers=*barrier,
     );
+
+    g_gfx_context.frame_statistics.num_texture_barriers += 1;
 }
 
 AddTextureBarrier :: (
@@ -3111,6 +3120,8 @@ AddTextureBarriers :: (
         bufferMemoryBarrierCount=0, pBufferMemoryBarriers=null,
         imageMemoryBarrierCount=xx barriers.count, pImageMemoryBarriers=barriers.data,
     );
+
+    g_gfx_context.frame_statistics.num_texture_barriers += barriers.count;
 }
 
 SetDebugName :: (obj : $T, name : string) {
