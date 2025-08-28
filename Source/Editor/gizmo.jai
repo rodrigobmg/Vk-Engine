@@ -149,7 +149,7 @@ GizmoStyle :: struct {
     using general : struct {
         global_size := 1.2; @ShowInInspector
 
-        origin_circle_size := 0.13; @ShowInInspector
+        origin_circle_size := 0.1; @ShowInInspector
         guide_line_thickness := 2.0; @ShowInInspector
 
         line_interaction_threshold := 7.0; @ShowInInspector
