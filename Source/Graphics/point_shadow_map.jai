@@ -1,5 +1,10 @@
 // @Todo: allow all shadow map passes to run concurrently (currently EndGfxRenderPass puts execution barriers for correctness)
 
+using _ :: struct {
+    Num_Point_Shadow_Map_Cbrt_Samples :: 3;
+    Num_Point_Shadow_Map_Samples :: Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples;
+} @ShaderType
+
 Default_Point_Shadow_Map_Resolution :: 1024;
 
 PointShadowMap :: struct {

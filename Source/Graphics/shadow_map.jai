@@ -1,14 +1,15 @@
-Num_Shadow_Map_Cascades :: 4;
+using _ :: struct {
+    Num_Shadow_Map_Cascades :: 4;
+    Shadow_Map_Noise_Size :: 32;
+    Num_Shadow_Map_Sqrt_Samples :: 8;
+    Num_Shadow_Map_Samples :: Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples;
+} @ShaderType
 
 #assert Num_Shadow_Map_Cascades <= Max_Viewpoints;
 
 Shadow_Map_Cascade_Sizes : [Num_Shadow_Map_Cascades]float : .[5,20,50,200];
 Shadow_Map_Forward_Offset :: 1.0;
 Shadow_Map_Depth_Extent_Factor :: 6.0;
-
-Shadow_Map_Noise_Size :: 32;
-Num_Shadow_Map_Sqrt_Samples :: 8;
-Num_Shadow_Map_Samples :: Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples;
 
 g_shadow_map_noise_texture : GfxTexture;
 g_shadow_map_noise_sampler : GfxSampler;

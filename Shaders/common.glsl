@@ -24,9 +24,6 @@
 
 #include "shader_types.generated.glsl"
 
-#define Max_Shadow_Maps 2
-#define Max_Point_Shadow_Maps 20
-
 #define DECLARE_STATIC_VERTEX_ATTRIBUTES() \
     layout(location=0) in float3 in_position; \
     layout(location=1) in float3 in_normal; \
@@ -75,8 +72,6 @@
         FrameInfo u_frame_info; \
     }
 #endif
-
-#define Max_Viewpoints 6
 
 #ifdef SHADER_STAGE_VERTEX
 #define DECLARE_FORWARD_PASS_PARAMS() \

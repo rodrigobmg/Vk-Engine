@@ -5,6 +5,7 @@
 #load "binding_set.jai";
 #load "gpu_profiling.jai";
 #load "renderer.jai";
+#load "lights.jai";
 
 #load "frustum.jai";
 

@@ -3,12 +3,6 @@
 
 #include "common.glsl"
 
-#define Num_Shadow_Map_Cascades 4
-#define Num_Shadow_Map_Sqrt_Samples 8
-#define Num_Shadow_Map_Samples (Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples)
-#define Num_Point_Shadow_Map_Cbrt_Samples 3
-#define Num_Point_Shadow_Map_Samples (Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples * Num_Point_Shadow_Map_Cbrt_Samples)
-
 int GetShadowCascadeIndex(ShadowMapParams params, DirectionalLight light, float3 position, float3 normal, out float3 coords) {
     float3 normal_offset = normal / float(light.shadow_map_resolution) * params.normal_bias;
 

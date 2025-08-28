@@ -155,8 +155,13 @@ GenerateGLSLShaderCode :: (workspace : Workspace) {
             GenerateGLSLEnumDefinition(*builder, xx it);
             Append(*builder, "\n");
         } else if it.type == .STRUCT {
-            GenerateGLSLStructDefinition(*builder, xx it);
-            Append(*builder, ";\n\n");
+            if GenerateGLSLStructConstants(*builder, xx it) {
+                Append(*builder, "\n");
+            }
+
+            if GenerateGLSLStructDefinition(*builder, xx it) {
+                Append(*builder, ";\n\n");
+            }
         }
     }
 
@@ -263,8 +268,64 @@ AppendGLSLTypePostfix :: (builder : *StringBuilder, info : *Type_Info, indent :=
     }
 }
 
-GenerateGLSLStructDefinition :: (builder : *StringBuilder, info : *Type_Info_Struct, indent := 0) {
-    if info.name {
+GenerateGLSLStructConstants :: (builder : *StringBuilder, info : *Type_Info_Struct) -> bool {
+    has_constants := false;
+    for info.members {
+        if !(it.flags & .CONSTANT) || it.offset_into_constant_storage < 0 {
+            continue;
+        }
+
+        if it.name == "_" || !it.name {
+            continue;
+        }
+
+        has_constants = true;
+
+        ptr := info.constant_storage.data + it.offset_into_constant_storage;
+
+        if it.type.type == {
+        case .FLOAT;
+            if it.type.runtime_size == {
+            case 4; Appendln(builder, "#define % %", it.name, cast(*float32, ptr).*);
+            case 8; Appendln(builder, "#define % %", it.name, cast(*float64, ptr).*);
+            }
+        case .INTEGER;
+            info_int := cast(*Type_Info_Integer, it.type);
+            if info_int.signed {
+                if info_int.runtime_size == {
+                case 1; Appendln(builder, "#define % %", it.name, cast(*s8, ptr).*);
+                case 2; Appendln(builder, "#define % %", it.name, cast(*s16, ptr).*);
+                case 4; Appendln(builder, "#define % %", it.name, cast(*s32, ptr).*);
+                case 8; Appendln(builder, "#define % %", it.name, cast(*s64, ptr).*);
+                }
+            } else {
+                if info_int.runtime_size == {
+                case 1; Appendln(builder, "#define % %", it.name, cast(*u8, ptr).*);
+                case 2; Appendln(builder, "#define % %", it.name, cast(*u16, ptr).*);
+                case 4; Appendln(builder, "#define % %", it.name, cast(*u32, ptr).*);
+                case 8; Appendln(builder, "#define % %", it.name, cast(*u64, ptr).*);
+                }
+            }
+        }
+    }
+
+    return has_constants;
+}
+
+GenerateGLSLStructDefinition :: (builder : *StringBuilder, info : *Type_Info_Struct, indent := 0) -> bool {
+    found_non_constant_members := false;
+    for info.members {
+        if !(it.flags & .CONSTANT) {
+            found_non_constant_members = true;
+            break;
+        }
+    }
+
+    if !found_non_constant_members {
+        return false;
+    }
+
+    if info.name && info.name != "_" {
         Appendln(builder, "struct % {", RemoveShaderPrefix(info.name));
     } else {
         Appendln(builder, "struct {");
@@ -293,4 +354,6 @@ GenerateGLSLStructDefinition :: (builder : *StringBuilder, info : *Type_Info_Str
     }
 
     Append(builder, "}");
+
+    return true;
 }

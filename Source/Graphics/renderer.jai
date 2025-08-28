@@ -208,8 +208,10 @@ GetNumComputeWorkGroupsForTexture :: (desc : GfxTextureAndViewDesc, mipmap_level
 EmptyBindingSet :: struct {
 } @BindingSet
 
-Max_Shadow_Maps :: 2;
-Max_Point_Shadow_Maps :: 20;
+using _ :: struct {
+    Max_Shadow_Maps :: 2;
+    Max_Point_Shadow_Maps :: 20;
+} @ShaderType
 
 FrameBindingSet :: struct {
     frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage @ComputeStage
@@ -237,26 +239,9 @@ FrameInfo :: struct {
     editor_settings : EditorSettings;
 } @ShaderType
 
-DirectionalLight :: struct {
-    direction : Vec3f;
-    color : Vec3f;
-    intensity : float;
-    shadow_map_index : s32;
-    shadow_map_resolution : u32;
-    shadow_map_cascade_sizes : [Num_Shadow_Map_Cascades]float = Shadow_Map_Cascade_Sizes;
-    shadow_map_viewpoints : [Num_Shadow_Map_Cascades]Viewpoint;
+using _ :: struct {
+    Max_Viewpoints :: 6;
 } @ShaderType
-
-PointLight :: struct {
-    position : Vec3f;
-    color : Vec3f;
-    intensity : float;
-    shadow_map_index : s32;
-    shadow_map_resolution : u32;
-    shadow_map_viewpoints : [6]Viewpoint;
-} @ShaderType
-
-Max_Viewpoints :: 6;
 
 Viewpoint :: struct {
     position : Vec3f;

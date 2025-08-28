@@ -94,6 +94,13 @@ struct GizmoWidget {
     bool shaded;
 };
 
+struct LightCluster {
+    float3 min;
+    float3 max;
+    uint num_lights;
+    uint lights[100];
+};
+
 #define MaterialFlags int
 #define MaterialFlags_HasMetallicRoughness 1
 #define MaterialFlags_HasDepthMap 2
@@ -128,5 +135,26 @@ struct PointLight {
     uint shadow_map_resolution;
     Viewpoint shadow_map_viewpoints[6];
 };
+
+#define Max_Shadow_Maps 2
+#define Max_Point_Shadow_Maps 20
+
+#define Num_Environment_Map_Levels 6
+
+#define Max_Viewpoints 6
+
+#define Num_Point_Shadow_Map_Cbrt_Samples 3
+#define Num_Point_Shadow_Map_Samples 27
+
+#define Num_Shadow_Map_Cascades 4
+#define Shadow_Map_Noise_Size 32
+#define Num_Shadow_Map_Sqrt_Samples 8
+#define Num_Shadow_Map_Samples 64
+
+#define Max_Lights_Per_Clusters 100
+#define Num_Clusters_X 16
+#define Num_Clusters_Y 9
+#define Num_Clusters_Z 24
+#define Num_Clusters 3456
 
 #endif
