@@ -444,12 +444,15 @@ EndInspectorLineWithReset :: (ctx : *InspectorContext, any : Any) -> Interaction
     return ResetButton(ctx, any);
 }
 
-BeginInspectorTable :: (id : *u8) -> bool {
-    if ImGui.BeginTable(id, 3, .Resizable) {
+BeginInspectorTable :: (id : *u8, reset_line := true) -> bool {
+    if ImGui.BeginTable(id, xx ifx reset_line then 3 else 2, .Resizable) {
         ImGui.TableSetupColumn("Name", .WidthStretch, 0.4);
         ImGui.TableSetupColumn("Value", .WidthStretch, 0.6);
-        reset_button_width := ImGui.CalcTextSize(Icon_Refresh_MDI).x + ImGui.GetStyle().ItemInnerSpacing.x + ImGui.GetStyle().FramePadding.x;
-        ImGui.TableSetupColumn("Reset", .WidthFixed, reset_button_width);
+
+        if reset_line {
+            reset_button_width := ImGui.CalcTextSize(Icon_Refresh_MDI).x + ImGui.GetStyle().ItemInnerSpacing.x + ImGui.GetStyle().FramePadding.x;
+            ImGui.TableSetupColumn("Reset", .WidthFixed, reset_button_width);
+        }
 
         return true;
     }

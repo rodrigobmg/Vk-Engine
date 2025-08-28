@@ -998,17 +998,53 @@ ShowGPUProfilerTimings :: () {
 
 ShowGPUFrameStatistics :: () {
     stats := GetGfxFrameStatistics();
-    ImGui.LabelText("Draw Calls", "%", stats.num_draw_calls);
-    ImGui.LabelText("Dispatch Calls", "%", stats.num_dispatch_calls);
-    ImGui.LabelText("Render Passes", "%", stats.num_render_passes);
-    ImGui.LabelText("Compute Passes", "%", stats.num_compute_passes);
-    ImGui.LabelText("Graphics Binding Set Binds", "%", stats.num_graphics_binding_set_binds);
-    ImGui.LabelText("Compute Binding Set Binds", "%", stats.num_compute_binding_set_binds);
-    ImGui.LabelText("Graphics Pipeline Binds", "%", stats.num_graphics_pipeline_binds);
-    ImGui.LabelText("Compute Pipeline Binds", "%", stats.num_compute_pipeline_binds);
-    ImGui.LabelText("Texture Barriers", "%", stats.num_texture_barriers);
-    ImGui.LabelText("Memory Barriers", "%", stats.num_memory_barriers);
-    ImGui.LabelText("Execution Barriers", "%", stats.num_execution_barriers);
+    if BeginInspectorTable("gpu_frame_statistics", reset_line=false) {
+        defer ImGui.EndTable();
+
+        BeginInspectorLine("Draw Calls");
+        ImGui.Text("%", stats.num_draw_calls);
+        EndInspectorLine();
+
+        BeginInspectorLine("Dispatch Calls");
+        ImGui.Text("%", stats.num_dispatch_calls);
+        EndInspectorLine();
+
+        BeginInspectorLine("Render Passes");
+        ImGui.Text("%", stats.num_render_passes);
+        EndInspectorLine();
+
+        BeginInspectorLine("Compute Passes");
+        ImGui.Text("%", stats.num_compute_passes);
+        EndInspectorLine();
+
+        BeginInspectorLine("Graphics Binding Set Binds");
+        ImGui.Text("%", stats.num_graphics_binding_set_binds);
+        EndInspectorLine();
+
+        BeginInspectorLine("Compute Binding Set Binds");
+        ImGui.Text("%", stats.num_compute_binding_set_binds);
+        EndInspectorLine();
+
+        BeginInspectorLine("Graphics Pipeline Binds");
+        ImGui.Text("%", stats.num_graphics_pipeline_binds);
+        EndInspectorLine();
+
+        BeginInspectorLine("Compute Pipeline Binds");
+        ImGui.Text("%", stats.num_compute_pipeline_binds);
+        EndInspectorLine();
+
+        BeginInspectorLine("Texture Barriers");
+        ImGui.Text("%", stats.num_texture_barriers);
+        EndInspectorLine();
+
+        BeginInspectorLine("Memory Barriers");
+        ImGui.Text("%", stats.num_memory_barriers);
+        EndInspectorLine();
+
+        BeginInspectorLine("Execution Barriers");
+        ImGui.Text("%", stats.num_execution_barriers);
+        EndInspectorLine();
+    }
 }
 
 ShowGPUProfiler :: () {
