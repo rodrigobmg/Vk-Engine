@@ -33,10 +33,12 @@ Num_Material_Pipelines :: #run -> int {
 
 MaterialPipelines :: [Num_Material_Pipelines]GfxGraphicsPipeline;
 
-CreateMaterialPipelines :: (name : string, template : GfxGraphicsPipelineDesc, pass_binding_set_layout : *GfxBindingSetLayout, vertex_shader : string, fragment_shader : string) -> *MaterialPipelines {
-    pipelines := Alloc(MaterialPipelines);
-
+CreateMaterialPipelines :: (pipelines : *MaterialPipelines, name : string, template : GfxGraphicsPipelineDesc, pass_binding_set_layout : *GfxBindingSetLayout, vertex_shader : string, fragment_shader : string) {
     for * pipelines.* {
+        if !IsNull(it) {
+            continue;
+        }
+
         flags := cast(MaterialPipelineFlags, it_index);
 
         desc : GfxGraphicsPipelineDesc;
@@ -77,8 +79,6 @@ CreateMaterialPipelines :: (name : string, template : GfxGraphicsPipelineDesc, p
         ok := CreateGfxGraphicsPipeline(it, TPrint("% (%)", name, flags), desc);
         Assert(ok, "Could not create material pipeline (%, %)", name, flags);
     }
-
-    return pipelines;
 }
 
 DestroyMaterialPipelines :: (pipelines : *MaterialPipelines) {
@@ -175,8 +175,12 @@ GetPipeline :: (pass : *MaterialRenderPass, type : MaterialType, flags : Materia
 
     pipelines := HashMapGet(*pass.pipelines, .{vertex_shader, fragment_shader});
     if !pipelines {
-        pipelines = CreateMaterialPipelines(pass.name, pass.pipeline_template, pass.binding_set_layout, vertex_shader, fragment_shader);
+        pipelines = Alloc(MaterialPipelines);
         HashMapInsert(*pass.pipelines, .{vertex_shader, fragment_shader}, pipelines);
+    }
+
+    if IsNull(*pipelines.*[flags]) {
+        CreateMaterialPipelines(pipelines, pass.name, pass.pipeline_template, pass.binding_set_layout, vertex_shader, fragment_shader);
     }
 
     return *pipelines.*[flags];
