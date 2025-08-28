@@ -426,7 +426,24 @@ BeginInspectorLine :: (label : *u8) {
     ImGui.TableNextRow();
 
     ImGui.TableSetColumnIndex(0);
-    ImGui.Text("%", MakeString(label));
+
+    // Do the label logic ourselves so we can center it
+    window := ImGui.GetCurrentWindow();
+    style := ImGui.GetStyle();
+
+    label_size := ImGui.CalcTextSize(label, null, true);
+
+    pos := window.DC.CursorPos;
+    bb := ImGui.ImRect.{
+        pos,
+        pos + label_size + style.FramePadding * 2
+    };
+
+    ImGui.ItemSize(bb.Max - bb.Min, style.FramePadding.y);
+
+    if label_size.x > 0 {
+        ImGui.RenderTextClipped(bb.Min + .{0, style.FramePadding.y}, bb.Max, MakeString(label), *label_size);
+    }
 
     ImGui.TableSetColumnIndex(1);
     ImGui.PushItemWidth(-1);
@@ -512,9 +529,9 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         id := CTPrint("###inspector.%", MakeString(label));
 
         if type == type_info(Vec3f) {
-            ImGui.ColorEdit3(id, (cast(*[3]float) ptr));
+            ImGui.ColorEdit3(id, cast(*[3]float, ptr));
         } else {
-            ImGui.ColorEdit4(id, (cast(*[4]float) ptr));
+            ImGui.ColorEdit4(id, cast(*[4]float, ptr));
         }
 
         state := LastItemInteractionState();
