@@ -94,7 +94,7 @@ PointLightEntity :: struct {
         if EntityIsSelected(guid) {
             position := TranslationVector(world_transform);
             distance := GetPointLightAttenuationDistance(light.intensity, g_light_params.point_light_attenuation_threshold);
-            DebugDrawSphereOutline(.{0,1,0,1}, position, distance);
+            DebugDrawSphereOutline(.{1,1,1,1}, position, distance);
         }
     }
 } @Entity
