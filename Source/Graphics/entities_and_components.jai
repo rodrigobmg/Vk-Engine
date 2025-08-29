@@ -7,7 +7,7 @@ StaticMeshComponent :: struct {
     cast_point_shadows := false; @Serialize(5)
 } @Component
 
-AllStaticMeshComponents :: #bake_arguments AllComponents(T=StaticMeshComponent);
+AllStaticMeshComponents :: #bake_arguments AllEntityComponents(T=StaticMeshComponent);
 
 SkinnedMeshComponent :: struct {
     #as using _ : Component; @Serialize(1) @InspectorNoTree
@@ -23,7 +23,7 @@ SkinnedMeshComponent :: struct {
     }
 } @Component
 
-AllSkinnedMeshComponents :: #bake_arguments AllComponents(T=SkinnedMeshComponent);
+AllSkinnedMeshComponents :: #bake_arguments AllEntityComponents(T=SkinnedMeshComponent);
 
 SetPose :: (using component : *SkinnedMeshComponent, pose : *ArmaturePose) {
     if !pose.mesh {

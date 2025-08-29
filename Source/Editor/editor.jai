@@ -29,7 +29,7 @@ g_editor_background_blur : KawaseBlur;
 g_editor_settings : EditorSettings;
 
 g_show_imgui_demo := false;
-g_show_world_inspector := false;
+g_show_world_inspector := true;
 g_show_entity_outliner := true;
 g_show_entity_inspector := true;
 g_show_engine_settings := false;
@@ -468,6 +468,18 @@ UpdateEditor :: (world : *World) {
         }
 
         CallEntityCallback(world, entity, "OnDebugDraw");
+    }
+
+    for :AllComponents component : world {
+        entity := GetEntity(world, component.entity);
+
+        CallComponentCallback(world, entity, component, "OnEditorUpdate");
+
+        if !entity || entity.flags & .Hidden {
+            continue;
+        }
+
+        CallComponentCallback(world, entity, component, "OnDebugDraw");
     }
 
     if g_editor_requested_save_world {

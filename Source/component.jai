@@ -3,15 +3,29 @@
 
 #placeholder Component_Types;
 
-#assert Component_Types.count <= 256; // The type id must fit in a u8
+#insert -> string {
+    builder : StringBuilder;
+
+    Appendln(*builder, "ComponentTypeId :: enum {");
+    Appendln(*builder, "    Invalid :: 0;");
+
+    for i : 1..Component_Types.count - 1 {
+        Appendln(*builder, "    % :: %;", Component_Types[i], i);
+    }
+
+    Appendln(*builder, "}");
+
+    return StringBuilderBuild(*builder);
+};
 
 Components_Per_Page :: 20;
 
 ComponentStorage :: #bake_arguments PagedArray(Page_Size=Components_Per_Page);
 
 Component :: struct {
-    index : PagedArraySlotInfo;
     entity : EntityGUID;
+    index : PagedArraySlotInfo;
+    type_id : int;
 }
 
 IsInComponentTypesArray :: (type : Type) -> bool {
@@ -24,10 +38,25 @@ IsInComponentTypesArray :: (type : Type) -> bool {
     return false;
 }
 
+GetComponentTypeId :: (type : Type) -> ComponentTypeId {
+    for Component_Types {
+        if it == type {
+            return cast(ComponentTypeId, it_index);
+        }
+    }
+
+    return .Invalid;
+}
+
+GetComponentTypeId :: (component : *Component) -> ComponentTypeId {
+    return cast(ComponentTypeId, component.type_id);
+}
+
 CreateComponent :: (world : *World, storage : *ComponentStorage($T), entity : EntityGUID) -> *T {
     component, index := PagedArrayFindSlot(storage);
     component.entity = entity;
     component.index = index;
+    component.type_id = #run cast(int, GetComponentTypeId(T));
 
     #if #exists(T.OnCreate) {
         T.OnCreate(world, component);
@@ -117,7 +146,47 @@ GetComponent :: inline (entity : *$E, $T : Type) -> *T
     }
 }
 
-AllComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
+CallComponentCallback :: inline (world : *World, component : *$T, $Callback : string)
+#modify { return T == Component || IsInComponentTypesArray(T); } {
+    #if T == Component {
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "if GetComponentTypeId(component) == {");
+            for i : 1..Component_Types.count - 1 {
+                type := Component_Types[i];
+                Appendln(*builder, "case .%1; #if #exists(%1.%2) { %1.%2(world, xx component); }", type, Callback);
+            }
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    } else {
+        #insert #run TPrint("#if #exists(T.%1) { T.%1(world, component); }", Callback);
+    }
+}
+
+CallComponentCallback :: inline (world : *World, entity : *Entity, component : *$T, $Callback : string)
+#modify { return T == Component || IsInComponentTypesArray(T); } {
+    #if T == Component {
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "if GetComponentTypeId(component) == {");
+            for i : 1..Component_Types.count - 1 {
+                type := Component_Types[i];
+                Appendln(*builder, "case .%1; #if #exists(%1.%2) { %1.%2(world, entity, xx component); }", type, Callback);
+            }
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    } else {
+        #insert #run TPrint("#if #exists(T.%1) { T.%1(world, entity, component); }", Callback);
+    }
+}
+
+AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
 #modify { return (E == Entity || IsInEntityTypesArray(E)) && IsInComponentTypesArray(T); } #expand {
     `it : *T;
     `it_index := 0;

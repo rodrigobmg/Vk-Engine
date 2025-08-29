@@ -177,6 +177,37 @@ AllVisibleEntities :: (world : *World, body : Code, flags : For_Flags) #expand {
     }
 }
 
+// for_expansion
+AllComponents :: (world : *World, body : Code, flags : For_Flags) #expand {
+    Index :: struct {
+        type : Type;
+        index : int;
+    }
+
+    `it : *Component;
+    `it_index : Index;
+    should_break := false;
+
+    #insert -> string {
+        builder : StringBuilder;
+
+        for i : 1..Component_Types.count - 1 {
+            if i != 1 {
+                Appendln(*builder, "\nif should_break {\n    return;\n}\n");
+            }
+
+            Appendln(*builder, "it_index = .{type=%};", Component_Types[i]);
+            Appendln(*builder, "for * component, index : world.%_storage {", Component_Types[i]);
+            Appendln(*builder, "    it = component;");
+            Appendln(*builder, "    it_index.index += 1;");
+            Appendln(*builder, "    #insert(break={should_break=true;break;}) body;");
+            Appendln(*builder, "}");
+        }
+
+        return StringBuilderBuild(*builder);
+    }
+}
+
 LoadWorldFromDirectory :: (world : *World, directory : string) {
     LogSectionScope(*Log_Entities);
 

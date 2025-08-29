@@ -30,6 +30,26 @@ DirectionalLightComponent :: struct {
     OnDestroy :: (world : *World, using component : *DirectionalLightComponent) {
         DestroyShadowMap(*shadow_map);
     }
+
+    OnDebugDraw :: (world : *World, entity : *Entity, light : *DirectionalLightComponent) {
+        if EntityIsSelected(entity.guid) {
+            position := TranslationVector(entity.world_transform);
+            right := RightVector(entity.world_transform);
+            up := UpVector(entity.world_transform);
+            direction := ForwardVector(entity.world_transform);
+
+            p0 := position + right * 0.3;
+            p1 := position - right * 0.3;
+            p2 := position + up * 0.3;
+            p3 := position - up * 0.3;
+
+            DebugDrawCircleOutline(.{1,1,1,1}, position, right, up, 0.3);
+            DebugDrawLine(.{1,1,1,1}, p0, p0 + direction);
+            DebugDrawLine(.{1,1,1,1}, p1, p1 + direction);
+            DebugDrawLine(.{1,1,1,1}, p2, p2 + direction);
+            DebugDrawLine(.{1,1,1,1}, p3, p3 + direction);
+        }
+    }
 } @Component
 
 DirectionalLightEntity :: struct {
@@ -43,26 +63,6 @@ DirectionalLightEntity :: struct {
 
     OnDespawn :: (world : *World, light : *DirectionalLightEntity) {
         DestroyComponent(world, light.light);
-    }
-
-    OnDebugDraw :: (world : *World, using entity : *DirectionalLightEntity) {
-        if EntityIsSelected(guid) {
-            position := TranslationVector(world_transform);
-            right := RightVector(world_transform);
-            up := UpVector(world_transform);
-            direction := ForwardVector(world_transform);
-
-            p0 := position + right * 0.3;
-            p1 := position - right * 0.3;
-            p2 := position + up * 0.3;
-            p3 := position - up * 0.3;
-
-            DebugDrawCircleOutline(.{1,1,1,1}, position, right, up, 0.3);
-            DebugDrawLine(.{1,1,1,1}, p0, p0 + direction);
-            DebugDrawLine(.{1,1,1,1}, p1, p1 + direction);
-            DebugDrawLine(.{1,1,1,1}, p2, p2 + direction);
-            DebugDrawLine(.{1,1,1,1}, p3, p3 + direction);
-        }
     }
 } @Entity
 
@@ -78,6 +78,14 @@ PointLightComponent :: struct {
 
     OnDestroy :: (world : *World, using component : *PointLightComponent) {
         DestroyShadowMap(*shadow_map);
+    }
+
+    OnDebugDraw :: (world : *World, entity : *Entity, light : *PointLightComponent) {
+        if EntityIsSelected(entity.guid) {
+            position := TranslationVector(entity.world_transform);
+            DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius);
+            DebugDrawSphereOutline(.{1,1,1,1}, position, GetPointLightAttenuationDistance(light));
+        }
     }
 } @Component
 
@@ -106,14 +114,6 @@ PointLightEntity :: struct {
 
     OnDespawn :: (world : *World, light : *PointLightEntity) {
         DestroyComponent(world, light.light);
-    }
-
-    OnDebugDraw :: (world : *World, using entity : *PointLightEntity) {
-        if EntityIsSelected(guid) {
-            position := TranslationVector(world_transform);
-            DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius);
-            DebugDrawSphereOutline(.{1,1,1,1}, position, GetPointLightAttenuationDistance(light));
-        }
     }
 } @Entity
 

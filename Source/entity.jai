@@ -427,24 +427,24 @@ GetEntity :: (using world : *World, index : EntityIndex) -> *Entity, GetEntityEr
     return null, .InvalidEntityIndex;
 }
 
-CallEntityCallback :: (world : *World, entity : *Entity, $Callback : string) {
-    #insert -> string {
-        builder : StringBuilder;
-
-        Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
-        for i : 1..Entity_Types.count - 1 {
-            type := Entity_Types[i];
-            Appendln(*builder, "case .%1; #if #exists(%1.%2) { %1.%2(world, xx entity); }", type, Callback);
-        }
-        Appendln(*builder, "}");
-
-        return StringBuilderBuild(*builder);
-    }
-}
-
 CallEntityCallback :: inline (world : *World, entity : *$T, $Callback : string)
-#modify { return IsInEntityTypesArray(T); } {
-    #insert #run TPrint("#if #exists(T.%1) { T.%1(world, entity); }", Callback);
+#modify { return T == Entity || IsInEntityTypesArray(T); } {
+    #if T == Entity {
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
+            for i : 1..Entity_Types.count - 1 {
+                type := Entity_Types[i];
+                Appendln(*builder, "case .%1; #if #exists(%1.%2) { %1.%2(world, xx entity); }", type, Callback);
+            }
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    } else {
+        #insert #run TPrint("#if #exists(T.%1) { T.%1(world, entity); }", Callback);
+    }
 }
 
 AttachEntity :: (using world : *World, entity : *Entity, to : *Entity, keep_same_world_transform := false) {
