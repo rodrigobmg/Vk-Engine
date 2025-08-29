@@ -109,18 +109,12 @@ GetPointLightAttenuationDistance :: (intensity : float, intensity_threshold : fl
     return Sqrt(intensity / intensity_threshold);
 }
 
-g_debug_show_light_clusters := false;
-g_debug_show_light_clusters_with_lights := false;
-
 LightCluster :: struct {
     min : Vec3f;
     max : Vec3f;
     num_lights : u32;
     lights : [Max_Lights_Per_Clusters]u32 = ---;
 } @ShaderType
-
-g_clusters_readback_buffers : [Gfx_Num_Frames_In_Flight]GfxBuffer;
-g_clusters_readback_data : [Gfx_Num_Frames_In_Flight]*void;
 
 using _ :: struct {
     Max_Lights_Per_Clusters :: 100;
@@ -200,21 +194,6 @@ PrepareClusters :: (using ctx : *FrameRenderContext, camera : *Camera) {
         CreatePopulateClusterGridPipeline();
     }
 
-    if IsNull(*g_clusters_readback_buffers[g_gfx_context.frame_in_flight]) {
-        desc : GfxBufferDesc;
-        desc.size = xx (GLSLStd430Size(LightCluster) * Num_Clusters);
-        desc.usage = .TransferDst;
-        desc.memory_usage = .Readback;
-
-        g_clusters_readback_buffers[g_gfx_context.frame_in_flight] = CreateGfxBuffer(TPrint("Light Cluster Readback %", g_gfx_context.frame_in_flight), desc);
-
-        alloc_info : VmaAllocationInfo;
-        vmaGetAllocationInfo(g_gfx_context.allocator, g_clusters_readback_buffers[g_gfx_context.frame_in_flight].allocation, *alloc_info);
-        Assert(alloc_info.pMappedData != null);
-
-        g_clusters_readback_data[g_gfx_context.frame_in_flight] = alloc_info.pMappedData;
-    }
-
     clusters_size = xx (GLSLStd430Size(LightCluster) * Num_Clusters);
     clusters_offset = xx AllocFrameData(clusters_size);
 
@@ -234,48 +213,4 @@ PrepareClusters :: (using ctx : *FrameRenderContext, camera : *Camera) {
     PopulateClusterGrid(ctx);
 
     AddMemoryBarrier(cmd_buffer, .AllCompute, .AllWrites, .AllCompute, .AllReads | .AllWrites);
-
-    copy_pass := BeginGfxCopyPass(cmd_buffer, "Transfer Clusters for Readback");
-    {
-        CopyBufferToBuffer(*copy_pass, FrameDataBuffer(), *g_clusters_readback_buffers[g_gfx_context.frame_in_flight], clusters_offset, 0, clusters_size);
-    }
-    EndGfxCopyPass(*copy_pass);
-}
-
-GetLightCluster :: (index : int) -> LightCluster {
-    ptr := g_clusters_readback_data[g_gfx_context.frame_in_flight];
-    if !ptr {
-        return .{};
-    }
-
-    ptr += cast(int, GLSLStd430Size(LightCluster)) * index;
-    cluster : LightCluster;
-    UnpackFromGLSLStd(*cluster, ptr, xx GLSLStd430Size(LightCluster), .Std430);
-
-    return cluster;
-}
-
-DebugDrawCluster :: (color : Vec4f, index : int, transform : Mat4f, only_if_contains_lights : bool) {
-    cluster := GetLightCluster(index);
-
-    if only_if_contains_lights && cluster.num_lights == 0 {
-        return;
-    }
-
-    center := (cluster.max + cluster.min) * 0.5;
-    half_extents := (cluster.max - cluster.min) * 0.5;
-    DebugDrawBoxOutline(color, center, half_extents, transform);
-}
-
-DebugDrawClusterLights :: (color : Vec4f, index : int, lights : []PointLight) {
-    cluster := GetLightCluster(index);
-
-    for i : 0..cast(s32, cluster.num_lights) - 1 {
-        if cluster.lights[i] >= lights.count {
-            continue;
-        }
-
-        light := lights[cluster.lights[i]];
-        DebugDrawSphereOutline(color, light.position, GetPointLightAttenuationDistance(light.intensity, g_light_params.point_light_attenuation_threshold));
-    }
 }

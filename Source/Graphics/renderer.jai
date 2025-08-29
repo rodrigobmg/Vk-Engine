@@ -68,10 +68,6 @@ CleanupRenderer :: () {
 
     DestroyGlobalShadowMapObjects();
 
-    for * g_clusters_readback_buffers {
-        DestroyGfxBuffer(it);
-    }
-
     for * g_frame_data_allocators {
         DestroyFrameDataAllocator(it);
     }
@@ -683,12 +679,6 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
 
         PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(entity.world_transform));
-    }
-
-    if g_debug_show_light_clusters {
-        for i : 0..Num_Clusters - 1 {
-            DebugDrawCluster(.{0,1,0,1}, i, camera.transform, g_debug_show_light_clusters_with_lights);
-        }
     }
 
     AddTextureBarriers(*cmd_buffer, .Undefined, .ColorAttachment, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);

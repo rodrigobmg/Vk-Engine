@@ -143,11 +143,12 @@ struct PointLight {
     Viewpoint shadow_map_viewpoints[6];
 };
 
+#define Max_Viewpoints 6
+
 #define Num_Environment_Map_Levels 6
 
-#define BRDF_LUT_Compute_Work_Group_Size 16
-
-#define Max_Viewpoints 6
+#define Max_Shadow_Maps 2
+#define Max_Point_Shadow_Maps 20
 
 #define Kawase_Bur_Compute_Work_Group_Size 16
 
@@ -161,8 +162,7 @@ struct PointLight {
 #define Num_Point_Shadow_Map_Cbrt_Samples 3
 #define Num_Point_Shadow_Map_Samples 27
 
-#define Max_Shadow_Maps 2
-#define Max_Point_Shadow_Maps 20
+#define BRDF_LUT_Compute_Work_Group_Size 16
 
 #define Max_Lights_Per_Clusters 100
 #define Num_Clusters_X 16

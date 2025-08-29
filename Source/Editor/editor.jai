@@ -1095,7 +1095,4 @@ ShowDebugWindow :: () {
     if !ImGui.Begin("Debug", *g_show_debug_window) {
         return;
     }
-
-    ImGui.Checkbox("Show Light Clusters", *g_debug_show_light_clusters);
-    ImGui.Checkbox("Show Light Clusters w/ Lights", *g_debug_show_light_clusters_with_lights);
 }
