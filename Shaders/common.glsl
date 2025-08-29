@@ -476,4 +476,17 @@ float GetPointLightAttenuationDistance(float intensity, float intensity_threshol
     return sqrt(intensity / intensity_threshold);
 }
 
+uint GetLightClusterIndex(Viewpoint viewpoint, float3 world_position, float2 screen_position) {
+    float3 view_space_position = (viewpoint.view * float4(world_position, 1)).xyz;
+    float depth = abs(view_space_position.z);
+    uint cluster_z_tile = uint((log(depth / viewpoint.z_near) * Num_Clusters_Z) / log(viewpoint.z_far / viewpoint.z_near));
+    float2 cluster_tile_size = viewpoint.viewport_size / float2(Num_Clusters_X, Num_Clusters_Y);
+    uint3 cluster_tile = uint3(screen_position / cluster_tile_size, cluster_z_tile);
+    cluster_tile.y = Num_Clusters_Y - cluster_tile.y - 1;
+
+    return cluster_tile.x
+        + (cluster_tile.y * Num_Clusters_X)
+        + (cluster_tile.z * Num_Clusters_X * Num_Clusters_Y);
+}
+
 #endif

@@ -119,11 +119,7 @@ void main() {
     metallic = clamp(metallic, 0, 1);
     roughness = clamp(roughness, 0, 1);
 
-    uint cluster_z_tile = uint((log(abs(view_space_position.z) / viewpoint.z_near) * Num_Clusters_Z) / log(viewpoint.z_far / viewpoint.z_near));
-    float2 cluster_tile_size = viewpoint.viewport_size / float2(Num_Clusters_X, Num_Clusters_Y);
-    uint3 cluster_tile = uint3(gl_FragCoord.xy / cluster_tile_size, cluster_z_tile);
-    cluster_tile.y = Num_Clusters_Y - cluster_tile.y - 1;
-    uint cluster_index = cluster_tile.x + (cluster_tile.y * Num_Clusters_X) + (cluster_tile.z * Num_Clusters_X * Num_Clusters_Y);
+    uint cluster_index = GetLightClusterIndex(viewpoint, in_position, gl_FragCoord.xy);
     LightCluster cluster = u_clusters[cluster_index];
 
     float3 Lo = float3(0);
