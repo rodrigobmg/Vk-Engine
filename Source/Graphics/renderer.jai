@@ -272,6 +272,7 @@ ViewpointsData :: struct {
 
 MakeViewpoint :: inline (camera : *Camera) -> Viewpoint {
     w, h := GetWindowPixelSize(g_window);
+    view_projection := camera.projection * camera.view;
 
     return .{
         position=camera.position,
@@ -282,8 +283,8 @@ MakeViewpoint :: inline (camera : *Camera) -> Viewpoint {
         view=camera.view,
         projection=camera.projection,
         inv_projection=camera.inv_projection,
-        view_projection=camera.projection * camera.view,
-        inv_view_projection=Inverse(camera.projection * camera.view),
+        view_projection=view_projection,
+        inv_view_projection=Inverse(view_projection),
         fov=ToRads(camera.fov_in_degrees),
         viewport_size=.{xx w, xx h},
         z_near=camera.z_near,
