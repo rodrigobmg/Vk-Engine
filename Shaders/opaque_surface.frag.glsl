@@ -146,7 +146,7 @@ void main() {
             } else {
                 shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
 
-                // Shadow don't look goot at steep angles, so we attenuate
+                // Shadow don't look good at steep angles, so we attenuate
                 float shadow_attenuation = InverseLerp(0, Parallax_Shadow_Attenuation_Cos_Angle, dot(in_normal, L));
                 shadow_attenuation = clamp(shadow_attenuation, 0, 1);
                 shadow *= shadow_attenuation;
@@ -190,7 +190,7 @@ void main() {
                 // visible with self shadowing
                 shadow *= 1 - ParallaxOcclusionSelfShadow(u_depth_map_texture, mesh.material.depth_map_scale, tex_coords, tangent_light_dir);
 
-                // Shadow don't look goot at steep angles, so we attenuate
+                // Shadow don't look good at steep angles, so we attenuate
                 float shadow_attenuation = InverseLerp(0, Parallax_Shadow_Attenuation_Cos_Angle, dot(in_normal, L));
                 shadow_attenuation = clamp(shadow_attenuation, 0, 1);
                 shadow *= shadow_attenuation;
