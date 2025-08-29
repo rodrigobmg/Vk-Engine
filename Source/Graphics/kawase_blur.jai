@@ -63,7 +63,9 @@ DestroyKawaseBlur :: (using blur : *KawaseBlur) {
     blur.* = .{};
 }
 
-Kawase_Bur_Compute_Work_Group_Size :: 16;
+using _ :: struct {
+    Kawase_Bur_Compute_Work_Group_Size :: 16;
+} @ShaderType
 
 KawaseBlurComputeBindingSet :: struct {
     src_texture : GfxBindingCombinedTextureSampler; @Binding(0) @ComputeStage

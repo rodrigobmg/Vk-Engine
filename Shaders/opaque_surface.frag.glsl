@@ -77,6 +77,9 @@ float ParallaxOcclusionSelfShadow(sampler2D depth_map, float height_scale, float
 
 void main() {
     MeshInstance mesh = u_mesh_instances[in_instance_index];
+    Viewpoint viewpoint = u_viewpoints[0];
+
+    float3 view_space_position = (viewpoint.view * float4(in_position, 1)).xyz;
 
     float3x3 TBN = float3x3(
         normalize(in_tangent),
@@ -116,6 +119,13 @@ void main() {
     metallic = clamp(metallic, 0, 1);
     roughness = clamp(roughness, 0, 1);
 
+    uint cluster_z_tile = uint((log(abs(view_space_position.z) / viewpoint.z_near) * Num_Clusters_Z) / log(viewpoint.z_far / viewpoint.z_near));
+    float2 cluster_tile_size = viewpoint.viewport_size / float2(Num_Clusters_X, Num_Clusters_Y);
+    uint3 cluster_tile = uint3(gl_FragCoord.xy / cluster_tile_size, cluster_z_tile);
+    cluster_tile.y = Num_Clusters_Y - cluster_tile.y - 1;
+    uint cluster_index = cluster_tile.x + (cluster_tile.y * Num_Clusters_X) + (cluster_tile.z * Num_Clusters_X * Num_Clusters_Y);
+    LightCluster cluster = u_clusters[cluster_index];
+
     float3 Lo = float3(0);
 
     for (int i = 0; i < u_frame_info.num_directional_lights; i += 1) {
@@ -150,8 +160,9 @@ void main() {
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * light.intensity * shadow);
     }
 
-    for (int i = 0; i < u_frame_info.num_point_lights; i += 1) {
-        PointLight light = u_point_lights[i];
+    for (uint i = 0; i < cluster.num_lights; i += 1) {
+        uint light_index = cluster.lights[i];
+        PointLight light = u_point_lights[light_index];
         float3 light_color = sRGBToLinear(light.color);
 
         float3 L = light.position - in_position;
@@ -160,6 +171,9 @@ void main() {
         L /= distance;
 
         float intensity = light.intensity / distance_sqrd;
+        if (intensity <= u_frame_info.light_params.point_light_attenuation_threshold) {
+            intensity = 0;
+        }
 
         float shadow;
         if (light.shadow_map_index >= 0) {
@@ -171,7 +185,7 @@ void main() {
         if ((mesh.material.flags & MaterialFlags_HasDepthMap) != 0) {
             float3 tangent_light_dir = inv_TBN * L;
 
-            // Remove all light contribution when the light is behind the plane (we assume depth map materials are mostly applied on flat surfaces)
+            // Remove all light contribution when the light is behind the plane
             if (dot(in_normal, L) < 0) {
                 shadow = 0;
             } else {

@@ -2841,6 +2841,15 @@ CopyTextureToBuffer :: (pass : *GfxCopyPass, src_texture : *GfxTexture, dst_buff
     vkCmdCopyImageToBuffer(pass.cmd_buffer.cmd_buffer, src_texture.image, .TRANSFER_SRC_OPTIMAL, dst_buffer.buffer, 1, *copy);
 }
 
+CopyBufferToBuffer :: (pass : *GfxCopyPass, src_buffer : *GfxBuffer, dst_buffer : *GfxBuffer, src_offset : u64, dst_offset : u64, size : u64) {
+    region : VkBufferCopy;
+    region.srcOffset = src_offset;
+    region.dstOffset = dst_offset;
+    region.size = size;
+
+    vkCmdCopyBuffer(pass.cmd_buffer.cmd_buffer, src_buffer.buffer, dst_buffer.buffer, 1, *region);
+}
+
 GenerateMipmaps :: (pass : *GfxCopyPass, texture : *GfxTexture, old_layout : GfxTextureLayout, new_layout : GfxTextureLayout) {
     if texture.desc.num_mipmap_levels < 2 {
         AddTextureBarrier(pass.cmd_buffer, old_layout, new_layout, texture);

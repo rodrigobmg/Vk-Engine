@@ -1,9 +1,10 @@
 ForwardPassBindingSet :: struct {
-    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage
+    viewpoints : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage
     shadow_maps : [Max_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(1) @FragmentStage @AllowNull
     point_shadow_maps : [Max_Point_Shadow_Maps]GfxBindingCombinedTextureSampler; @Binding(2) @FragmentStage @AllowNull
     irradiance_map : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
     environment_map : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
+    clusters : GfxBindingStorageBuffer; @Binding(5) @FragmentStage
 } @BindingSet
 
 g_forward_material_pass := MaterialRenderPass.{
@@ -32,6 +33,7 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
         viewpoints=.{buffer=FrameDataBuffer(), offset=xx viewpoints_offset, size=xx viewpoints_size},
         irradiance_map.sampler=*g_skybox_sampler,
         environment_map.sampler=*g_skybox_sampler,
+        clusters=.{buffer=FrameDataBuffer(), offset=clusters_offset, size=clusters_size},
     };
 
     if world.skybox {

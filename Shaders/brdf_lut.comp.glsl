@@ -58,7 +58,7 @@ float2 IntegrateBRDF(float NdotV, float roughness) {
     return float2(A, B);
 }
 
-layout(local_size_x=16, local_size_y=16) in;
+layout(local_size_x=BRDF_LUT_Compute_Work_Group_Size, local_size_y=BRDF_LUT_Compute_Work_Group_Size) in;
 
 layout(set=0, binding=0) writeonly uniform image2D u_dst_image;
 

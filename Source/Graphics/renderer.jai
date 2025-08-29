@@ -68,6 +68,10 @@ CleanupRenderer :: () {
 
     DestroyGlobalShadowMapObjects();
 
+    for * g_clusters_readback_buffers {
+        DestroyGfxBuffer(it);
+    }
+
     for * g_frame_data_allocators {
         DestroyFrameDataAllocator(it);
     }
@@ -97,6 +101,8 @@ CreateAllPipelines :: () {
     CreateDebugLinesPipeline();
     CreateGizmoPipeline();
     CreateGizmoLinesPipeline();
+    CreateBuildClusterGridPipeline();
+    CreatePopulateClusterGridPipeline();
 }
 
 DestroyAllPipelines :: () {
@@ -105,6 +111,9 @@ DestroyAllPipelines :: () {
     DestroyMaterialRenderPass(*g_shadow_map_material_pass);
     DestroyMaterialRenderPass(*g_point_shadow_map_material_pass);
     DestroyMaterialRenderPass(*g_entity_guid_material_pass);
+
+    DestroyGfxComputePipeline(*g_build_cluster_grid_pipeline);
+    DestroyGfxComputePipeline(*g_populate_cluster_grid_pipeline);
 
     DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
@@ -215,8 +224,8 @@ using _ :: struct {
 
 FrameBindingSet :: struct {
     frame_info : GfxBindingUniformBuffer; @Binding(0) @VertexStage @FragmentStage @ComputeStage
-    directional_lights : GfxBindingStorageBuffer; @Binding(1) @FragmentStage @AllowNull
-    point_lights : GfxBindingStorageBuffer; @Binding(2) @FragmentStage @AllowNull
+    directional_lights : GfxBindingStorageBuffer; @Binding(1) @FragmentStage @AllowNull @ComputeStage
+    point_lights : GfxBindingStorageBuffer; @Binding(2) @FragmentStage @AllowNull @ComputeStage
     brdf_lut : GfxBindingCombinedTextureSampler; @Binding(3) @FragmentStage
     shadow_map_noise : GfxBindingCombinedTextureSampler; @Binding(4) @FragmentStage
 } @BindingSet
@@ -233,6 +242,7 @@ FrameInfo :: struct {
     window_pixel_size : Vec2f;
     num_directional_lights : u32;
     num_point_lights : u32;
+    light_params : LightParams;
     skybox_light_intensity := 1.0;
     shadow_map_params : ShadowMapParams;
     bloom_params : BloomParams;
@@ -251,7 +261,9 @@ Viewpoint :: struct {
     transform : Mat4f;
     view : Mat4f;
     projection : Mat4f;
+    inv_projection : Mat4f;
     view_projection : Mat4f;
+    inv_view_projection : Mat4f;
     viewport_size : Vec2f;
     fov : float;
     z_near : float;
@@ -274,7 +286,9 @@ MakeViewpoint :: inline (camera : *Camera) -> Viewpoint {
         transform=camera.transform,
         view=camera.view,
         projection=camera.projection,
+        inv_projection=camera.inv_projection,
         view_projection=camera.projection * camera.view,
+        inv_view_projection=Inverse(camera.projection * camera.view),
         fov=ToRads(camera.fov_in_degrees),
         viewport_size=.{xx w, xx h},
         z_near=camera.z_near,
@@ -286,6 +300,10 @@ FrameRenderContext :: struct {
     world : *World;
     cmd_buffer : *GfxCommandBuffer;
     frame_binding_set : GfxBindingSet;
+    directional_lights : []DirectionalLight;
+    point_lights : []PointLight;
+    clusters_offset : u32;
+    clusters_size : u32;
 }
 
 g_mesh_buffer : MeshBuffer;
@@ -495,7 +513,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        UpdatePointShadowMapFarPlane(it);
+        UpdatePointShadowMapFarPlane(it, g_light_params.point_light_attenuation_threshold);
         PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(entity.world_transform));
     }
 
@@ -509,9 +527,14 @@ RenderFrame :: (world : *World, camera : *Camera) {
         RenderBRDFLUT(ctx.cmd_buffer);
     }
 
-    num_directional_lights : u64 = xx world.DirectionalLightComponent_storage.count;
-    directional_lights_size := GLSLStd430Size(DirectionalLight) * num_directional_lights;
+    max_directional_lights : u64 = xx world.DirectionalLightComponent_storage.count;
+
+    ctx.directional_lights.data = Alloc(DirectionalLight, xx max_directional_lights ,, Temp);
+    ctx.directional_lights.count = 0;
+
+    directional_lights_size := GLSLStd430Size(DirectionalLight) * max_directional_lights;
     directional_lights_offset, directional_lights_ptr := AllocFrameData(directional_lights_size);
+
     shadow_map_index : s32 = 0;
     for * world.DirectionalLightComponent_storage {
         entity := GetEntity(world, it.entity);
@@ -535,6 +558,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
             shadow_map_resolution=it.shadow_map.resolution,
         };
 
+        ctx.directional_lights.data[ctx.directional_lights.count] = directional_light;
+        ctx.directional_lights.count += 1;
+
         if it.cast_shadows {
             for * viewpoint : directional_light.shadow_map_viewpoints {
                 viewpoint.* = GetShadowMapViewpoint(*it.shadow_map, directional_light.direction, camera.transform, it_index);
@@ -546,9 +572,14 @@ RenderFrame :: (world : *World, camera : *Camera) {
         directional_lights_ptr += PackToGLSLStd(directional_light, directional_lights_ptr, .Std430);
     }
 
-    num_point_lights : u64 = xx world.PointLightComponent_storage.count;
-    point_lights_size := GLSLStd430Size(PointLight) * num_point_lights;
+    max_point_lights : u64 = xx world.PointLightComponent_storage.count;
+
+    ctx.point_lights.data = Alloc(PointLight, xx max_point_lights ,, Temp);
+    ctx.point_lights.count = 0;
+
+    point_lights_size := GLSLStd430Size(PointLight) * max_point_lights;
     point_lights_offset, point_lights_ptr := AllocFrameData(point_lights_size);
+
     point_shadow_map_index : s32 = 0;
     for * world.PointLightComponent_storage {
         entity := GetEntity(world, it.entity);
@@ -572,6 +603,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
             shadow_map_resolution=it.shadow_map.resolution,
         };
 
+        ctx.point_lights.data[ctx.point_lights.count] = point_light;
+        ctx.point_lights.count += 1;
+
         if it.cast_shadows {
             for * viewpoint : point_light.shadow_map_viewpoints {
                 viewpoint.* = GetShadowMapViewpoint(*it.shadow_map, point_light.position, xx it_index);
@@ -586,8 +620,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
     frame_info := FrameInfo.{
         time=xx Basic.to_float64_seconds(Basic.current_time_monotonic()),
         window_pixel_size=.{xx w, xx h},
-        num_point_lights=xx num_point_lights,
-        num_directional_lights=xx num_directional_lights,
+        num_point_lights=xx ctx.point_lights.count,
+        num_directional_lights=xx ctx.directional_lights.count,
+        light_params=g_light_params,
         skybox_light_intensity=world.skybox_light_intensity,
         editor_settings=g_editor_settings,
         shadow_map_params=.{
@@ -650,10 +685,17 @@ RenderFrame :: (world : *World, camera : *Camera) {
         PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(entity.world_transform));
     }
 
+    if g_debug_show_light_clusters {
+        for i : 0..Num_Clusters - 1 {
+            DebugDrawCluster(.{0,1,0,1}, i, camera.transform, g_debug_show_light_clusters_with_lights);
+        }
+    }
+
     AddTextureBarriers(*cmd_buffer, .Undefined, .ColorAttachment, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);
     AddTextureBarrier(*cmd_buffer, .Undefined, .DepthStencilAttachment, *g_depth_texture);
 
     DepthPrepass(*ctx, camera, *g_mesh_buffer);
+    PrepareClusters(*ctx, camera);
     ForwardPass(*ctx, camera, *g_mesh_buffer);
     DebugLinesPass(*ctx, camera);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);

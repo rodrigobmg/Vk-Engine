@@ -112,6 +112,7 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, light_direction : Vec3f, view
 
     viewpoint : Viewpoint;
     viewpoint.projection = Mat4fOrthographicProjection(-size * 0.5, size * 0.5, -size * 0.5, size * 0.5, -depth * 0.5, depth * 0.5);
+    viewpoint.inv_projection = Inverse(viewpoint.projection);
 
     viewpoint.transform = Mat4fLookAt(center, center + light_direction, .{1,0,0});
     viewpoint.position = TranslationVector(viewpoint.transform);
@@ -120,6 +121,7 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, light_direction : Vec3f, view
     viewpoint.direction = ForwardVector(viewpoint.transform);
     viewpoint.view = Inverse(viewpoint.transform);
     viewpoint.view_projection = viewpoint.projection * viewpoint.view;
+    viewpoint.inv_view_projection = Inverse(viewpoint.view_projection);
     viewpoint.viewport_size = .{xx shadow_map.resolution, xx shadow_map.resolution};
     viewpoint.z_near = -depth * 0.5;
     viewpoint.z_far = depth * 0.5;

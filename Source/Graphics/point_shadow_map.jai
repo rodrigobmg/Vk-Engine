@@ -82,8 +82,8 @@ DestroyShadowMap :: (shadow_map : *PointShadowMap) {
     }
 }
 
-UpdatePointShadowMapFarPlane :: (light : *PointLightComponent, intensity_threshold := Global_Point_Light_Intensity_Threshold) {
-    light.shadow_map.z_far = GetPointLightAttenuationDistance(light.intensity, light.intensity * intensity_threshold);
+UpdatePointShadowMapFarPlane :: (light : *PointLightComponent, intensity_threshold : float) {
+    light.shadow_map.z_far = GetPointLightAttenuationDistance(light.intensity, intensity_threshold);
 }
 
 GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) -> Viewpoint {
@@ -93,6 +93,7 @@ GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, 
 
     viewpoint : Viewpoint;
     viewpoint.projection = Mat4fPerspectiveProjection(90, 1, shadow_map.z_near, shadow_map.z_far);
+    viewpoint.inv_projection = Inverse(viewpoint.projection);
 
     viewpoint.transform = Mat4fFromRightUpForwardOrigin(right, up, forward, light_position);
     viewpoint.position = light_position;
@@ -101,6 +102,7 @@ GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, 
     viewpoint.direction = forward;
     viewpoint.view = Inverse(viewpoint.transform);
     viewpoint.view_projection = viewpoint.projection * viewpoint.view;
+    viewpoint.inv_view_projection = Inverse(viewpoint.view_projection);
     viewpoint.viewport_size = .{xx shadow_map.resolution, xx shadow_map.resolution};
     viewpoint.z_near = shadow_map.z_near;
     viewpoint.z_far = shadow_map.z_far;

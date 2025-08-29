@@ -10,6 +10,7 @@ Max_Debug_Lines :: Frame_Data_Capacity / size_of(DebugLine) / 2;
 
 DebugDrawLine :: (color : Vec4f, start : Vec3f, end : Vec3f) {
     if g_debug_lines.count >= Max_Debug_Lines {
+        LogWarning("Exceeding maximum number of debug lines");
         return;
     }
 

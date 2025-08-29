@@ -20,11 +20,11 @@ Supports Linux and Windows.
 * Simple editor with gizmos
 * Simple GPU profiler
 * Skinned meshes
+* Clustered forward rendering
 
 ## To explore/implement next:
 * Global illumination
 * Non pre-baked reflections
-* Clustered forward rendering
 * GTAO
 * Subsurface scattering
 * Volumetric clouds

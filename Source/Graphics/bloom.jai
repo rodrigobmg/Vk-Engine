@@ -105,7 +105,9 @@ DestroyBloomTextures :: () {
     DestroyGfxTexture(*g_bloom_upsample_texture);
 }
 
-Bloom_Compute_Work_Group_Size :: 16;
+using _ :: struct {
+    Bloom_Compute_Work_Group_Size :: 16;
+} @ShaderType
 
 BloomComputeBindingSet :: struct {
     src_texture : GfxBindingCombinedTextureSampler; @Binding(0) @ComputeStage

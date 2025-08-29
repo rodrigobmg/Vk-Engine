@@ -70,6 +70,12 @@
 #define DECLARE_PER_FRAME_PARAMS() \
     layout(set=0, binding=0, std140) uniform FrameData { \
         FrameInfo u_frame_info; \
+    }; \
+    layout(set=0, binding=1, std430) readonly buffer DirectionalLights { \
+        DirectionalLight u_directional_lights[]; \
+    }; \
+    layout(set=0, binding=2, std430) readonly buffer PointLights { \
+        PointLight u_point_lights[]; \
     }
 #endif
 
@@ -90,7 +96,10 @@
     layout(set=1, binding=1) uniform sampler2DArrayShadow u_shadow_maps[Max_Shadow_Maps]; \
     layout(set=1, binding=2) uniform samplerCube u_point_shadow_maps[Max_Point_Shadow_Maps]; \
     layout(set=1, binding=3) uniform sampler2D u_irradiance_map; \
-    layout(set=1, binding=4) uniform sampler2D u_environment_map
+    layout(set=1, binding=4) uniform sampler2D u_environment_map; \
+    layout(set=1, binding=5) readonly buffer Clusters { \
+        LightCluster u_clusters[]; \
+    }
 #endif
 
 #ifdef SHADER_STAGE_VERTEX
@@ -461,6 +470,10 @@ float3 BlendRGBPreMultipliedAlpha(float3 dst, float3 src, float alpha) {
 
 float2 IntegerToNormalizedTexCoords(int2 integer_coords, int2 size) {
     return float2((integer_coords + float2(0.5)) / float2(size));
+}
+
+float GetPointLightAttenuationDistance(float intensity, float intensity_threshold) {
+    return sqrt(intensity / intensity_threshold);
 }
 
 #endif

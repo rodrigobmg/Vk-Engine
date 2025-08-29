@@ -195,7 +195,10 @@ g_brdf_lut : GfxTexture;
 g_brdf_lut_compute_pipeline : GfxComputePipeline;
 
 BRDF_LUT_Resolution : u32 : 512;
-BRDF_LUT_Compute_Work_Group_Size :: 16;
+
+using _ :: struct {
+    BRDF_LUT_Compute_Work_Group_Size :: 16;
+} @ShaderType
 
 BRDFLUTBindingSet :: struct {
     dst_image : GfxBindingStorageImage; @Binding(0) @ComputeStage

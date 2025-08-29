@@ -13,7 +13,7 @@ g_frame_data_allocators : [Gfx_Num_Frames_In_Flight]FrameDataAllocator;
 InitFrameDataAllocator :: (allocator : *FrameDataAllocator, name : string, capacity : u64) -> bool {
     desc : GfxBufferDesc;
     desc.size = capacity;
-    desc.usage = .UniformBuffer | .StorageBuffer;
+    desc.usage = .VertexBuffer | .IndexBuffer | .UniformBuffer | .StorageBuffer | .TransferSrc | .TransferDst;
     desc.memory_usage = .Upload;
 
     allocator.buffer = CreateGfxBuffer(name, desc);

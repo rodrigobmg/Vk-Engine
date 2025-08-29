@@ -1,6 +1,6 @@
 #include "common.glsl"
 
-layout(local_size_x=16, local_size_y=16) in;
+layout(local_size_x=Bloom_Compute_Work_Group_Size, local_size_y=Bloom_Compute_Work_Group_Size) in;
 
 DECLARE_PER_FRAME_PARAMS();
 

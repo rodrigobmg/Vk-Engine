@@ -33,6 +33,7 @@ g_show_world_inspector := false;
 g_show_entity_outliner := true;
 g_show_entity_inspector := true;
 g_show_engine_settings := false;
+g_show_debug_window := false;
 g_show_gpu_profiler := false;
 
 g_editor_selected_entities : [..]EntityGUID;
@@ -366,6 +367,9 @@ UpdateEditor :: (world : *World) {
             if ImGui.MenuItem("GPU Profiler", selected=g_show_gpu_profiler) {
                 g_show_gpu_profiler = true;
             }
+            if ImGui.MenuItem("Debug", selected=g_show_debug_window) {
+                g_show_debug_window = true;
+            }
             if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
                 g_show_imgui_demo = true;
             }
@@ -447,6 +451,7 @@ UpdateEditor :: (world : *World) {
     ShowMaterialEditor();
     ShowEngineSettings();
     ShowGPUProfiler();
+    ShowDebugWindow();
 
     entity_to_inspect : *Entity;
     if g_editor_selected_entities.count == 1 {
@@ -946,6 +951,9 @@ ShowEngineSettings :: () {
         ImGui.SeparatorText("Bloom");
         ShowInspector("", cast(*World, null), *g_bloom_params, .["InspectorNoTree"]);
 
+        ImGui.SeparatorText("Lights");
+        ShowInspector("", cast(*World, null), *g_light_params, .["InspectorNoTree"]);
+
         ImGui.TreePop();
     }
 }
@@ -1074,4 +1082,20 @@ ShowGPUProfiler :: () {
 
         ImGui.EndTabBar();
     }
+}
+
+ShowDebugWindow :: () {
+    if !g_show_debug_window {
+        return;
+    }
+
+    defer ImGui.End();
+
+    ImGui.SetNextWindowSize(.{450, 700}, .FirstUseEver);
+    if !ImGui.Begin("Debug", *g_show_debug_window) {
+        return;
+    }
+
+    ImGui.Checkbox("Show Light Clusters", *g_debug_show_light_clusters);
+    ImGui.Checkbox("Show Light Clusters w/ Lights", *g_debug_show_light_clusters_with_lights);
 }
