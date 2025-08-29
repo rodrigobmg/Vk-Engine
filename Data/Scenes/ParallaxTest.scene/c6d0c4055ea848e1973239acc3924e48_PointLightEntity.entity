@@ -1,5 +1,6 @@
 @_ 1:
   @guid 1: 0xc6d0c4055ea848e1973239acc3924e48
+  @flags 7: 0x0
   @name 2: "Point"
   @local_position 3: [0, 0, 0]
   @local_rotation 4: [0, 0, 0, 1]
@@ -8,4 +9,6 @@
 @light 2:
   @color 2: [1, 1, 1]
   @intensity 3: 40
+  @intensity_radius 5: 0
+  @source_radius 6: 0.05
   @cast_shadows 4: false
