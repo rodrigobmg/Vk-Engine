@@ -1,3 +1,5 @@
+// @Todo: make sure constants in unnamed structs always get generated in the same order
+
 #import "Linalg";
 
 g_shader_types : [..]*Type_Info;
