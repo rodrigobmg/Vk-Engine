@@ -472,6 +472,17 @@ float2 IntegerToNormalizedTexCoords(int2 integer_coords, int2 size) {
     return float2((integer_coords + float2(0.5)) / float2(size));
 }
 
+// Inspired by https://lisyarus.github.io/blog/posts/point-light-attenuation.html, tweaked to match closely I/x^2
+// Key differences:
+//  * instead of smoothly settling as x < source_radius, we cut abruptly because physically nothing is supposed to be closer than source_radius
+//  * the intensity parameter is not the max intensity at distance == 0, rather it tries to match closely I in the physically correct equation
+//  * there is no parameter for the falloff, it is calculated automatically depending on the intensity_radius
+// Parameters:
+//  * source_radius: light sources are not infinitely small points; this describes to size of the light source as if it were a sphere.
+// The lower it is, the closer objects need to be to the light source to receive a lot of light
+//  * base_intensity: the same parameter as the physically correct equation, this is NOT the intensity at distance == 0
+//  * intensity_radius: the distance at which the final intensity reaches 0, offseted by the source_radius
+// https://www.desmos.com/calculator/4fs7w3qt2x
 float GetPointLightIntensity(float source_radius, float base_intensity, float intensity_radius, float distance) {
     if (distance > source_radius + intensity_radius) {
         return 0;

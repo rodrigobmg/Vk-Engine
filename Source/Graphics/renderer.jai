@@ -594,7 +594,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             position=TranslationVector(entity.world_transform),
             color=it.color,
             intensity=it.intensity,
-            intensity_radius=it.intensity_radius,
+            intensity_radius=GetPointLightAttenuationDistance(it) - it.source_radius,
             source_radius=it.source_radius,
             shadow_map_index=ifx it.cast_shadows then point_shadow_map_index else -1,
             shadow_map_resolution=it.shadow_map.resolution,

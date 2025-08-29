@@ -83,7 +83,7 @@ DestroyShadowMap :: (shadow_map : *PointShadowMap) {
 }
 
 UpdatePointShadowMapFarPlane :: (light : *PointLightComponent) {
-    light.shadow_map.z_far = light.intensity_radius + light.source_radius;
+    light.shadow_map.z_far = GetPointLightAttenuationDistance(light);
 }
 
 GetShadowMapViewpoint :: (shadow_map : *PointShadowMap, light_position : Vec3f, face : CubeMapFace) -> Viewpoint {
