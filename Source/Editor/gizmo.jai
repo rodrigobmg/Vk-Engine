@@ -159,31 +159,22 @@ GizmoStyle :: struct {
     using translation : struct {
         translation_snap_grid_size := 1.0; @ShowInInspector
         translation_drag_sensitivity := 0.01; @ShowInInspector
-        translation_handle_thickness := 3.0; @ShowInInspector
-        translation_arrow_size := 20.0; @ShowInInspector
-        translation_arrow_aspect_ratio := 0.5; @ShowInInspector
-        translation_view_circle_size := 0.3; @ShowInInspector
-        translation_view_circle_thickness := 3.5; @ShowInInspector
-        translation_plane_distance := 0.6; @ShowInInspector
-        translation_plane_size := 0.3; @ShowInInspector
+        translation_view_widget_size := 0.3; @ShowInInspector
+        translation_plane_widget_distance := 0.6; @ShowInInspector
+        translation_plane_widget_size := 0.3; @ShowInInspector
     }; @ShowInInspector
 
     using rotation : struct {
         rotation_snap_grid_size := 5.0 * Pi / 180.0; @ShowInInspector
-        rotation_handle_thickness := 4.5; @ShowInInspector
-        rotation_view_axis_size := 1.23; @ShowInInspector
+        rotation_view_widget_size := 1.23; @ShowInInspector
         rotation_view_axis_thickness := 3.5; @ShowInInspector
     }; @ShowInInspector
 
     using scale : struct {
-        scale_handle_thickness := 3.5; @ShowInInspector
         scale_snap_grid_size := 0.1; @ShowInInspector
-        scale_tip_size := 10.0; @ShowInInspector
-        scale_all_inner_circle_size := 0.3; @ShowInInspector
-        scale_all_outer_circle_size := 1.23; @ShowInInspector
-        scale_all_handle_thickness := 3.5; @ShowInInspector
-        scale_plane_distance := 0.6; @ShowInInspector
-        scale_plane_size := 0.3; @ShowInInspector
+        scale_all_widget_size := 0.3; @ShowInInspector
+        scale_plane_widget_distance := 0.6; @ShowInInspector
+        scale_plane_widget_size := 0.3; @ShowInInspector
     }; @ShowInInspector
 
     using cursor : struct {
@@ -196,17 +187,17 @@ GizmoStyle :: struct {
     colors : struct {
         origin := Vec4f.{1,0.744,0.140,1}; @ShowInInspector @ColorEdit
 
-        x_axis := Vec4f.{1,0,0,1}; @ShowInInspector @ColorEdit
-        y_axis := Vec4f.{0,1,0,1}; @ShowInInspector @ColorEdit
-        z_axis := Vec4f.{0,0,1,1}; @ShowInInspector @ColorEdit
+        x_axis := Vec4f.{0.878,0.102,0.102,1}; @ShowInInspector @ColorEdit
+        y_axis := Vec4f.{0.243,0.729,0.078,1}; @ShowInInspector @ColorEdit
+        z_axis := Vec4f.{0.102,0.125,0.878,1}; @ShowInInspector @ColorEdit
         view_axis := Vec4f.{1,1,1,1}; @ShowInInspector @ColorEdit
 
         rotation_trackball := Vec4f.{0,0,0,0}; @ShowInInspector @ColorEdit
-        x_axis_active := Vec4f.{1,0.922,0,1}; @ShowInInspector @ColorEdit
-        y_axis_active := Vec4f.{1,0.922,0,1}; @ShowInInspector @ColorEdit
-        z_axis_active := Vec4f.{1,0.922,0,1}; @ShowInInspector @ColorEdit
-        view_axis_active := Vec4f.{1,0.922,0,1}; @ShowInInspector @ColorEdit
-        rotation_trackball_active := Vec4f.{1,0.922,0,1}; @ShowInInspector @ColorEdit
+        x_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
+        y_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
+        z_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
+        view_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
+        rotation_trackball_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
 
         x_axis_guide := Vec4f.{1,0,0,1}; @ShowInInspector @ColorEdit
         y_axis_guide := Vec4f.{0,1,0.067,1}; @ShowInInspector @ColorEdit
@@ -708,7 +699,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         color := ifx ctx.hovered_id == view_id || ctx.active_id == view_id
             then g_gizmo_style.colors.view_axis_active else g_gizmo_style.colors.view_axis;
 
-        size := widget_size * g_gizmo_style.translation_view_circle_size;
+        size := widget_size * g_gizmo_style.translation_view_widget_size;
         tangent := axes_vectors[0];
         bitangent := axes_vectors[1];
         axis := axes_vectors[2];
@@ -796,7 +787,7 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         tangent := axes_vectors[(i + 1) % 3];
         bitangent := axes_vectors[(i + 2) % 3];
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
-        origin := translation.* + axis * (widget_size * g_gizmo_style.translation_view_circle_size * 0.5 + 0.001);
+        origin := translation.* + axis * (widget_size * g_gizmo_style.translation_view_widget_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,widget_size,widget_size});
         AddGizmoWidget(ctx, id, .Arrow, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
     }
@@ -892,8 +883,8 @@ GizmoTranslate :: (world : *World, ctx : *GizmoContext, id : string, translation
         tangent := axes_vectors[axis0];
         bitangent := axes_vectors[axis1];
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
-        origin := translation.* + (tangent + bitangent) * widget_size * g_gizmo_style.translation_plane_distance;
-        size := Vec3f.{widget_size,widget_size,widget_size} * g_gizmo_style.translation_plane_size;
+        origin := translation.* + (tangent + bitangent) * widget_size * g_gizmo_style.translation_plane_widget_distance;
+        size := Vec3f.{widget_size,widget_size,widget_size} * g_gizmo_style.translation_plane_widget_size;
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
         AddGizmoWidget(ctx, id, .Plane, color, widget_transform);
     }
@@ -1003,17 +994,14 @@ GizmoRotate :: (world : *World, ctx : *GizmoContext, id : string, rotation : *Qu
         axis := axes_vectors[i];
         tangent, bitangent : Vec3f;
         radius : float;
-        thickness : float;
         if i == 3 {
             tangent = camera_right;
             bitangent = camera_up;
-            radius = widget_size * g_gizmo_style.rotation_view_axis_size;
-            thickness = g_gizmo_style.rotation_view_axis_thickness;
+            radius = widget_size * g_gizmo_style.rotation_view_widget_size;
         } else {
             tangent = axes_vectors[(i + 1) % 3];
             bitangent = axes_vectors[(i + 2) % 3];
             radius = widget_size;
-            thickness = g_gizmo_style.rotation_handle_thickness;
         }
 
         drag_state : InteractionState;
@@ -1077,7 +1065,7 @@ GizmoRotate :: (world : *World, ctx : *GizmoContext, id : string, rotation : *Qu
                     axes_active_colors[i].rgb,
                     translation,
                     translation + Rotate(rotation_start_dir, rotated) * radius,
-                    thickness
+                    g_gizmo_style.guide_line_thickness
                 );
             }
         }
@@ -1311,7 +1299,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         tangent := axes_vectors[(i + 1) % 3];
         bitangent := axes_vectors[(i + 2) % 3];
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
-        origin := translation + axis * (widget_size * g_gizmo_style.scale_all_inner_circle_size * 0.5 + 0.001);
+        origin := translation + axis * (widget_size * g_gizmo_style.scale_all_widget_size * 0.5 + 0.001);
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(.{widget_size,axis_widget_size,widget_size});
         AddGizmoWidget(ctx, id, .SquareArrow, color, widget_transform, shaded=ctx.hovered_id != id && ctx.active_id != id);
     }
@@ -1437,8 +1425,8 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         tangent := axes_vectors[axis0];
         bitangent := axes_vectors[axis1];
         rotation2 := Mat4fFromRightUpForwardOrigin(tangent, axis, bitangent, .{0,0,0});
-        origin := translation + (tangent + bitangent) * widget_size * g_gizmo_style.scale_plane_distance;
-        size := Vec3f.{axis_widget_size.x,widget_size,axis_widget_size.y} * g_gizmo_style.scale_plane_size;
+        origin := translation + (tangent + bitangent) * widget_size * g_gizmo_style.scale_plane_widget_distance;
+        size := Vec3f.{axis_widget_size.x,widget_size,axis_widget_size.y} * g_gizmo_style.scale_plane_widget_size;
         widget_transform := Mat4fTranslate(origin) * rotation2 * Mat4fScale(size);
         AddGizmoWidget(ctx, id, .Plane, color, widget_transform);
     }
@@ -1521,7 +1509,7 @@ GizmoScale :: (world : *World, ctx : *GizmoContext, id : string, scale : *Vec3f,
         color := ifx ctx.hovered_id == all_id || ctx.active_id == all_id
             then g_gizmo_style.colors.view_axis_active else g_gizmo_style.colors.view_axis;
 
-        size := widget_size * g_gizmo_style.scale_all_inner_circle_size;
+        size := widget_size * g_gizmo_style.scale_all_widget_size;
         tangent := axes_vectors[0];
         bitangent := axes_vectors[1];
         axis := axes_vectors[2];
