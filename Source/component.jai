@@ -88,35 +88,32 @@ AppendGetComponent :: (builder : *StringBuilder, name : string, entity : *Type_I
 #scope_export
 
 // @Todo: Handle multiple components
-GetComponent :: (entity : *Entity, $T : Type) -> *T
-#modify { return IsInComponentTypesArray(T); } {
-    #insert -> string {
-        builder : StringBuilder;
-
-        Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
-
-        for i : 1..Entity_Types.count - 1 {
-            Appendln(*builder, "case .%1;", Entity_Types[i]);
-            Appendln(*builder, "    e := cast(*%, entity);", Entity_Types[i]);
-            AppendGetComponent(*builder, "e", xx cast(*Type_Info, Entity_Types[i]), type_info(T));
-        }
-
-        Appendln(*builder, "}");
-
-        return StringBuilderBuild(*builder);
-    }
-
-    return null;
-}
-
 GetComponent :: inline (entity : *$E, $T : Type) -> *T
-#modify { return IsInEntityTypesArray(E) && IsInComponentTypesArray(T); } {
-    #insert -> string {
-        builder : StringBuilder;
+#modify { return (E == Entity || IsInEntityTypesArray(E)) && IsInComponentTypesArray(T); } {
+    #if E == Entity {
+        #insert -> string {
+            builder : StringBuilder;
 
-        AppendGetComponent(*builder, "entity", type_info(E), type_info(T));
+            Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
 
-        return StringBuilderBuild(*builder);
+            for i : 1..Entity_Types.count - 1 {
+                Appendln(*builder, "case .%1;", Entity_Types[i]);
+                Appendln(*builder, "    e := cast(*%, entity);", Entity_Types[i]);
+                AppendGetComponent(*builder, "e", xx cast(*Type_Info, Entity_Types[i]), type_info(T));
+            }
+
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    } else {
+        #insert -> string {
+            builder : StringBuilder;
+
+            AppendGetComponent(*builder, "entity", type_info(E), type_info(T));
+
+            return StringBuilderBuild(*builder);
+        }
     }
 }
 
@@ -145,8 +142,11 @@ AllComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
                     type := cast(*Type_Info_Pointer, it.type).pointer_to;
                     if type == comp {
                         Appendln(*builder, "    it = cast(*%1, entity).%2;", Entity_Types[i], it.name);
-                        Appendln(*builder, "    #insert(break=return, continue={}) body;");
-                        Appendln(*builder, "    it_index += 1;");
+                        Appendln(*builder, "    while it {");
+                        Appendln(*builder, "        defer it_index += 1;");
+                        Appendln(*builder, "        #insert(break=return, continue=break) body;");
+                        Appendln(*builder, "        break;");
+                        Appendln(*builder, "    }");
                     }
                 }
             }
@@ -171,8 +171,11 @@ AllComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
                 type := cast(*Type_Info_Pointer, it.type).pointer_to;
                 if type == comp {
                     Appendln(*builder, "it = entity.%;", it.name);
-                    Appendln(*builder, "#insert(break=return, continue={}) body;");
-                    Appendln(*builder, "it_index += 1");
+                    Appendln(*builder, "while it {");
+                    Appendln(*builder, "    defer it_index += 1;");
+                    Appendln(*builder, "    #insert(break=return, continue=break) body;");
+                    Appendln(*builder, "    break;");
+                    Appendln(*builder, "}");
                 }
             }
 
