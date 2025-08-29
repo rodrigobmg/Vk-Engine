@@ -166,10 +166,7 @@ void main() {
         float distance = sqrt(distance_sqrd);
         L /= distance;
 
-        float intensity = light.intensity / distance_sqrd;
-        if (intensity <= u_frame_info.light_params.point_light_attenuation_threshold) {
-            intensity = 0;
-        }
+        float intensity = GetPointLightIntensity(light.source_radius, light.intensity, light.intensity_radius, distance);
 
         float shadow;
         if (light.shadow_map_index >= 0) {

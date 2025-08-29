@@ -21,7 +21,7 @@ bool SphereIntersectsAABB(float3 sphere_center, float sphere_radius, float3 aabb
 }
 
 bool PointLightIntersectsCluster(PointLight light, LightCluster cluster) {
-    float radius = GetPointLightAttenuationDistance(light.intensity, u_frame_info.light_params.point_light_attenuation_threshold);
+    float radius = light.source_radius + light.intensity_radius;
     float3 center = (u_viewpoint.view * float4(light.position, 1)).xyz;
 
     return SphereIntersectsAABB(center, radius, cluster.min, cluster.max);

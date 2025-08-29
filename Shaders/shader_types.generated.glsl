@@ -57,10 +57,6 @@ struct EditorSettings {
     int blur_effect_iterations;
 };
 
-struct LightParams {
-    float point_light_attenuation_threshold;
-};
-
 struct ShadowMapParams {
     uint noise_resolution;
     float2 depth_bias_min_max;
@@ -73,7 +69,6 @@ struct FrameInfo {
     float2 window_pixel_size;
     uint num_directional_lights;
     uint num_point_lights;
-    LightParams light_params;
     float skybox_light_intensity;
     ShadowMapParams shadow_map_params;
     BloomParams bloom_params;
@@ -138,31 +133,33 @@ struct PointLight {
     float3 position;
     float3 color;
     float intensity;
+    float intensity_radius;
+    float source_radius;
     int shadow_map_index;
     uint shadow_map_resolution;
     Viewpoint shadow_map_viewpoints[6];
 };
 
-#define Max_Viewpoints 6
-
 #define Num_Environment_Map_Levels 6
 
-#define Max_Shadow_Maps 2
-#define Max_Point_Shadow_Maps 20
+#define BRDF_LUT_Compute_Work_Group_Size 16
+
+#define Max_Viewpoints 6
+
+#define Bloom_Compute_Work_Group_Size 16
 
 #define Kawase_Bur_Compute_Work_Group_Size 16
 
-#define Bloom_Compute_Work_Group_Size 16
+#define Num_Point_Shadow_Map_Cbrt_Samples 3
+#define Num_Point_Shadow_Map_Samples 27
 
 #define Num_Shadow_Map_Cascades 4
 #define Shadow_Map_Noise_Size 32
 #define Num_Shadow_Map_Sqrt_Samples 8
 #define Num_Shadow_Map_Samples 64
 
-#define Num_Point_Shadow_Map_Cbrt_Samples 3
-#define Num_Point_Shadow_Map_Samples 27
-
-#define BRDF_LUT_Compute_Work_Group_Size 16
+#define Max_Shadow_Maps 2
+#define Max_Point_Shadow_Maps 20
 
 #define Max_Lights_Per_Clusters 100
 #define Num_Clusters_X 16

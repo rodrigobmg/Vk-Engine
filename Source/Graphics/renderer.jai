@@ -238,7 +238,6 @@ FrameInfo :: struct {
     window_pixel_size : Vec2f;
     num_directional_lights : u32;
     num_point_lights : u32;
-    light_params : LightParams;
     skybox_light_intensity := 1.0;
     shadow_map_params : ShadowMapParams;
     bloom_params : BloomParams;
@@ -509,7 +508,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        UpdatePointShadowMapFarPlane(it, g_light_params.point_light_attenuation_threshold);
+        UpdatePointShadowMapFarPlane(it);
         PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(entity.world_transform));
     }
 
@@ -595,6 +594,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
             position=TranslationVector(entity.world_transform),
             color=it.color,
             intensity=it.intensity,
+            intensity_radius=it.intensity_radius,
+            source_radius=it.source_radius,
             shadow_map_index=ifx it.cast_shadows then point_shadow_map_index else -1,
             shadow_map_resolution=it.shadow_map.resolution,
         };
@@ -618,7 +619,6 @@ RenderFrame :: (world : *World, camera : *Camera) {
         window_pixel_size=.{xx w, xx h},
         num_point_lights=xx ctx.point_lights.count,
         num_directional_lights=xx ctx.directional_lights.count,
-        light_params=g_light_params,
         skybox_light_intensity=world.skybox_light_intensity,
         editor_settings=g_editor_settings,
         shadow_map_params=.{

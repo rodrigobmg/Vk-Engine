@@ -951,9 +951,6 @@ ShowEngineSettings :: () {
         ImGui.SeparatorText("Bloom");
         ShowInspector("", cast(*World, null), *g_bloom_params, .["InspectorNoTree"]);
 
-        ImGui.SeparatorText("Lights");
-        ShowInspector("", cast(*World, null), *g_light_params, .["InspectorNoTree"]);
-
         ImGui.TreePop();
     }
 }

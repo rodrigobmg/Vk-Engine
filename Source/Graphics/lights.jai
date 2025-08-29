@@ -12,6 +12,8 @@ PointLight :: struct {
     position : Vec3f;
     color : Vec3f;
     intensity : float;
+    intensity_radius : float;
+    source_radius : float;
     shadow_map_index : s32;
     shadow_map_resolution : u32;
     shadow_map_viewpoints : [6]Viewpoint;
@@ -69,6 +71,8 @@ PointLightComponent :: struct {
 
     color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
     intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
+    intensity_radius : float = 4; @Serialize(5) @FloatRange(0.1,100)
+    source_radius : float = 0.05; @Serialize(6) @FloatRange(0.001,100)
     cast_shadows : bool; @Serialize(4)
     shadow_map : PointShadowMap;
 
@@ -76,6 +80,33 @@ PointLightComponent :: struct {
         DestroyShadowMap(*shadow_map);
     }
 } @Component
+
+// Inspired by https://lisyarus.github.io/blog/posts/point-light-attenuation.html, tweaked to match closely I/x^2
+// Key differences:
+//  * instead of smoothly settling as x < source_radius, we cut abruptly because physically nothing is supposed to be closer than source_radius
+//  * the intensity parameter is not the max intensity at distance == 0, rather it tries to match closely I in the physically correct equation
+//  * there is no parameter for the falloff, it is calculated automatically depending on the intensity_radius
+// Parameters:
+//  * source_radius: light sources are not infinitely small points; this describes to size of the light source as if it were a sphere.
+// The lower it is, the closer objects need to be to the light source to receive a lot of light
+//  * base_intensity: the same parameter as the physically correct equation, this is NOT the intensity at distance == 0
+//  * intensity_radius: the distance at which the final intensity reaches 0, offseted by the source_radius
+GetPointLightIntensity :: (source_radius : float, base_intensity : float, intensity_radius : float, distance : float) -> float {
+    if distance > source_radius + intensity_radius {
+        return 0;
+    }
+
+    Intensity_Factor :: 100.0; // Higher values matches more closely the physically correct equation
+
+    source_radius = Max(source_radius, 0);
+    max_intensity := Intensity_Factor * base_intensity;
+    d := Max(distance - source_radius, 0);
+    s := d / intensity_radius;
+    falloff := Intensity_Factor * intensity_radius;
+    one_minus_s_s := 1 - s * s;
+
+    return max_intensity * (one_minus_s_s * one_minus_s_s) / (1 + falloff * s);
+}
 
 PointLightEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
@@ -93,21 +124,11 @@ PointLightEntity :: struct {
     OnDebugDraw :: (world : *World, using entity : *PointLightEntity) {
         if EntityIsSelected(guid) {
             position := TranslationVector(world_transform);
-            distance := GetPointLightAttenuationDistance(light.intensity, g_light_params.point_light_attenuation_threshold);
-            DebugDrawSphereOutline(.{1,1,1,1}, position, distance);
+            DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius);
+            DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius + light.intensity_radius);
         }
     }
 } @Entity
-
-LightParams :: struct {
-    point_light_attenuation_threshold := 0.1; @FloatRange(0,1) @ShowInInspector
-} @ShaderType
-
-g_light_params : LightParams;
-
-GetPointLightAttenuationDistance :: (intensity : float, intensity_threshold : float) -> float {
-    return Sqrt(intensity / intensity_threshold);
-}
 
 LightCluster :: struct {
     min : Vec3f;

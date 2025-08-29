@@ -472,8 +472,21 @@ float2 IntegerToNormalizedTexCoords(int2 integer_coords, int2 size) {
     return float2((integer_coords + float2(0.5)) / float2(size));
 }
 
-float GetPointLightAttenuationDistance(float intensity, float intensity_threshold) {
-    return sqrt(intensity / intensity_threshold);
+float GetPointLightIntensity(float source_radius, float base_intensity, float intensity_radius, float distance) {
+    if (distance > source_radius + intensity_radius) {
+        return 0;
+    }
+
+    const float Intensity_Factor = 100.0;
+
+    source_radius = max(source_radius, 0);
+    float max_intensity = Intensity_Factor * base_intensity;
+    float d = max(distance - source_radius, 0);
+    float s = d / intensity_radius;
+    float falloff = Intensity_Factor * intensity_radius;
+    float one_minus_s_s = 1 - s * s;
+
+    return max_intensity * (one_minus_s_s * one_minus_s_s) / (1 + falloff * s);
 }
 
 uint GetLightClusterIndex(Viewpoint viewpoint, float3 world_position, float2 screen_position) {
