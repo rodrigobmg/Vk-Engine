@@ -193,11 +193,11 @@ GizmoStyle :: struct {
         view_axis := Vec4f.{1,1,1,1}; @ShowInInspector @ColorEdit
 
         rotation_trackball := Vec4f.{0,0,0,0}; @ShowInInspector @ColorEdit
-        x_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
-        y_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
-        z_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
-        view_axis_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
-        rotation_trackball_active := Vec4f.{1,0.75,0.161,1}; @ShowInInspector @ColorEdit
+        x_axis_active := Vec4f.{1,0.871,0.275,1}; @ShowInInspector @ColorEdit
+        y_axis_active := Vec4f.{1,0.871,0.275,1}; @ShowInInspector @ColorEdit
+        z_axis_active := Vec4f.{1,0.871,0.275,1}; @ShowInInspector @ColorEdit
+        view_axis_active := Vec4f.{1,0.871,0.275,1}; @ShowInInspector @ColorEdit
+        rotation_trackball_active := Vec4f.{1,0.871,0.275,1}; @ShowInInspector @ColorEdit
 
         x_axis_guide := Vec4f.{1,0,0,1}; @ShowInInspector @ColorEdit
         y_axis_guide := Vec4f.{0,1,0.067,1}; @ShowInInspector @ColorEdit
