@@ -16,6 +16,7 @@ String :: #import "String";
 #load "Source/Build/asset.jai";
 #load "Source/Build/shader_codegen.jai";
 #load "Source/Build/renderer.jai";
+#load "Source/Build/editor.jai";
 
 Default_Plugins :: string.[
     "Check(CHECK_BINDINGS=false)",
@@ -107,6 +108,7 @@ HandleCompilerMessage :: (msg : *Message) {
             HandleDeclarationForAsset(decl);
             HandleDeclarationForRenderer(decl);
             HandleDeclarationForShaderCodegen(decl);
+            HandleDeclarationForEditor(decl);
         }
 
         if g_execute_tests {
@@ -133,6 +135,7 @@ HandleCompilerMessage :: (msg : *Message) {
             GenerateEntityCode(msg.workspace);
             GenerateAssetCode(msg.workspace);
             GenerateRendererCode(msg.workspace);
+            GenerateEditorCode(msg.workspace);
 
             if !g_generated_runtime_tests_code {
                 defer {

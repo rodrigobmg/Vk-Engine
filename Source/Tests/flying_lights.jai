@@ -48,3 +48,27 @@ FlyingLightEntity :: struct {
         UpdateWorldTransform(world, entity);
     }
 } @Entity
+
+Spawn10FlyingLights :: (world : *World) {
+    for 1..10 {
+        SpawnEntity(world, FlyingLightEntity);
+    }
+} @"EditorMenu(Tools > Stress Test > Spawn 10 Flying Lights)"
+
+Spawn50FlyingLights :: (world : *World) {
+    for 1..50 {
+        SpawnEntity(world, FlyingLightEntity);
+    }
+} @"EditorMenu(Tools > Stress Test > Spawn 50 Flying Lights)"
+
+Spawn100FlyingLights :: (world : *World) {
+    for 1..100 {
+        SpawnEntity(world, FlyingLightEntity);
+    }
+} @"EditorMenu(Tools > Stress Test > Spawn 100 Flying Lights)"
+
+Spawn1000FlyingLights :: (world : *World) {
+    for 1..1000 {
+        SpawnEntity(world, FlyingLightEntity);
+    }
+} @"EditorMenu(Tools > Stress Test > Spawn 1000 Flying Lights)"

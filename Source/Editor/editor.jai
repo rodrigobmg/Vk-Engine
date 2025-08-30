@@ -28,6 +28,53 @@ g_editor_background_blur : KawaseBlur;
 
 g_editor_settings : EditorSettings;
 
+EditorMenuCallback :: #type (*World);
+
+EditorMenu :: struct {
+    path : string;
+    callback : EditorMenuCallback;
+}
+
+g_editor_menus : [..]EditorMenu;
+
+RegisterEditorMenu :: (path : string, callback : EditorMenuCallback) -> bool {
+    index := g_editor_menus.count;
+    for * g_editor_menus {
+        compare := StringCompare(path, it.path);
+        if compare == 0 {
+            return false;
+        } else if compare < 0 {
+            index = it_index;
+            break;
+        }
+    }
+
+    menu := ArrayOrderedInsert(*g_editor_menus, index);
+    menu.path = StringClone(path);
+    menu.callback = callback;
+
+    return true;
+}
+
+UnregisterEditorMenu :: (path : string) -> bool {
+    index := -1;
+    for g_editor_menus {
+        if it.path == path {
+            index = it_index;
+            break;
+        }
+    }
+
+    if index < 0 {
+        return false;
+    }
+
+    ArrayOrderedRemove(*g_editor_menus, index);
+    return true;
+}
+
+#placeholder InitEditorMenus;
+
 g_show_imgui_demo := false;
 g_show_world_inspector := true;
 g_show_entity_outliner := true;
@@ -283,6 +330,8 @@ InitEditor :: () {
 
         InitBigFileIconsFont();
     }
+
+    InitEditorMenus();
 }
 
 CleanupEditor :: () {
@@ -323,6 +372,43 @@ ShowGizmoControls :: (ctx : *GizmoContext) {
 
     ImGui.SetNextItemWidth(80);
     ImGui_Ext.EnumCombo("Pivot", *ctx.gizmo_pivot);
+}
+
+ShowEditorMenus :: (world : *World) {
+    for g_editor_menus {
+        opened := true;
+        num_menus := 0;
+        i0 := 0;
+        i1 := find_index_from_left(it.path, ">");
+        while i1 >= 0 && i0 < it.path.count && i1 < it.path.count {
+            menu_name := StringAdvance(it.path, i0);
+            menu_name.count = i1 - i0;
+            menu_name = trim(menu_name);
+
+            if menu_name {
+                if ImGui.BeginMenu(CStringClone(menu_name)) {
+                    num_menus += 1;
+                } else {
+                    opened = false;
+                    break;
+                }
+            }
+
+            i0 = i1 + 1;
+            i1 = find_index_from_left(it.path, ">", i0);
+        }
+
+        if opened {
+            menu_name := StringAdvance(it.path, i0);
+            if menu_name && ImGui.MenuItem(CStringClone(menu_name)) {
+                it.callback(world);
+            }
+        }
+
+        for i : 0..num_menus - 1 {
+            ImGui.EndMenu();
+        }
+    }
 }
 
 UpdateEditor :: (world : *World) {
@@ -377,25 +463,7 @@ UpdateEditor :: (world : *World) {
             }
         }
 
-        if ImGui.BeginMenu("Tools") {
-            defer ImGui.EndMenu();
-
-            if ImGui.MenuItem("Spawn 10 Flying Lights") {
-                for 1..10 {
-                    SpawnEntity(world, FlyingLightEntity);
-                }
-            }
-            if ImGui.MenuItem("Spawn 50 Flying Lights") {
-                for 1..50 {
-                    SpawnEntity(world, FlyingLightEntity);
-                }
-            }
-            if ImGui.MenuItem("Spawn 100 Flying Lights") {
-                for 1..100 {
-                    SpawnEntity(world, FlyingLightEntity);
-                }
-            }
-        }
+        ShowEditorMenus(world);
 
         if world.loaded_from_directory {
             ImGui.Separator();
