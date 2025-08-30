@@ -168,8 +168,8 @@ CreateRenderTargets :: () {
     g_color_texture = CreateGfxTexture("Color", texture_desc);
     Assert(!IsNull(*g_color_texture), "Could not create color texture");
 
-    if g_editor_settings.use_blur_effect {
-        CreateKawaseBlurTextures(*g_editor_background_blur, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+    if g_editor_settings.background_blur.enabled {
+        CreateKawaseBlurTextures(*g_editor_background_blur, g_editor_settings.background_blur.num_iterations, texture_desc, g_editor_settings.background_blur.resolution_factor);
     }
 
     texture_desc.pixel_format = .Depth32Float;
@@ -711,7 +711,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     ComputeBloom(*ctx, *g_color_texture);
 
-    if g_editor_settings.use_blur_effect {
+    if g_editor_settings.background_blur.enabled {
         ComputeKawaseBlur(*cmd_buffer, *g_editor_background_blur, *g_color_texture);
     }
 

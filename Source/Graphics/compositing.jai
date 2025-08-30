@@ -47,7 +47,7 @@ CompositingPass :: (using ctx : *FrameRenderContext) {
         imgui_texture=.{texture=*g_imgui_color_texture, sampler=*g_linear_clamp_sampler},
     };
 
-    if g_editor_settings.use_blur_effect {
+    if g_editor_settings.background_blur.enabled {
         bindings.blurred_color_texture = .{
             texture=GetFinalTexture(*g_editor_background_blur),
             sampler=*g_linear_clamp_sampler

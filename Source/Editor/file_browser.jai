@@ -631,6 +631,8 @@ FileBrowserPopup :: (using browser : *FileBrowser) {
         else ifx !exists && MakeString(browser.filename_text_buffer.data).count > 0
         then CTPrint("% (new)", MakeString(accept_button_text))
         else accept_button_text;
+
+    PushButtonColor(.SubmitGoodButton);
     if ImGui.Button(accept_text) || (can_submit && should_submit) {
         submitted_filename := StringClone(selected_file ,, Temp);
         if callback {
@@ -639,11 +641,13 @@ FileBrowserPopup :: (using browser : *FileBrowser) {
 
         ImGui.CloseCurrentPopup();
     }
+    PopButtonColor();
 
     ImGui.EndDisabled();
 
     ImGui.SameLine();
 
+    PushButtonColor(.CancelButton);
     if ImGui.Button("Cancel") || ImGui.IsKeyPressed(.Escape) {
         if callback {
             callback(browser, .{kind=.Cancel}, user_data);
@@ -651,6 +655,7 @@ FileBrowserPopup :: (using browser : *FileBrowser) {
 
         ImGui.CloseCurrentPopup();
     }
+    PopButtonColor();
 
     ImGui.Columns(1);
 

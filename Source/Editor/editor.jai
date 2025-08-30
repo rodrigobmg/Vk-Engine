@@ -12,12 +12,54 @@ Log_Editor :: Log_Section.{name="Editor"};
 Editor_Background_Blur_Iterations :: 3;
 Editor_Background_Blur_Resolution_Factor :: 0.75;
 
-EditorSettings :: struct {
-    entity_outline : EntityOutlineParams; @ShowInInspector @InspectorNoTree
-    use_blur_effect := true; @ShowInInspector
-    blur_effect_resolution_factor := 0.75; @ShowInInspector @FloatRange(0.1,1)
-    blur_effect_iterations := 3; @ShowInInspector
+EditorBackgroundBlurSettings :: struct {
+    enabled := true; @ShowInInspector
+    resolution_factor := 0.75; @ShowInInspector @FloatRange(0.1,1)
+    num_iterations := 3; @ShowInInspector
 } @ShaderType
+
+EditorSettings :: struct {
+    entity_outline : EntityOutlineParams; @ShowInInspector
+    background_blur : EditorBackgroundBlurSettings; @ShowInInspector
+    colors : EditorColors; @ShowInInspector
+} @ShaderType
+
+EditorColor :: enum {
+    SubmitGoodButton;
+    SubmitGoodButtonHovered;
+    SubmitGoodButtonActive;
+    SubmitBadButton;
+    SubmitBadButtonHovered;
+    SubmitBadButtonActive;
+    CancelButton;
+    CancelButtonHovered;
+    CancelButtonActive;
+}
+
+EditorColors :: struct {
+    submit_good_button := Vec4f.{0.847, 0.58, 0.192, 0.78}; @ColorEdit @ShowInInspector
+    submit_good_button_hovered := Vec4f.{0.9, 0.633, 0.244, 0.78}; @ColorEdit @ShowInInspector
+    submit_good_button_active := Vec4f.{0.809, 0.519, 0.097, 0.78}; @ColorEdit @ShowInInspector
+    submit_bad_button := Vec4f.{0.926, 0.099, 0.099, 0.78}; @ColorEdit @ShowInInspector
+    submit_bad_button_hovered := Vec4f.{0.977, 0.212, 0.212, 0.78}; @ColorEdit @ShowInInspector
+    submit_bad_button_active := Vec4f.{0.990, 0, 0, 0.78}; @ColorEdit @ShowInInspector
+    cancel_button := Vec4f.{0.117, 0.133, 0.149, 0.78}; @ColorEdit @ShowInInspector
+    cancel_button_hovered := Vec4f.{0.182, 0.189, 0.197, 0.78}; @ColorEdit @ShowInInspector
+    cancel_button_active := Vec4f.{0.154, 0.154, 0.154, 0.78}; @ColorEdit @ShowInInspector
+
+    #place submit_good_button;
+    all : [9]Vec4f = ---;
+} @ShaderType
+
+PushButtonColor :: (color : EditorColor) {
+    ImGui.PushStyleColor(.Button, g_editor_settings.colors.all[color]);
+    ImGui.PushStyleColor(.ButtonHovered, g_editor_settings.colors.all[color + 1]);
+    ImGui.PushStyleColor(.ButtonActive, g_editor_settings.colors.all[color + 2]);
+}
+
+PopButtonColor :: () {
+    ImGui.PopStyleColor(3);
+}
 
 EntityOutlineParams :: struct {
     thickness : float = 2; @ShowInInspector @FloatRange(1,5)
@@ -850,9 +892,13 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
     ImGui.PushID(entity);
     defer ImGui.PopID();
 
+    PushButtonColor(.SubmitBadButton);
+
     if ImGui.Button("Delete") {
         KillEntity(world, entity.guid);
     }
+
+    PopButtonColor();
 
     ImGui.SameLine();
 
@@ -950,14 +996,18 @@ ShowMaterialEditor :: () {
         ImGui.Separator();
         ImGui.Spacing();
 
+        PushButtonColor(.CancelButton);
         if ImGui.Button("Reload", size=.{-1, 0}) {
             reloaded, asset := TryReloadAsset(*g_Material_asset_cache, g_material_editor_selected_material.asset_name);
             RemoveRef(asset); // TryReloadAsset adds a ref
         }
+        PopButtonColor();
 
+        PushButtonColor(.SubmitGoodButton);
         if ImGui.Button("Save", size=.{-1, 0}) {
             SaveAsset(g_material_editor_selected_material);
         }
+        PopButtonColor();
     } else {
         ImGui.Text("No material selected");
     }
@@ -979,7 +1029,7 @@ ShowEngineSettings :: () {
     ShowInspector("Editor", cast(*World, null), *g_editor_settings);
 
     if memcmp(*prev_editor_settings, *g_editor_settings, size_of(EditorSettings)) != 0 {
-        if !g_editor_settings.use_blur_effect {
+        if !g_editor_settings.background_blur.enabled {
             DestroyKawaseBlur(*g_editor_background_blur);
         } else {
             w, h := GetWindowPixelSize(g_window);
@@ -990,9 +1040,9 @@ ShowEngineSettings :: () {
             texture_desc.width = xx w;
             texture_desc.height = xx h;
 
-            g_editor_settings.blur_effect_iterations = Clamp(g_editor_settings.blur_effect_iterations, 2, 10);
+            g_editor_settings.background_blur.num_iterations = Clamp(g_editor_settings.background_blur.num_iterations, 2, 10);
 
-            CreateKawaseBlurTextures(*g_editor_background_blur, g_editor_settings.blur_effect_iterations, texture_desc, g_editor_settings.blur_effect_resolution_factor);
+            CreateKawaseBlurTextures(*g_editor_background_blur, g_editor_settings.background_blur.num_iterations, texture_desc, g_editor_settings.background_blur.resolution_factor);
         }
     }
 

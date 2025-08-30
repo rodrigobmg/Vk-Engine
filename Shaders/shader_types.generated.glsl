@@ -64,6 +64,24 @@ struct DirectionalLight {
     Viewpoint shadow_map_viewpoints[4];
 };
 
+struct EditorBackgroundBlurSettings {
+    bool enabled;
+    float resolution_factor;
+    int num_iterations;
+};
+
+struct EditorColors {
+    float4 submit_good_button;
+    float4 submit_good_button_hovered;
+    float4 submit_good_button_active;
+    float4 submit_bad_button;
+    float4 submit_bad_button_hovered;
+    float4 submit_bad_button_active;
+    float4 cancel_button;
+    float4 cancel_button_hovered;
+    float4 cancel_button_active;
+};
+
 struct EntityOutlineParams {
     float thickness;
     float covered_alpha;
@@ -72,9 +90,8 @@ struct EntityOutlineParams {
 
 struct EditorSettings {
     EntityOutlineParams entity_outline;
-    bool use_blur_effect;
-    float blur_effect_resolution_factor;
-    int blur_effect_iterations;
+    EditorBackgroundBlurSettings background_blur;
+    EditorColors colors;
 };
 
 struct ShadowMapParams {

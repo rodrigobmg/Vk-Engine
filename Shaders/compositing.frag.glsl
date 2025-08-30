@@ -63,7 +63,7 @@ void main() {
     color = BlendRGBPreMultipliedAlpha(color, gizmo.rgb, gizmo.a);
 
     float3 background_color;
-    if (u_frame_info.editor_settings.use_blur_effect) {
+    if (u_frame_info.editor_settings.background_blur.enabled) {
         float2 blur_texel_size = textureSize(u_blurred_color_texture, 0);
         blur_texel_size = 1 / blur_texel_size;
 

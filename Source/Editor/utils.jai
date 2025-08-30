@@ -655,9 +655,9 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.TitleBgActive].a = 0.78;
     style.Colors[ImGui.Col.TitleBgCollapsed].a = 0.78;
     style.Colors[ImGui.Col.MenuBarBg].a = 0.39;
-    style.Colors[ImGui.Col.Button].a = 0.39;
-    style.Colors[ImGui.Col.ButtonHovered].a = 0.39;
-    style.Colors[ImGui.Col.ButtonActive].a = 0.39;
+    style.Colors[ImGui.Col.Button].a = 0.78;
+    style.Colors[ImGui.Col.ButtonHovered].a = 0.78;
+    style.Colors[ImGui.Col.ButtonActive].a = 0.78;
     style.Colors[ImGui.Col.Header].a = 0.39;
     style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
     style.Colors[ImGui.Col.HeaderActive].a = 0.39;
