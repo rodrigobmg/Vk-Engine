@@ -600,15 +600,62 @@ GetNiceEntityTypeName :: inline (entity : *Entity) -> string {
 }
 
 GetNiceEntityTypeName :: (type_id : EntityTypeId) -> string {
-    name := type_info(EntityTypeId).names[type_id];
-    if StringEndsWith(name, "Entity") {
-        name.count -= "Entity".count;
-        if name.count > 0 && name[name.count - 1] == #char "_" {
-            name.count -= 1;
+    #insert -> string {
+        builder : StringBuilder;
+
+        Appendln(*builder, "Entity_Nice_Type_Names :: string.[");
+        Appendln(*builder, "    \"Invalid\",");
+
+        for i : 1..Entity_Types.count - 1 {
+            name := type_info(EntityTypeId).names[i];
+            if StringEndsWith(name, "Entity") {
+                name.count -= "Entity".count;
+                if name.count > 0 && name[name.count - 1] == #char "_" {
+                    name.count -= 1;
+                }
+            }
+
+            Append(*builder, "    \"");
+
+            for curr : name {
+                Case :: enum {
+                    NotAlpha;
+                    Lower;
+                    Upper;
+                }
+
+                GetCase :: (char : u8) -> Case {
+                    if char >= #char "A" && char <= #char "Z" {
+                        return .Upper;
+                    }
+
+                    if char >= #char "a" && char <= #char "z" {
+                        return .Lower;
+                    }
+
+                    return .NotAlpha;
+                }
+
+                if it_index > 0 {
+                    prev := name[it_index - 1];
+                    if GetCase(prev) == .Lower && GetCase(curr) != .Lower {
+                        Append(*builder, " ");
+                    }
+                }
+
+                c := string.{data=*curr, count=1};
+                Append(*builder, "%", c);
+            }
+
+            Appendln(*builder, "\",");
         }
+
+        Appendln(*builder, "];");
+
+        return StringBuilderBuild(*builder);
     }
 
-    return name;
+    return Entity_Nice_Type_Names[type_id];
 }
 
 ShowEntityOutliner :: (world : *World) {
