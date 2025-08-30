@@ -907,6 +907,8 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
         SelectEntity(entity.guid);
     }
 
+    ImGui.SeparatorText("Properties");
+
     if BeginInspectorTable("entity_inspector") {
         defer ImGui.EndTable();
 
