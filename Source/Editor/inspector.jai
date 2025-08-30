@@ -461,15 +461,26 @@ EndInspectorLineWithReset :: (ctx : *InspectorContext, any : Any) -> Interaction
     return ResetButton(ctx, any);
 }
 
-BeginInspectorTable :: (id : *u8, reset_line := true) -> bool {
-    if ImGui.BeginTable(id, xx ifx reset_line then 3 else 2, .Resizable) {
-        ImGui.TableSetupColumn("Name", .WidthStretch, 0.4);
-        ImGui.TableSetupColumn("Value", .WidthStretch, 0.6);
+InspectorTableFlags :: enum_flags {
+    NoReset;
+    NoRowBg;
+}
 
-        if reset_line {
+BeginInspectorTable :: (id : *u8, flags : InspectorTableFlags = 0) -> bool {
+    table_flags := ImGui.TableFlags.Resizable | .RowBg;
+    if flags & .NoRowBg {
+        table_flags &= ~.RowBg;
+    }
+
+    if ImGui.BeginTable(id, xx ifx !(flags & .NoReset) then 3 else 2, table_flags) {
+        ImGui.TableSetupColumn("Name", .WidthStretch, 0.4);
+        ImGui.TableSetupColumn("Value", .WidthStretch | .NoResize, 0.6);
+
+        if !(flags & .NoReset) {
             reset_button_width := ImGui.CalcTextSize(Icon_Refresh_MDI).x + ImGui.GetStyle().ItemInnerSpacing.x + ImGui.GetStyle().FramePadding.x;
-            ImGui.TableSetupColumn("Reset", .WidthFixed, reset_button_width);
+            ImGui.TableSetupColumn("Reset", .WidthFixed | .NoResize, reset_button_width);
         }
+
 
         return true;
     }

@@ -861,7 +861,7 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
         SelectEntity(entity.guid);
     }
 
-    if BeginInspectorTable("entity_type_and_name") {
+    if BeginInspectorTable("entity_inspector") {
         defer ImGui.EndTable();
 
         BeginInspectorLine("Type");
@@ -880,33 +880,40 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
         }
 
         EndInspectorLine();
-    }
 
-    ShowInspector("GUID", world, entity.guid, notes=.["NotEditable"]);
+        ctx : InspectorContext;
+        ctx.world = world;
+        InitInspectorContext(*ctx, type_info(EntityGUID));
 
-    prev_parent := entity.parent;
+        ShowInspector("GUID", *ctx, entity.guid, notes=.["NotEditable"]);
 
-    any : Any;
-    any.type = cast(*Type_Info, GetEntityType(entity.index));
-    any.value_pointer = entity;
-    state := ShowInspector(null, world, any, notes=.["InspectorNoTree"]);
+        prev_parent := entity.parent;
 
-    if prev_parent != entity.parent {
-        new_parent_id := entity.parent;
-        entity.parent = prev_parent;
+        any : Any;
+        any.type = cast(*Type_Info, GetEntityType(entity.index));
+        any.value_pointer = entity;
 
-        if new_parent_id == Null_Entity_GUID {
-            DetachEntity(world, entity);
-        } else {
-            new_parent := GetEntity(world, *new_parent_id);
-            if new_parent {
-                AttachEntity(world, entity, new_parent);
+        InitInspectorContext(*ctx, any.type);
+
+        state := ShowInspector(null, *ctx, any, notes=.["InspectorNoTree"]);
+
+        if prev_parent != entity.parent {
+            new_parent_id := entity.parent;
+            entity.parent = prev_parent;
+
+            if new_parent_id == Null_Entity_GUID {
+                DetachEntity(world, entity);
+            } else {
+                new_parent := GetEntity(world, *new_parent_id);
+                if new_parent {
+                    AttachEntity(world, entity, new_parent);
+                }
             }
         }
-    }
 
-    if state {
-        UpdateWorldTransform(world, entity);
+        if state {
+            UpdateWorldTransform(world, entity);
+        }
     }
 }
 
@@ -1049,7 +1056,7 @@ ShowGPUProfilerTimings :: () {
 
 ShowGPUFrameStatistics :: () {
     stats := GetGfxFrameStatistics();
-    if BeginInspectorTable("gpu_frame_statistics", reset_line=false) {
+    if BeginInspectorTable("gpu_frame_statistics", .NoReset) {
         defer ImGui.EndTable();
 
         BeginInspectorLine("Draw Calls");
@@ -1137,7 +1144,7 @@ ShowDebugWindow :: (world : *World) {
         return;
     }
 
-    if BeginInspectorTable("debug_info", reset_line=false) {
+    if BeginInspectorTable("debug_info", .NoReset) {
         defer ImGui.EndTable();
 
         BeginInspectorLine("Num Point Lights");
