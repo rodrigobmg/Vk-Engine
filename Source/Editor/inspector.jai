@@ -463,24 +463,22 @@ EndInspectorLineWithReset :: (ctx : *InspectorContext, any : Any) -> Interaction
 
 InspectorTableFlags :: enum_flags {
     NoReset;
-    NoRowBg;
 }
 
-BeginInspectorTable :: (id : *u8, flags : InspectorTableFlags = 0) -> bool {
-    table_flags := ImGui.TableFlags.Resizable | .RowBg;
-    if flags & .NoRowBg {
-        table_flags &= ~.RowBg;
-    }
+Default_Inspector_Table_Flags :: ImGui.TableFlags.Resizable | .RowBg | .PadOuterX | .NoBordersInBodyUntilResize;
 
-    if ImGui.BeginTable(id, xx ifx !(flags & .NoReset) then 3 else 2, table_flags) {
+BeginInspectorTable :: (id : *u8, flags : InspectorTableFlags = 0, table_flags := Default_Inspector_Table_Flags) -> bool {
+    if ImGui.BeginTable(id, 3, table_flags | .Hideable) {
         ImGui.TableSetupColumn("Name", .WidthStretch, 0.4);
         ImGui.TableSetupColumn("Value", .WidthStretch | .NoResize, 0.6);
 
-        if !(flags & .NoReset) {
-            reset_button_width := ImGui.CalcTextSize(Icon_Refresh_MDI).x + ImGui.GetStyle().ItemInnerSpacing.x + ImGui.GetStyle().FramePadding.x;
-            ImGui.TableSetupColumn("Reset", .WidthFixed | .NoResize, reset_button_width);
+        reset_button_width := ImGui.CalcTextSize(Icon_Refresh_MDI).x + ImGui.GetStyle().ItemInnerSpacing.x + ImGui.GetStyle().FramePadding.x;
+        column_flags := ImGui.TableColumnFlags.WidthFixed | .NoResize;
+        if flags & .NoReset {
+            column_flags |= .DefaultHide;
         }
 
+        ImGui.TableSetupColumn("Reset", column_flags, reset_button_width);
 
         return true;
     }
@@ -738,13 +736,13 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                 member_label := ifx it.name && it.name != "_" then CStringClone(it.name ,, Temp);
                 member_label = Capitalize(MakeString(member_label)).data;
 
-                if member_no_tree {
-                    if member_label {
-                        ImGui.SeparatorText(member_label);
-                    } else {
-                        ImGui.Separator();
-                    }
-                }
+                // if member_no_tree {
+                //     if member_label {
+                //         ImGui.SeparatorText(member_label);
+                //     } else {
+                //         ImGui.Separator();
+                //     }
+                // }
 
                 absolute_offset = old_ctx.absolute_offset + it.offset_in_bytes;
 

@@ -831,7 +831,7 @@ ShowEntityOutliner :: (world : *World) {
 }
 
 ShowEntityInspector :: (world : *World, entity : *Entity) {
-    if !g_show_entity_inspector || !entity {
+    if !g_show_entity_inspector {
         return;
     }
 
