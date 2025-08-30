@@ -49,26 +49,33 @@ FlyingLightEntity :: struct {
     }
 } @Entity
 
-Spawn10FlyingLights :: (world : *World) {
-    for 1..10 {
-        SpawnEntity(world, FlyingLightEntity);
-    }
-} @"EditorMenu(Tools > Stress Test > Spawn 10 Flying Lights)"
+FlyingLightsMenu :: (world : *World) {
+    if ImGui.BeginMenu("Tools") {
+        defer ImGui.EndMenu();
 
-Spawn50FlyingLights :: (world : *World) {
-    for 1..50 {
-        SpawnEntity(world, FlyingLightEntity);
-    }
-} @"EditorMenu(Tools > Stress Test > Spawn 50 Flying Lights)"
+        if ImGui.BeginMenu("Stress Test") {
+            defer ImGui.EndMenu();
 
-Spawn100FlyingLights :: (world : *World) {
-    for 1..100 {
-        SpawnEntity(world, FlyingLightEntity);
+            if ImGui.MenuItem("Spawn 10 Flying Lights") {
+                for 1..10 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
+            if ImGui.MenuItem("Spawn 50 Flying Lights") {
+                for 1..50 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
+            if ImGui.MenuItem("Spawn 100 Flying Lights") {
+                for 1..100 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
+            if ImGui.MenuItem("Spawn 1000 Flying Lights") {
+                for 1..1000 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
+        }
     }
-} @"EditorMenu(Tools > Stress Test > Spawn 100 Flying Lights)"
-
-Spawn1000FlyingLights :: (world : *World) {
-    for 1..1000 {
-        SpawnEntity(world, FlyingLightEntity);
-    }
-} @"EditorMenu(Tools > Stress Test > Spawn 1000 Flying Lights)"
+} @EditorMainMenu

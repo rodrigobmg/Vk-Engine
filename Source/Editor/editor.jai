@@ -5,6 +5,7 @@
 #load "inspector.jai";
 #load "file_browser.jai";
 #load "gizmo.jai";
+#load "world.jai";
 
 Log_Editor :: Log_Section.{name="Editor"};
 
@@ -28,52 +29,25 @@ g_editor_background_blur : KawaseBlur;
 
 g_editor_settings : EditorSettings;
 
-EditorMenuCallback :: #type (*World);
+EditorMainMenuCallback :: #type (*World);
 
-EditorMenu :: struct {
-    path : string;
-    callback : EditorMenuCallback;
+g_editor_main_menus : [..]EditorMainMenuCallback;
+
+RegisterEditorMainMenu :: (callback : EditorMainMenuCallback) -> bool {
+    return ArrayPushUnique(*g_editor_main_menus, callback);
 }
 
-g_editor_menus : [..]EditorMenu;
-
-RegisterEditorMenu :: (path : string, callback : EditorMenuCallback) -> bool {
-    index := g_editor_menus.count;
-    for * g_editor_menus {
-        compare := StringCompare(path, it.path);
-        if compare == 0 {
-            return false;
-        } else if compare < 0 {
-            index = it_index;
-            break;
-        }
-    }
-
-    menu := ArrayOrderedInsert(*g_editor_menus, index);
-    menu.path = StringClone(path);
-    menu.callback = callback;
-
-    return true;
-}
-
-UnregisterEditorMenu :: (path : string) -> bool {
-    index := -1;
-    for g_editor_menus {
-        if it.path == path {
-            index = it_index;
-            break;
-        }
-    }
-
+UnregisterEditorMainMenu :: (callback : EditorMainMenuCallback) -> bool {
+    index := ArrayFindFirst(g_editor_main_menus, callback);
     if index < 0 {
         return false;
     }
 
-    ArrayOrderedRemove(*g_editor_menus, index);
+    ArrayOrderedRemove(*g_editor_main_menus, index);
     return true;
 }
 
-#placeholder InitEditorMenus;
+#placeholder InitEditorMainMenus;
 
 g_show_imgui_demo := false;
 g_show_world_inspector := true;
@@ -88,8 +62,6 @@ g_editor_last_copied_entity_guid : EntityGUID;
 g_editor_has_copied_entity_guid : bool;
 g_editor_entity_filter_text : [100]u8;
 g_editor_entity_filter_case_sensitive : bool;
-g_editor_requested_load_world : bool;
-g_editor_requested_save_world : bool;
 
 Camera :: struct {
     position : Vec3f;
@@ -331,7 +303,7 @@ InitEditor :: () {
         InitBigFileIconsFont();
     }
 
-    InitEditorMenus();
+    InitEditorMainMenus();
 }
 
 CleanupEditor :: () {
@@ -374,64 +346,21 @@ ShowGizmoControls :: (ctx : *GizmoContext) {
     ImGui_Ext.EnumCombo("Pivot", *ctx.gizmo_pivot);
 }
 
-ShowEditorMenus :: (world : *World) {
-    for g_editor_menus {
-        opened := true;
-        num_menus := 0;
-        i0 := 0;
-        i1 := find_index_from_left(it.path, ">");
-        while i1 >= 0 && i0 < it.path.count && i1 < it.path.count {
-            menu_name := StringAdvance(it.path, i0);
-            menu_name.count = i1 - i0;
-            menu_name = trim(menu_name);
-
-            if menu_name {
-                if ImGui.BeginMenu(CStringClone(menu_name)) {
-                    num_menus += 1;
-                } else {
-                    opened = false;
-                    break;
-                }
-            }
-
-            i0 = i1 + 1;
-            i1 = find_index_from_left(it.path, ">", i0);
-        }
-
-        if opened {
-            menu_name := StringAdvance(it.path, i0);
-            if menu_name && ImGui.MenuItem(CStringClone(menu_name)) {
-                it.callback(world);
-            }
-        }
-
-        for i : 0..num_menus - 1 {
-            ImGui.EndMenu();
-        }
-    }
-}
-
 UpdateEditor :: (world : *World) {
     LogSectionScope(*Log_Editor);
 
     ImGui.DockSpaceOverViewport(flags=.PassthruCentralNode);
 
     if ImGui.BeginMainMenuBar() {
+        // Prepare basic menus so they appear in that specific order
         if ImGui.BeginMenu("World") {
             defer ImGui.EndMenu();
-
-            if ImGui.MenuItem("New") {
-                DestroyWorld(world);
-            }
-            if ImGui.MenuItem("Load") {
-                g_editor_requested_load_world = true;
-            }
-            if ImGui.MenuItem("Save", enabled=world.loaded_from_directory != "") {
-                SaveWorldToDirectory(world, world.loaded_from_directory);
-            }
-            if ImGui.MenuItem("Save As") {
-                g_editor_requested_save_world = true;
-            }
+        }
+        if ImGui.BeginMenu("Window") {
+            defer ImGui.EndMenu();
+        }
+        if ImGui.BeginMenu("Tools") {
+            defer ImGui.EndMenu();
         }
 
         if ImGui.BeginMenu("Window") {
@@ -463,7 +392,9 @@ UpdateEditor :: (world : *World) {
             }
         }
 
-        ShowEditorMenus(world);
+        for g_editor_main_menus {
+            it(world);
+        }
 
         if world.loaded_from_directory {
             ImGui.Separator();
@@ -568,40 +499,6 @@ UpdateEditor :: (world : *World) {
         }
 
         CallComponentCallback(world, entity, component, "OnDebugDraw");
-    }
-
-    if g_editor_requested_save_world {
-        Callback :: (browser : *FileBrowser, event : FileBrowserEvent, user_data : *void) {
-            if event.kind == .Submit {
-                SaveWorldToDirectory(xx user_data, event.filename);
-            }
-        }
-
-        OpenFileBrowser("Save World", params=.{
-            accept_button_text="Save To Folder",
-            initial_directory="Data/Scenes/",
-            root_directories=.["Data"],
-            flags=.SelectDirectory
-        }, Callback, world);
-
-        g_editor_requested_save_world = false;
-    }
-
-    if g_editor_requested_load_world {
-        Callback :: (browser : *FileBrowser, event : FileBrowserEvent, user_data : *void) {
-            if event.kind == .Submit {
-                LoadWorldFromDirectory(xx user_data, event.filename);
-            }
-        }
-
-        OpenFileBrowser("Load World", params=.{
-            accept_button_text="Open Folder",
-            initial_directory="Data/Scenes/",
-            root_directories=.["Data"],
-            flags=.SelectDirectory | .DisallowNonExisting
-        }, Callback, world);
-
-        g_editor_requested_load_world = false;
     }
 
     UpdateAllFileBrowsers();

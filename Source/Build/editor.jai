@@ -2,37 +2,26 @@
 
 g_generated_editor_code := false;
 
-EditorMenu :: struct {
-    path : string;
-    callback_name : string;
-}
-
-g_editor_menus : [..]EditorMenu;
+g_editor_main_menus : [..]string;
 
 #scope_export
 
 HandleDeclarationForEditor :: (decl : *Code_Declaration) {
-    has_editor_menu_note := false;
-    editor_menu_path : string;
+    has_editor_main_menu_note := false;
     for note : decl.notes {
-        if StringStartsWith(note.text, "EditorMenu(") && StringEndsWith(note.text, ")") {
-            editor_menu_path = StringAdvance(note.text, "EditorMenu(".count);
-            editor_menu_path.count -= 1;
-            has_editor_menu_note = true;
+        if note.text == "EditorMainMenu" {
+            has_editor_main_menu_note = true;
         }
     }
 
     location := make_location(decl);
 
-    if has_editor_menu_note {
+    if has_editor_main_menu_note {
         if !decl.expression || decl.expression.kind != .PROCEDURE_HEADER {
-            compiler_report("Declaration is marked @EditorMenu but is not a procedure declaration.", location);
+            compiler_report("Declaration is marked @EditorMainMenu but is not a procedure declaration.", location);
         }
 
-        menu : EditorMenu;
-        menu.path = editor_menu_path;
-        menu.callback_name = decl.name;
-        ArrayPush(*g_editor_menus, menu);
+        ArrayPush(*g_editor_main_menus, decl.name);
     }
 }
 
@@ -45,10 +34,10 @@ GenerateEditorCode :: (workspace : Workspace) {
 
     builder : StringBuilder;
 
-    Appendln(*builder, "InitEditorMenus :: () {");
+    Appendln(*builder, "InitEditorMainMenus :: () {");
 
-    for g_editor_menus {
-        Appendln(*builder, "    RegisterEditorMenu(\"%\", %);", it.path, it.callback_name);
+    for g_editor_main_menus {
+        Appendln(*builder, "    RegisterEditorMainMenu(%);", it);
     }
 
     Appendln(*builder, "}");
