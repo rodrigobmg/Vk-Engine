@@ -9,4 +9,6 @@
 @light 2:
   @color 2: [1, 0.456014, 0.114014]
   @intensity 3: 1
+  @intensity_radius 5: 0
+  @source_radius 6: 0.05
   @cast_shadows 4: false
