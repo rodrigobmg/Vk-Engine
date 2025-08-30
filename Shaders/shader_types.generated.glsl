@@ -95,12 +95,6 @@ struct FrameInfo {
     EditorSettings editor_settings;
 };
 
-struct FrameRenderStatistics {
-    float avg_lights_per_cluster;
-    uint min_lights_per_cluster;
-    uint max_lights_per_cluster;
-};
-
 #define GizmoMesh int
 #define GizmoMesh_Cube 0
 #define GizmoMesh_Sphere 1
