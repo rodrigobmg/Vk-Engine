@@ -31,6 +31,7 @@ Supports Linux and Windows.
 * Automatic texture transition barriers
 * Texture viewer
 * Variance shadow maps
+* Particle system
 
 ## Goals
 * Sponza running at 155 FPS with all point lights casting shadows
