@@ -575,8 +575,8 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.Button] = .{0.117, 0.133, 0.149, 1};
     style.Colors[ImGui.Col.ButtonHovered] = .{0.182, 0.189, 0.197, 1};
     style.Colors[ImGui.Col.ButtonActive] = .{0.154, 0.154, 0.154, 1};
-    style.Colors[ImGui.Col.Header] = .{0.141, 0.162, 0.206, 1};
-    style.Colors[ImGui.Col.HeaderHovered] = .{0.186, 0.178, 0.178, 1};
+    style.Colors[ImGui.Col.Header] = .{0.184, 0.220, 0.302, 1};
+    style.Colors[ImGui.Col.HeaderHovered] = .{0.232, 0.212, 0.212, 1};
     style.Colors[ImGui.Col.HeaderActive] = .{0.078, 0.086, 0.101, 1};
     style.Colors[ImGui.Col.Separator] = .{0.141, 0.161, 0.208, 0.2};
     style.Colors[ImGui.Col.SeparatorHovered] = .{0.156, 0.184, 0.250, 0.78};
@@ -586,9 +586,9 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.ResizeGripActive] = .{0.999, 1, 0.999, 1};
     style.Colors[ImGui.Col.Tab] = .{0.078, 0.086, 0.101, 1};
     style.Colors[ImGui.Col.TabHovered] = .{0.117, 0.133, 0.149, 1};
-    style.Colors[ImGui.Col.TabActive] = .{0.117, 0.133, 0.149, 1};
+    style.Colors[ImGui.Col.TabActive] = .{0.31, 0.31, 0.31, 1};
     style.Colors[ImGui.Col.TabUnfocused] = .{0.078, 0.086, 0.101, 1};
-    style.Colors[ImGui.Col.TabUnfocusedActive] = .{0.078, 0.086, 0.101, 1};
+    style.Colors[ImGui.Col.TabUnfocusedActive] = .{0.19, 0.19, 0.19, 1};
     style.Colors[ImGui.Col.PlotLines] = .{0.521, 0.600, 0.701, 1};
     style.Colors[ImGui.Col.PlotLinesHovered] = .{0.039, 0.980, 0.980, 1};
     style.Colors[ImGui.Col.PlotHistogram] = .{0.884, 0.794, 0.561, 1};
@@ -658,7 +658,7 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.Button].a = 0.39;
     style.Colors[ImGui.Col.ButtonHovered].a = 0.39;
     style.Colors[ImGui.Col.ButtonActive].a = 0.39;
-    style.Colors[ImGui.Col.Header].a = 0.20;
+    style.Colors[ImGui.Col.Header].a = 0.39;
     style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
     style.Colors[ImGui.Col.HeaderActive].a = 0.39;
     style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.78;
