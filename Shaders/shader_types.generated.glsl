@@ -3,6 +3,26 @@
 #ifndef SHADER_TYPES_GENERATED_GLSL
 #define SHADER_TYPES_GENERATED_GLSL
 
+#define BRDF_LUT_Compute_Work_Group_Size 16
+#define Bloom_Compute_Work_Group_Size 16
+#define Kawase_Bur_Compute_Work_Group_Size 16
+#define Max_Lights_Per_Clusters 100
+#define Max_Point_Shadow_Maps 20
+#define Max_Shadow_Maps 2
+#define Max_Viewpoints 6
+#define Num_Clusters 3456
+#define Num_Clusters_X 16
+#define Num_Clusters_Y 9
+#define Num_Clusters_Z 24
+#define Num_Environment_Map_Levels 6
+#define Num_Point_Shadow_Map_Cbrt_Samples 3
+#define Num_Point_Shadow_Map_Samples 27
+#define Num_Shadow_Map_Cascades 4
+#define Num_Shadow_Map_Samples 64
+#define Num_Shadow_Map_Sqrt_Samples 8
+#define Populate_Cluster_Grid_Work_Group_Size 144
+#define Shadow_Map_Noise_Size 32
+
 struct BloomParams {
     float resolution_factor;
     float brightness_threshold;
@@ -75,6 +95,12 @@ struct FrameInfo {
     EditorSettings editor_settings;
 };
 
+struct FrameRenderStatistics {
+    float avg_lights_per_cluster;
+    uint min_lights_per_cluster;
+    uint max_lights_per_cluster;
+};
+
 #define GizmoMesh int
 #define GizmoMesh_Cube 0
 #define GizmoMesh_Sphere 1
@@ -139,33 +165,5 @@ struct PointLight {
     uint shadow_map_resolution;
     Viewpoint shadow_map_viewpoints[6];
 };
-
-#define Num_Environment_Map_Levels 6
-
-#define BRDF_LUT_Compute_Work_Group_Size 16
-
-#define Max_Viewpoints 6
-
-#define Bloom_Compute_Work_Group_Size 16
-
-#define Kawase_Bur_Compute_Work_Group_Size 16
-
-#define Num_Point_Shadow_Map_Cbrt_Samples 3
-#define Num_Point_Shadow_Map_Samples 27
-
-#define Num_Shadow_Map_Cascades 4
-#define Shadow_Map_Noise_Size 32
-#define Num_Shadow_Map_Sqrt_Samples 8
-#define Num_Shadow_Map_Samples 64
-
-#define Max_Shadow_Maps 2
-#define Max_Point_Shadow_Maps 20
-
-#define Max_Lights_Per_Clusters 100
-#define Num_Clusters_X 16
-#define Num_Clusters_Y 9
-#define Num_Clusters_Z 24
-#define Num_Clusters 3456
-#define Populate_Cluster_Grid_Work_Group_Size 144
 
 #endif
