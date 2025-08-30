@@ -45,4 +45,5 @@ Supports Linux and Windows.
 ![File Browser](Screenshots/file_browser.png)
 ### 1000 moving point lights running at 100 FPS (1080p)
 > 60 FPS because of V-Sync, but GPU time varies between 10 to 11 ms, which is 90-100 FPS
+
 ![Light Ballet](Screenshots/light_ballet.png)
