@@ -793,7 +793,7 @@ ShowEntityOutliner :: (world : *World) {
                 ImGui.SetItemTooltip("<%> %", GetNiceEntityTypeName(entity), entity.guid);
             }
 
-            if ImGui.BeginPopupContextItem(CTPrint("%##context_menu", label)) {
+            if ImGui.BeginPopupContextItem(CTPrint("%##context_menu", MakeString(label))) {
                 if ImGui.MenuItem("Detach", enabled=entity.parent != Null_Entity_GUID) {
                     DetachEntity(world, entity);
                 }
