@@ -156,6 +156,9 @@ void main() {
         Lo += CalculateBRDF(base_color, metallic, roughness, N, V, L, light_color * light.intensity * shadow);
     }
 
+    // out_color = float4(cluster.num_lights / float(Max_Lights_Per_Clusters), 0, 0, 1);
+    // return;
+
     for (uint i = 0; i < cluster.num_lights; i += 1) {
         uint light_index = cluster.lights[i];
         PointLight light = u_point_lights[light_index];

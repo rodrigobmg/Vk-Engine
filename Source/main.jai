@@ -35,6 +35,8 @@ ImGui_SDL :: #import "ImGui/Impl/SDL";
 #load "world.jai";
 #load "preferences.jai";
 
+#load "Tests/flying_lights.jai";
+
 #load "Graphics/graphics.jai";
 #load "Editor/editor.jai";
 

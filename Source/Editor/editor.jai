@@ -332,6 +332,8 @@ UpdateEditor :: (world : *World) {
 
     if ImGui.BeginMainMenuBar() {
         if ImGui.BeginMenu("World") {
+            defer ImGui.EndMenu();
+
             if ImGui.MenuItem("New") {
                 DestroyWorld(world);
             }
@@ -344,11 +346,11 @@ UpdateEditor :: (world : *World) {
             if ImGui.MenuItem("Save As") {
                 g_editor_requested_save_world = true;
             }
-
-            ImGui.EndMenu();
         }
 
         if ImGui.BeginMenu("Window") {
+            defer ImGui.EndMenu();
+
             if ImGui.MenuItem("World Inspector", selected=g_show_world_inspector) {
                 g_show_world_inspector = true;
             }
@@ -373,8 +375,26 @@ UpdateEditor :: (world : *World) {
             if ImGui.MenuItem("ImGui Demo", selected=g_show_imgui_demo) {
                 g_show_imgui_demo = true;
             }
+        }
 
-            ImGui.EndMenu();
+        if ImGui.BeginMenu("Tools") {
+            defer ImGui.EndMenu();
+
+            if ImGui.MenuItem("Spawn 10 Flying Lights") {
+                for 1..10 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
+            if ImGui.MenuItem("Spawn 50 Flying Lights") {
+                for 1..50 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
+            if ImGui.MenuItem("Spawn 100 Flying Lights") {
+                for 1..100 {
+                    SpawnEntity(world, FlyingLightEntity);
+                }
+            }
         }
 
         if world.loaded_from_directory {
@@ -451,7 +471,7 @@ UpdateEditor :: (world : *World) {
     ShowMaterialEditor();
     ShowEngineSettings();
     ShowGPUProfiler();
-    ShowDebugWindow();
+    ShowDebugWindow(world);
 
     entity_to_inspect : *Entity;
     if g_editor_selected_entities.count == 1 {
@@ -1093,7 +1113,7 @@ ShowGPUProfiler :: () {
     }
 }
 
-ShowDebugWindow :: () {
+ShowDebugWindow :: (world : *World) {
     if !g_show_debug_window {
         return;
     }
@@ -1103,5 +1123,13 @@ ShowDebugWindow :: () {
     ImGui.SetNextWindowSize(.{450, 700}, .FirstUseEver);
     if !ImGui.Begin("Debug", *g_show_debug_window) {
         return;
+    }
+
+    if BeginInspectorTable("debug_info", reset_line=false) {
+        defer ImGui.EndTable();
+
+        BeginInspectorLine("Num Point Lights");
+        ImGui.Text("%", world.PointLightComponent_storage.count);
+        EndInspectorLine();
     }
 }

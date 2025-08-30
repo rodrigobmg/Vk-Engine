@@ -36,6 +36,11 @@ Supports Linux and Windows.
 * Sponza running at 155 FPS with all point lights casting shadows
 
 ## Gallery
+### Custom editor gizmos
 ![Gizmos](Screenshots/gizmo.gif)
+### Parallax occlusion mapping, with self shadowing
 ![Parallax Occlusion Mapping With Self Shadowing](Screenshots/parallax_occlusion_mapping_with_shadows.gif)
+### Custom file browser
 ![File Browser](Screenshots/file_browser.png)
+### 1000 moving point lights running at 100 FPS (1080p)
+![Light Ballet](Screenshots/light_ballet.png)
