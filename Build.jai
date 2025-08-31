@@ -35,6 +35,8 @@ g_verbose_tests := false;
 g_execute_tests := true;
 g_tests_to_execute : [..]string;
 
+g_show_compiler_stats := false;
+
 g_generated_runtime_tests_code := false;
 g_runtime_tests : [..]string;
 
@@ -238,6 +240,9 @@ Build :: () {
         case "-verbose_error";
             g_report_all_undeclared_identifiers = true;
 
+        case "-compiler_stats";
+            g_show_compiler_stats = true;
+
         case;
             LogError("Unknown argument '%'.", args[arg_index]);
             arg_error = true;
@@ -280,6 +285,9 @@ Build :: () {
     options.write_added_strings = true;
     options.stack_trace = true;
     options.text_output_flags = 0;
+    if g_show_compiler_stats {
+        options.text_output_flags = .OUTPUT_TIMING_INFO;
+    }
 
     #if OS == .LINUX {
         #import "POSIX";
