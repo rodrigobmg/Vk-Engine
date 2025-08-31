@@ -1,0 +1,16 @@
+@_ 1:
+  @guid 1: 0xcca2cd0d028d38c210cbf152843e6b80
+  @flags 7: 0x0
+  @name 2: "Ray 4 1"
+  @local_position 3: [-5.590169, -3.090171, -7.694211]
+  @local_rotation 4: [-0.148778, 0.305212, 0.048341, 0.939347]
+  @local_scale 5: [1, 1, 1]
+  @parent 6: 0x28df7274761a02328418d589fe652d64
+@shape 2: Ray
+@sphere_radius 4: 1
+@capsule_height 5: 2
+@capsule_radius 6: 0.5
+@mesh 8:
+  @cast_shadows 4: true
+  @cast_point_shadows 5: false
+@ray_length 9: 10

@@ -9,6 +9,8 @@ StaticVertex :: struct {
 
 StaticMesh :: struct {
     #as using _ : Mesh(StaticVertex);
+
+    #as collision_mesh : CollisionMesh;
 } @Asset
 
 Mesh :: struct(VertexType : Type) {
@@ -22,8 +24,6 @@ Mesh :: struct(VertexType : Type) {
     index_buffer : GfxBuffer;
 
     static_bounds : AABB;
-
-    triangles : []MeshTriangle;
 }
 
 MeshFileFlags :: enum_flags u32 {
@@ -32,7 +32,6 @@ MeshFileFlags :: enum_flags u32 {
 }
 
 DestroyMesh :: (using mesh : *Mesh) {
-    Free(triangles.data);
     Free(vertices.data);
     Free(indices.data);
     QueueDestroyGfxBuffer(*vertex_buffer);
@@ -105,17 +104,56 @@ LoadStaticMeshFromMemory :: (mesh : *StaticMesh, data : []u8, name : string) -> 
         return false;
     }
 
-    if !(flags & .HasOctree) && !IsAtEnd(reader) {
-        LogError("Trailing data (% bytes) in static mesh '%' file", reader.size - reader.offset, name);
+    if flags & .HasOctree {
+        octree_node_count:, ok = ReadValue(*reader, u32);
+        if !ok || octree_node_count == 0 {
+            LogError("Could not read octree node count");
+            return false;
+        }
+
+        ArrayReserve(*mesh.collision_mesh.octree, octree_node_count);
+
+        for i : 0..octree_node_count - 1 {
+            child_index:, ok = ReadValue(*reader, s32);
+            if !ok {
+                LogError("Could not read octree node % child index", child_index);
+                return false;
+            }
+
+            if child_index < -1 || child_index >= xx octree_node_count {
+                LogError("Invalid octree child index %", child_index);
+                return false;
+            }
+
+            ArrayPush(*mesh.collision_mesh.octree, .{first_child_index=child_index});
+        }
+
+        for * mesh.collision_mesh.octree {
+            if it.first_child_index >= 0 {
+                continue;
+            }
+
+            it.elements.count, ok = ReadValue(*reader, s32);
+            if !ok {
+                LogError("Could not read octree node % element count", it_index);
+                return false;
+            }
+
+            it.elements.data = Alloc(u32, it.elements.count);
+
+            ok = ReadArray(*reader, DecompressArray(it.elements));
+            if !ok {
+                LogError("Could not read octree node % elements", it_index);
+                return false;
+            }
+        }
     }
 
-    BuildTriangleList(mesh);
+    BuildCollisionMesh(mesh);
 
     if !(flags & .HasTangents) {
         CalculateTangents(mesh);
     }
-
-    CalculateStaticBounds(mesh);
 
     if vertex_count > 0 {
         desc : GfxBufferDesc;
@@ -151,6 +189,7 @@ LoadStaticMeshFromMemory :: (mesh : *StaticMesh, data : []u8, name : string) -> 
 }
 
 DestroyStaticMesh :: (mesh : *StaticMesh) {
+    DestroyCollisionMesh(mesh);
     DestroyMesh(mesh);
 }
 
@@ -225,30 +264,5 @@ CalculateTangents :: (using mesh : *Mesh) {
 
         vert.tangent.xyz = Normalized(Reject(t, n));
         vert.tangent.w = ifx Dot(Cross(t, b), n) > 0 then 1.0 else -1.0;
-    }
-}
-
-MeshTriangle :: struct {
-    p0, p1, p2 : Vec3f;
-    normal : Vec3f;
-}
-
-BuildTriangleList :: (mesh : *Mesh) {
-    num_triangles := mesh.indices.count / 3;
-    mesh.triangles = AllocArray(MeshTriangle, num_triangles);
-    for i : 0..num_triangles - 1 {
-        i0 := mesh.indices[i * 3 + 0];
-        i1 := mesh.indices[i * 3 + 1];
-        i2 := mesh.indices[i * 3 + 2];
-        v0 := mesh.vertices[i0];
-        v1 := mesh.vertices[i1];
-        v2 := mesh.vertices[i2];
-
-        mesh.triangles[i].p0 = v0.position;
-        mesh.triangles[i].p1 = v1.position;
-        mesh.triangles[i].p2 = v2.position;
-        ab := Normalized(mesh.triangles[i].p1 - mesh.triangles[i].p0);
-        ac := Normalized(mesh.triangles[i].p2 - mesh.triangles[i].p0);
-        mesh.triangles[i].normal = Cross(ab, ac);
     }
 }

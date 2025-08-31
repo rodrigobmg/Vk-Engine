@@ -347,6 +347,158 @@ RayIntersectsTriangleMollerTrumbore :: (ray_origin : Vec3f, ray_dir : Vec3f, ray
     return false, .{}, 0, .{};
 }
 
+GetBoxSplittingPlanes :: (center : Vec3f) -> x : Plane, y : Plane, z : Plane {
+    return .{origin=center, normal=.{1,0,0}},
+           .{origin=center, normal=.{0,1,0}},
+           .{origin=center, normal=.{0,0,1}};
+}
+
+// https://www.researchgate.net/publication/2611491_A_Fast_Voxel_Traversal_Algorithm_for_Ray_Tracing
+// https://daeken.svbtle.com/a-stupidly-simple-fast-octree-traversal-for-ray-intersection
+RayIntersectsOctreeMesh :: (
+    ray_origin : Vec3f,
+    ray_dir : Vec3f,
+    mesh : *CollisionMesh,
+    octree_index : int,
+    octree_center : Vec3f,
+    octree_half_size : float
+    //, transform : Mat4f
+) ->
+    intersects : bool,
+    point : Vec3f,
+    normal : Vec3f,
+    triangle_index : int,
+    octree_index : int
+#no_abc {
+    if mesh.octree.count <= 0 {
+        return false, .{}, .{}, -1, -1;
+    }
+
+    origin := ray_origin;
+
+    // Early test with tighter static bounds
+    if octree_index == 0 {
+        early_hit : bool;
+        early_point : Vec3f;
+        if !PointIsInsideBox(ray_origin, octree_center, .{octree_half_size,octree_half_size,octree_half_size}) {
+            early_hit, early_point = RayIntersectsBox(ray_origin, ray_dir, F32_Inf, octree_center, .{octree_half_size,octree_half_size,octree_half_size});
+        } else {
+            early_hit = true;
+            early_point = ray_origin;
+        }
+
+        if !early_hit {
+            return false, .{}, .{}, -1, -1;
+        }
+
+        // Put the origin at the intersection with the bounds, otherwise we won't be able to
+        // select the correct octants when traversing (as it depends on the ray origin)
+        origin = early_point;
+    }
+
+    octree := mesh.octree[octree_index];
+
+    // color := ifx octree.first_child_index < 0 then Vec3f.{0,0,1} else Vec3f.{0,1,0};
+    // DebugDrawBoxOutline(color, octree_center, .{octree_half_size,octree_half_size,octree_half_size}, 2, transform);
+
+    // Leaf node, check triangles
+    if octree.first_child_index < 0 {
+        closest_hit : bool;
+        closest_point, closest_normal : Vec3f;
+        closest_dist := F32_Inf;
+        triangle_index := -1;
+
+        for i : octree.elements {
+            tri := mesh.triangles[i];
+
+            hit, point, dist, normal
+                := RayIntersectsTriangle(origin, ray_dir, F32_Inf, tri.p0, tri.p1, tri.p2);
+
+            if hit && dist < closest_dist {
+                closest_hit = true;
+                closest_point = point;
+                closest_normal = normal;
+                closest_dist = dist;
+                triangle_index = xx i;
+            }
+        }
+
+        // Only take the result into account if the hit point belongs to the current octant
+        // because another octant might contain a triangle that the ray also hits
+        // @Speed: cache the result to reuse later if we didn't find a better point
+        if closest_hit && !PointIsInsideBox(closest_point, octree_center, .{octree_half_size,octree_half_size,octree_half_size}) {
+            closest_hit = false;
+        }
+
+        return closest_hit, closest_point, closest_normal, triangle_index, octree_index;
+    }
+
+    RayPlaneDistance :: inline (ray_origin : Vec3f, ray_dir : Vec3f, plane : Plane) -> float {
+        hit, _, dist := RayIntersectsPlane(ray_origin, ray_dir, F32_Inf, plane.origin, plane.normal);
+        if !hit {
+            return F32_Inf;
+        }
+
+        return dist;
+    }
+
+    plane_x, plane_y, plane_z := GetBoxSplittingPlanes(octree_center);
+    side_x := Dot(origin - plane_x.origin, plane_x.normal) >= 0;
+    side_y := Dot(origin - plane_y.origin, plane_y.normal) >= 0;
+    side_z := Dot(origin - plane_z.origin, plane_z.normal) >= 0;
+    dist_x := ifx side_x == (ray_dir.x < 0) then RayPlaneDistance(origin, ray_dir, plane_x) else F32_Inf;
+    dist_y := ifx side_y == (ray_dir.y < 0) then RayPlaneDistance(origin, ray_dir, plane_y) else F32_Inf;
+    dist_z := ifx side_z == (ray_dir.z < 0) then RayPlaneDistance(origin, ray_dir, plane_z) else F32_Inf;
+
+    new_origin := origin;
+    node_half_size := octree_half_size / 2;
+    for i : 0..3 {
+        node_index := cast(s32, side_z) | (cast(s32, side_y) << 1) | (cast(s32, side_x) << 2);
+        node_center := GetOctreeNodeCenter(octree_center, node_half_size, xx node_index);
+
+        // text := TPrint("Node %, Iter %, Child %(%)\nX:% Y:% Z:%\nX:% Y:% Z:%",
+        //     octree_index, i, node_index, octree.first_child_index + node_index,
+        //     cast(int,side_x), cast(int,side_y), cast(int,side_z),
+        //     dist_x, dist_y, dist_z
+        // );
+        // Gizmo.DrawText(text, TransformPoint(transform, node_center), .{1,1,1,1}, .{0.1,0.1,0.1,1});
+
+        node_index += octree.first_child_index;
+        node_hit, hit_point, hit_normal, hit_triangle, hit_octree
+            := RayIntersectsOctreeMesh(new_origin, ray_dir, mesh, node_index, node_center, node_half_size);//, transform);
+
+        if node_hit {
+            return true, hit_point, hit_normal, hit_triangle, hit_octree;
+        }
+
+        min_dist := Min(Min(dist_x, dist_y), dist_z);
+        if Math.isinf(min_dist) {
+            return false, .{}, .{}, -1, -1;
+        }
+
+        new_origin = origin + ray_dir * min_dist;
+        // Stop traversing if the closest hit is outside the box
+        if !PointIsInsideBox(new_origin, octree_center, .{octree_half_size,octree_half_size,octree_half_size}) {
+            return false, .{}, .{}, -1, -1;
+        }
+
+        // Flip the side of the plane we are one, because marching along the ray means going through the plane.
+        // Make the distance to the plane infinite so the next iteration will choose the next closest plane.
+        if min_dist == dist_x {
+            side_x = !side_x;
+            dist_x = F32_Inf;
+        } else if min_dist == dist_y {
+            side_y = !side_y;
+            dist_y = F32_Inf;
+        } else if min_dist == dist_z {
+            side_z = !side_z;
+            dist_z = F32_Inf;
+        }
+    }
+
+    return false, .{}, .{}, -1, -1;
+}
+
 RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, mesh : *StaticMesh, transform : Mat4f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f, triangle_index : int {
     inv_transform := Inverse(transform);
     intersects, point, dist, normal, triangle_index := RayIntersectsMesh(ray_origin, ray_dir, ray_length, mesh, transform, inv_transform);
@@ -363,31 +515,108 @@ RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, m
         return false, .{}, 0, .{}, -1;
     }
 
-    closest_hit : bool;
-    closest_point, closest_normal : Vec3f;
-    closest_dist := F32_Inf;
-    triangle_index := -1;
+    octree_center := mesh.static_bounds.center;
+    octree_half_size := Max(Max(mesh.static_bounds.half_extents.x, mesh.static_bounds.half_extents.y), mesh.static_bounds.half_extents.z);
+    hit, point, normal, triangle_index
+        := RayIntersectsOctreeMesh(model_space_ray_origin, model_space_ray_dir, mesh, 0, octree_center, octree_half_size);//, transform);
 
-    for mesh.triangles {
-        hit, point, dist, normal
-            := RayIntersectsTriangle(model_space_ray_origin, model_space_ray_dir, F32_Inf, it.p0, it.p1, it.p2);
-
-        if hit && dist < closest_dist {
-            closest_hit = true;
-            closest_point = point;
-            closest_normal = normal;
-            closest_dist = dist;
-            triangle_index = xx it_index;
-        }
-    }
-
-    if !closest_hit {
+    if !hit {
         return false, .{}, 0, .{}, -1;
     }
 
-    point := TransformPoint(transform, closest_point);
-    normal := Normalized(TransformVector(transform, closest_normal));
+    point = TransformPoint(transform, point);
+    normal = Normalized(TransformVector(transform, normal));
     dist := Distance(point, ray_origin);
 
     return dist < ray_length, point, dist, normal, triangle_index;
+}
+
+// Triangle-box intersection using the separating axis theorem
+// https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
+TriangleIntersectsBox :: (
+    triangle_A : Vec3f,
+    triangle_B : Vec3f,
+    triangle_C : Vec3f,
+    triangle_normal : Vec3f,
+    box_center : Vec3f,
+    box_half_extents : Vec3f
+) -> bool {
+    A := triangle_A - box_center;
+    B := triangle_B - box_center;
+    C := triangle_C - box_center;
+
+    AB := B - A;
+    BC := C - B;
+    CA := A - C;
+
+    n0 := Vec3f.{1,0,0};
+    n1 := Vec3f.{0,1,0};
+    n2 := Vec3f.{0,0,1};
+
+    // There are a total of 13 axes to test
+
+    IsSeparatingAxis :: (axis : Vec3f) -> bool #expand {
+        p0 := Dot(A, axis);
+        p1 := Dot(B, axis);
+        p2 := Dot(C, axis);
+
+        // Project the AABB onto the separating axis
+        // We don't care about the end points of the prjection
+        // just the length of the half-size of the AABB
+        // That is, we're only casting the extents onto the
+        // separating axis, not the AABB center. We don't
+        // need to cast the center, because we know that the
+        // aabb is at origin compared to the triangle
+        r :=  box_half_extents.x * Abs(Dot(n0, axis))
+            + box_half_extents.y * Abs(Dot(n1, axis))
+            + box_half_extents.z * Abs(Dot(n2, axis));
+
+        // Now do the actual test, basically see if either of
+        // the most extreme of the triangle points intersects r
+        if Max(-Max(Max(p0, p1), p2), Min(Min(p0, p1), p2)) > r {
+            // This means BOTH of the points of the projected triangle
+            // are outside the projected half-length of the AABB
+            // Therefore the axis is separating and we can exit
+            return true;
+        }
+
+        return false;
+    }
+
+    // We first test against 9 axis, these axis are given by
+    // cross product combinations of the edges of the triangle
+    // and the edges of the AABB. You need to get an axis testing
+    // each of the 3 sides of the AABB against each of the 3 sides
+    // of the triangle. The result is 9 axis of separation
+    axes := Vec3f.[
+        Cross(n0, AB),
+        Cross(n0, BC),
+        Cross(n0, CA),
+        Cross(n1, AB),
+        Cross(n1, BC),
+        Cross(n1, CA),
+        Cross(n2, AB),
+        Cross(n2, BC),
+        Cross(n2, CA),
+    ];
+
+    // Project all 3 vertices of the triangle onto each separating axis
+    for axes {
+        if IsSeparatingAxis(it) {
+            return false;
+        }
+    }
+
+    normal_axes := Vec3f.[n0,n1,n2];
+    for normal_axes {
+        if IsSeparatingAxis(it) {
+            return false;
+        }
+    }
+
+    if IsSeparatingAxis(triangle_normal) {
+        return false;
+    }
+
+    return true;
 }

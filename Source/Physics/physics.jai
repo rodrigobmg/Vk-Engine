@@ -1,4 +1,5 @@
 #load "intersection.jai";
+#load "collision_mesh.jai";
 
 Sphere :: struct {
     center : Vec3f;
