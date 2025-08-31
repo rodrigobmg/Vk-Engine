@@ -575,9 +575,9 @@ SetEditorStyleMoonlight :: () {
     style.Colors[ImGui.Col.Button] = .{0.117, 0.133, 0.149, 1};
     style.Colors[ImGui.Col.ButtonHovered] = .{0.182, 0.189, 0.197, 1};
     style.Colors[ImGui.Col.ButtonActive] = .{0.154, 0.154, 0.154, 1};
-    style.Colors[ImGui.Col.Header] = .{0.184, 0.220, 0.302, 1};
-    style.Colors[ImGui.Col.HeaderHovered] = .{0.232, 0.212, 0.212, 1};
-    style.Colors[ImGui.Col.HeaderActive] = .{0.078, 0.086, 0.101, 1};
+    style.Colors[ImGui.Col.Header] = .{0.049, 0.482, 0.863, 1};
+    style.Colors[ImGui.Col.HeaderHovered] = .{0.038, 0.321, 0.715, 1};
+    style.Colors[ImGui.Col.HeaderActive] = .{0.123, 0.551, 0.928, 1};
     style.Colors[ImGui.Col.Separator] = .{0.141, 0.161, 0.208, 0.2};
     style.Colors[ImGui.Col.SeparatorHovered] = .{0.156, 0.184, 0.250, 0.78};
     style.Colors[ImGui.Col.SeparatorActive] = .{0.156, 0.184, 0.250, 1};
@@ -658,9 +658,9 @@ SetEditorStyleForBlurredBackground :: () {
     style.Colors[ImGui.Col.Button].a = 0.78;
     style.Colors[ImGui.Col.ButtonHovered].a = 0.78;
     style.Colors[ImGui.Col.ButtonActive].a = 0.78;
-    style.Colors[ImGui.Col.Header].a = 0.39;
-    style.Colors[ImGui.Col.HeaderHovered].a = 0.39;
-    style.Colors[ImGui.Col.HeaderActive].a = 0.39;
+    style.Colors[ImGui.Col.Header].a = 0.78;
+    style.Colors[ImGui.Col.HeaderHovered].a = 0.78;
+    style.Colors[ImGui.Col.HeaderActive].a = 0.78;
     style.Colors[ImGui.Col.ModalWindowDimBg].a = 0.78;
     style.Colors[ImGui.Col.Tab].a = 0.78;
     style.Colors[ImGui.Col.TabHovered].a = 0.78;
