@@ -113,11 +113,15 @@ GetEditorIcon :: inline (world : *World, entity : *Entity, component : *$T) -> *
 }
 
 g_entity_hide_editor_icon : [Entity_Types.count]bool;
-g_component_hide_editor_icon : [Entity_Types.count]bool;
+g_component_hide_editor_icon : [Component_Types.count]bool;
 
-IconsMenu :: (world : *World) {
+WorldShowMenu :: (world : *World) {
     if ImGui.BeginMenu("Show") {
         defer ImGui.EndMenu();
+
+        if ImGui.MenuItem("Grid", selected=g_editor_show_grid) {
+            g_editor_show_grid = !g_editor_show_grid;
+        }
 
         if ImGui.BeginMenu("Icons") {
             defer ImGui.EndMenu();

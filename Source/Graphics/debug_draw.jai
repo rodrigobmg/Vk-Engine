@@ -24,21 +24,22 @@ DebugDrawLine :: (color : Vec4f, start : Vec3f, end : Vec3f) {
 DebugDrawGrid :: (
     color : Vec4f,
     origin : Vec3f, right : Vec3f, forward : Vec3f,
-    size : int
+    size : int,
+    cell_size := 1.0
 ) {
     for i : -size..size {
         DebugDrawLine(
             color,
-            origin + right * cast(float, i) - forward * cast(float, size),
-            origin + right * cast(float, i) + forward * cast(float, size)
+            origin + right * cell_size * i - forward * cell_size * size,
+            origin + right * cell_size * i + forward * cell_size * size
         );
     }
 
     for i : -size..size {
         DebugDrawLine(
             color,
-            origin + forward * cast(float, i) - right * cast(float, size),
-            origin + forward * cast(float, i) + right * cast(float, size)
+            origin + forward * cell_size * i - right * cell_size * size,
+            origin + forward * cell_size * i + right * cell_size * size
         );
     }
 }

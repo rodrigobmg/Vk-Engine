@@ -700,8 +700,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
     DepthPrepass(*ctx, camera, *g_mesh_buffer);
     PrepareClusters(*ctx, camera);
     ForwardPass(*ctx, camera, *g_mesh_buffer);
-    DebugLinesPass(*ctx, camera);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
+    DebugLinesPass(*ctx, camera);
 
     {
         BeginGfxDebugMarker(*cmd_buffer, "Entity Selection");
