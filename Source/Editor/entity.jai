@@ -108,6 +108,38 @@ EditorDuplicateEntity :: (world : *World, entity : *Entity, location := #caller_
     return new_entity;
 }
 
+AppendPascalToSpaced :: (builder : *StringBuilder, str : string) {
+    for curr : str {
+        Case :: enum {
+            NotAlpha;
+            Lower;
+            Upper;
+        }
+
+        GetCase :: (char : u8) -> Case {
+            if char >= #char "A" && char <= #char "Z" {
+                return .Upper;
+            }
+
+            if char >= #char "a" && char <= #char "z" {
+                return .Lower;
+            }
+
+            return .NotAlpha;
+        }
+
+        if it_index > 0 {
+            prev := str[it_index - 1];
+            if GetCase(prev) == .Lower && GetCase(curr) != .Lower {
+                Append(builder, " ");
+            }
+        }
+
+        c := string.{data=*curr, count=1};
+        Append(builder, "%", c);
+    }
+}
+
 GetNiceEntityTypeName :: inline (entity : *Entity) -> string {
     return GetNiceEntityTypeName(GetEntityTypeId(entity.index));
 }
@@ -129,37 +161,7 @@ GetNiceEntityTypeName :: (type_id : EntityTypeId) -> string {
             }
 
             Append(*builder, "    \"");
-
-            for curr : name {
-                Case :: enum {
-                    NotAlpha;
-                    Lower;
-                    Upper;
-                }
-
-                GetCase :: (char : u8) -> Case {
-                    if char >= #char "A" && char <= #char "Z" {
-                        return .Upper;
-                    }
-
-                    if char >= #char "a" && char <= #char "z" {
-                        return .Lower;
-                    }
-
-                    return .NotAlpha;
-                }
-
-                if it_index > 0 {
-                    prev := name[it_index - 1];
-                    if GetCase(prev) == .Lower && GetCase(curr) != .Lower {
-                        Append(*builder, " ");
-                    }
-                }
-
-                c := string.{data=*curr, count=1};
-                Append(*builder, "%", c);
-            }
-
+            AppendPascalToSpaced(*builder, name);
             Appendln(*builder, "\",");
         }
 
@@ -169,6 +171,35 @@ GetNiceEntityTypeName :: (type_id : EntityTypeId) -> string {
     }
 
     return Entity_Nice_Type_Names[type_id];
+}
+
+GetNiceComponentTypeName :: (type_id : ComponentTypeId) -> string {
+    #insert -> string {
+        builder : StringBuilder;
+
+        Appendln(*builder, "Component_Nice_Type_Names :: string.[");
+        Appendln(*builder, "    \"Invalid\",");
+
+        for i : 1..Component_Types.count - 1 {
+            name := type_info(ComponentTypeId).names[i];
+            if StringEndsWith(name, "Component") {
+                name.count -= "Component".count;
+                if name.count > 0 && name[name.count - 1] == #char "_" {
+                    name.count -= 1;
+                }
+            }
+
+            Append(*builder, "    \"");
+            AppendPascalToSpaced(*builder, name);
+            Appendln(*builder, "\",");
+        }
+
+        Appendln(*builder, "];");
+
+        return StringBuilderBuild(*builder);
+    }
+
+    return Component_Nice_Type_Names[type_id];
 }
 
 ShowEntityOutliner :: (world : *World) {

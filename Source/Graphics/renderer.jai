@@ -444,6 +444,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     }
 
     for :AllEntitiesWithEditorIcon world {
+        if !ShouldShowEntityEditorIcon(GetEntityTypeId(it.index)) {
+            continue;
+        }
+
         icon, icon_material := GetEditorIcon(world, it);
         if icon {
             position := TranslationVector(it.world_transform);
@@ -458,6 +462,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     }
 
     for :AllComponentsWithEditorIcon world {
+        if !ShouldShowComponentEditorIcon(GetComponentTypeId(it)) {
+            continue;
+        }
+
         entity := GetEntity(world, it.entity);
         if !entity {
             continue;

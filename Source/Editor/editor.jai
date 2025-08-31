@@ -330,6 +330,12 @@ UpdateEditor :: (world : *World) {
         if ImGui.BeginMenu("World") {
             defer ImGui.EndMenu();
         }
+        if ImGui.BeginMenu("Edit") {
+            defer ImGui.EndMenu();
+        }
+        if ImGui.BeginMenu("Show") {
+            defer ImGui.EndMenu();
+        }
         if ImGui.BeginMenu("Window") {
             defer ImGui.EndMenu();
         }
