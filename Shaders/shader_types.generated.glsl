@@ -180,4 +180,9 @@ struct PointLight {
     Viewpoint shadow_map_viewpoints[6];
 };
 
+struct ViewpointsData {
+    uint num_viewpoints;
+    Viewpoint viewpoints[6];
+};
+
 #endif

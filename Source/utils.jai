@@ -15,6 +15,17 @@ Tau64 :: Math.TAU64;
 Pi :: Math.PI;
 Pi64 :: Math.PI64;
 
+Pow :: Math.pow;
+Log :: Math.log;
+
+Log10 :: inline (x : float) -> float {
+    return Log(x) / #run Log(10);
+}
+
+Log2 :: inline (x : float) -> float {
+    return Log(x) / #run Log(2);
+}
+
 F32_Min :: Math.FLOAT32_MIN;
 F32_Max :: Math.FLOAT32_MAX;
 F32_Inf :: Math.FLOAT32_INFINITY;
@@ -92,18 +103,6 @@ ScopeLongFormStructFormat :: () #expand {
 
     context.print_style.default_format_struct.use_long_form_if_more_than_this_many_members = 0;
     context.print_style.default_format_struct.use_newlines_if_long_form = true;
-}
-
-Pow :: Math.pow;
-
-Log :: Math.log;
-
-Log10 :: inline (x : float) -> float {
-    return Log(x) / #run Log(10);
-}
-
-Log2 :: inline (x : float) -> float {
-    return Log(x) / #run Log(2);
 }
 
 ParseNote :: (note : string) -> ok : bool, name : string, args : []string {
@@ -258,141 +257,19 @@ GetNote :: (notes : []string, name : string, $T : Type = void) -> ok : bool, val
     return false, dummy;
 }
 
-RayIntersectsPlane :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, plane_origin : Vec3f, plane_normal : Vec3f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f {
-    denom := Dot(plane_normal, ray_dir);
+CartesianToSpherical :: (direction : Vec3f) -> azmiuth : float, polar : float {
+    polar := Math.asin(direction.y);
+    azimuth := Math.acos(direction.z / Math.sqrt(direction.x * direction.x + direction.z * direction.z));
+    azimuth *= ifx direction.x < -0.0 then -1.0 else 1.0;
 
-    if !ApproxZero(denom, 0.0001) {
-        q := plane_origin - ray_origin;
-        t := Dot(q, plane_normal);
-        sign := -Sign(t);
-        t /= denom;
-
-        if t >= 0 && t < ray_length {
-            return true, ray_origin + ray_dir * t, t, sign * plane_normal;
-        }
-    }
-
-    return false, .{}, 0, .{};
+    return azimuth, polar;
 }
 
-ProjectPointOnLine :: (point : Vec3f, line_origin : Vec3f, line_dir : Vec3f) -> Vec3f, t : float {
-    t := Dot(point - line_origin, line_dir) / Dot(line_dir, line_dir);
+SphericalToCartesian :: (azimuth : float, polar : float) -> Vec3f {
+    cosa := Math.cos(azimuth);
+    sina := Math.sin(azimuth);
+    cosp := Math.cos(polar);
+    sinp := Math.sin(polar);
 
-    return line_origin + t * line_dir, t;
-}
-
-RayIntersectsTriangle :: RayIntersectsTriangleMollerTrumbore;
-
-// Möller–Trumbore intersection algorithm
-// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-// https://youtu.be/fK1RPmF_zjQ
-RayIntersectsTriangleMollerTrumbore :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, triangle_A : Vec3f, triangle_B : Vec3f, triangle_C : Vec3f) -> intersets : bool, point : Vec3f, dist : float, normal : Vec3f {
-    AB := triangle_B - triangle_A;
-    AC := triangle_C - triangle_A;
-    ray_vs_AC := Cross(ray_dir, AC);
-    det := Dot(AB, ray_vs_AC);
-
-    // No epsilon because it can give false negatives
-    // The original algorithm uses one, but it also uses double precision so there's that
-    // If det is very close to 0, we'll probably end up with infinity/very large values for u or v, which
-    // will return false because of `if u < 0 || u > 1` etc
-    if det == 0 {
-        return false, .{}, 0, .{};
-    }
-
-    inv_det := 1 / det;
-    s := ray_origin - triangle_A;
-    u := inv_det * Dot(s, ray_vs_AC);
-
-    if u < 0 || u > 1 {
-        return false, .{}, 0, .{};
-    }
-
-    s_vs_AB := Cross(s, AB);
-    v := inv_det * Dot(ray_dir, s_vs_AB);
-
-    if v < 0 || u + v > 1 {
-        return false, .{}, 0, .{};
-    }
-
-    t := inv_det * Dot(AC, s_vs_AB);
-    if t > 0 && t < ray_length {
-        normal := Sign(det) * Normalized(Cross(AB, AC), epsilon=0);
-
-        return true, ray_origin + t * ray_dir, t, normal;
-    }
-
-    return false, .{}, 0, .{};
-}
-
-RayIntersectsMesh :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, mesh : *StaticMesh, transform : Mat4f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f, triangle_index : int {
-    inv_transform := Inverse(transform);
-    model_space_ray_origin := TransformPoint(inv_transform, ray_origin);
-    model_space_ray_dir := Normalized(TransformVector(inv_transform, ray_dir));
-
-    early_hit, early_point := RayIntersectsBox(model_space_ray_origin, model_space_ray_dir, F32_Inf, mesh.static_bounds.center, mesh.static_bounds.half_extents);
-    if !early_hit || Distance(TransformPoint(transform, early_point), ray_origin) > ray_length {
-        return false, .{}, 0, .{}, -1;
-    }
-
-    closest_hit : bool;
-    closest_point, closest_normal : Vec3f;
-    closest_dist := F32_Inf;
-    triangle_index := -1;
-
-    for mesh.triangles {
-        hit, point, dist, normal
-            := RayIntersectsTriangle(model_space_ray_origin, model_space_ray_dir, F32_Inf, it.p0, it.p1, it.p2);
-
-        if hit && dist < closest_dist {
-            closest_hit = true;
-            closest_point = point;
-            closest_normal = normal;
-            closest_dist = dist;
-            triangle_index = xx it_index;
-        }
-    }
-
-    if !closest_hit {
-        return false, .{}, 0, .{}, -1;
-    }
-
-    point := TransformPoint(transform, closest_point);
-    normal := Normalized(TransformVector(transform, closest_normal));
-    dist := Distance(point, ray_origin);
-
-    return dist < ray_length, point, dist, normal, triangle_index;
-}
-
-RayIntersectsBox :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, box_center : Vec3f, box_half_extents : Vec3f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f {
-    inv_dir := Vec3f.{1 / ray_dir.x, 1 / ray_dir.y, 1 / ray_dir.z};
-
-    min := box_center - box_half_extents;
-    max := box_center + box_half_extents;
-    t1 := Scale(min - ray_origin, inv_dir);
-    t2 := Scale(max - ray_origin, inv_dir);
-
-    t_min := Min(t1, t2);
-    t_max := Max(t1, t2);
-
-    t_near := Max(Max(t_min.x, t_min.y), t_min.z);
-    t_far := Min(Min(t_max.x, t_max.y), t_max.z);
-
-    if t_near > t_far {
-        return false, .{}, 0, .{};
-    }
-
-    t := ifx t_near < 0 then t_far else t_near;
-    if t < 0 || t > ray_length {
-        return false, .{}, 0, .{};
-    }
-
-    point := ray_origin + ray_dir * t;
-    normal := Vec3f.{
-        cast(float, t == t_min.x || t == t_max.x) * Sign(-inv_dir.x),
-        cast(float, t == t_min.y || t == t_max.y) * Sign(-inv_dir.y),
-        cast(float, t == t_min.z || t == t_max.z) * Sign(-inv_dir.z),
-    };
-
-    return true, point, t, normal;
+    return Normalized(Vec3f.{sina * cosp, sinp, cosa * cosp});
 }

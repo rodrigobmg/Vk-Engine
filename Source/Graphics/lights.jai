@@ -32,7 +32,7 @@ DirectionalLightComponent :: struct {
     }
 
     OnDebugDraw :: (world : *World, entity : *Entity, light : *DirectionalLightComponent) {
-        if EntityIsSelected(entity.guid) {
+        if EntityOrParentIsSelected(world, entity.guid) {
             position := TranslationVector(entity.world_transform);
             right := RightVector(entity.world_transform);
             up := UpVector(entity.world_transform);
@@ -81,7 +81,7 @@ PointLightComponent :: struct {
     }
 
     OnDebugDraw :: (world : *World, entity : *Entity, light : *PointLightComponent) {
-        if EntityIsSelected(entity.guid) {
+        if EntityOrParentIsSelected(world, entity.guid) {
             position := TranslationVector(entity.world_transform);
             DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius);
             DebugDrawSphereOutline(.{1,1,1,1}, position, GetPointLightAttenuationDistance(light));

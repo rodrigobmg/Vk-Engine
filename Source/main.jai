@@ -35,10 +35,12 @@ ImGui_SDL :: #import "ImGui/Impl/SDL";
 #load "world.jai";
 #load "preferences.jai";
 
-#load "Tests/flying_lights.jai";
-
 #load "Graphics/graphics.jai";
+#load "Physics/physics.jai";
 #load "Editor/editor.jai";
+
+#load "Tests/flying_lights.jai";
+#load "Tests/intersections.jai";
 
 Debug_Vulkan_Allocations :: false;
 Vulkan_Break_On_Error :: true;

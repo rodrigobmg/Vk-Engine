@@ -7,8 +7,6 @@
 #load "renderer.jai";
 #load "lights.jai";
 
-#load "frustum.jai";
-
 #load "shader.jai";
 #load "texture2d.jai";
 #load "mesh.jai";

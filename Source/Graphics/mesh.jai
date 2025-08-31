@@ -23,7 +23,7 @@ Mesh :: struct(VertexType : Type) {
 
     static_bounds : AABB;
 
-    triangles : []MeshTriangle; // For collision, not generated unless needed
+    triangles : []MeshTriangle;
 }
 
 MeshFileFlags :: enum_flags u32 {
@@ -108,6 +108,8 @@ LoadStaticMeshFromMemory :: (mesh : *StaticMesh, data : []u8, name : string) -> 
     if !(flags & .HasOctree) && !IsAtEnd(reader) {
         LogError("Trailing data (% bytes) in static mesh '%' file", reader.size - reader.offset, name);
     }
+
+    BuildTriangleList(mesh);
 
     if !(flags & .HasTangents) {
         CalculateTangents(mesh);

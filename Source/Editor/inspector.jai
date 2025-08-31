@@ -163,7 +163,7 @@ InspectEntityGUID :: (label : *u8, using ctx : *InspectorContext, any : Any, not
         ImGui.EndDisabled();
 
         if ImGui.MenuItem("Copy entity GUID") {
-            CopyEntityGUID(guid.*);
+            EditorCopyEntityGUID(guid.*);
         }
 
         if !not_editable {
@@ -369,6 +369,7 @@ InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q
     state, _, edited_value := DragVector(CTPrint("###inspector.%", MakeString(label)), euler_angles.n, step=0.1);
 
     EndInspectorLine();
+    ImGui.TableSetColumnIndex(2);
 
     if ImGui.Button(Icon_Refresh_MDI) {
         q.* = .{};

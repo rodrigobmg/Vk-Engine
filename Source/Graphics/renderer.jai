@@ -268,7 +268,7 @@ Viewpoint :: struct {
 ViewpointsData :: struct {
     num_viewpoints : u32 = 1;
     viewpoints : [Max_Viewpoints]Viewpoint;
-}
+} @ShaderType
 
 MakeViewpoint :: inline (camera : *Camera) -> Viewpoint {
     w, h := GetWindowPixelSize(g_window);

@@ -1,0 +1,16 @@
+@_ 1:
+  @guid 1: 0x7b272c56999df77e80c1e2fb2d9a7b92
+  @flags 7: 0x0
+  @name 2: "Capsule"
+  @local_position 3: [0, 0, 0]
+  @local_rotation 4: [0, 0, 0, 1]
+  @local_scale 5: [1, 1, 1]
+  @parent 6: 0x00000000000000000000000000000000
+@shape 2: Capsule
+@sphere_radius 4: 1
+@capsule_height 5: 2
+@capsule_radius 6: 0.5
+@mesh 8:
+  @cast_shadows 4: true
+  @cast_point_shadows 5: false
+@ray_length 9: 10

@@ -246,10 +246,6 @@ InitGizmoContext :: (ctx : *GizmoContext) {
     rotate_full = LoadAsset(StaticMesh, "Editor/Gizmos/RotateFull.mesh");
     rotate_half = LoadAsset(StaticMesh, "Editor/Gizmos/RotateHalf.mesh");
     rotate_quarter = LoadAsset(StaticMesh, "Editor/Gizmos/RotateQuarter.mesh");
-
-    for ctx.meshes.all {
-        BuildTriangleList(it);
-    }
 }
 
 DestroyGizmoContext :: (ctx : *GizmoContext) {
