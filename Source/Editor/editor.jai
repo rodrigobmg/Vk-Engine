@@ -932,17 +932,18 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
     ImGui.PushID(entity);
     defer ImGui.PopID();
 
-    PushButtonColor(.SubmitBadButton);
+    // Ugh...
+    button_width := ImGui.GetContentRegionAvail().x * 0.5 - ImGui.GetStyle().FramePadding.x;
 
-    if ImGui.Button("Delete") {
+    PushButtonColor(.SubmitBadButton);
+    if ImGui.Button("Delete", size=.{button_width,0}) {
         KillEntity(world, entity.guid);
     }
-
     PopButtonColor();
 
     ImGui.SameLine();
 
-    if ImGui.Button("Duplicate") {
+    if ImGui.Button("Duplicate", size=.{button_width,0}) {
         entity = DuplicateEntity(world, entity);
         SelectEntity(entity.guid);
     }
