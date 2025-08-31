@@ -15,6 +15,7 @@ Entity :: struct {
     local_scale : Vec3f = .{1,1,1}; @Serialize(5)
 
     world_transform : Mat4f;
+    inv_world_transform : Mat4f;
     parent : EntityGUID; @Serialize(6)
     children : [..]EntityIndex;
 }
@@ -547,8 +548,10 @@ UpdateWorldTransform :: (world : *World, entity : *Entity, update_children := tr
         T := Mat4fTranslate(TranslationVector(entity.world_transform));
 
         entity.world_transform = T * ToMat4f(Q) * S2;
+        entity.inv_world_transform = Inverse(entity.world_transform);
     } else {
         entity.world_transform = local_transform;
+        entity.inv_world_transform = Inverse(local_transform);
     }
 
     if update_children {
