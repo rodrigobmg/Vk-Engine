@@ -56,6 +56,8 @@ InitRenderer :: () {
 }
 
 CleanupRenderer :: () {
+    WaitForGPUIdle();
+
     DestroyGPUFrameProfiler(*g_gpu_profiler);
 
     DestroyGfxBuffer(*g_billboard_vertex_buffer);

@@ -85,7 +85,7 @@ AnimatedMeshEntity :: struct {
 
         if animation {
             SampleAnimation(animation, animation_time, *pose);
-            animation_time += g_last_frame_time * animation_frames_per_second;
+            animation_time += GetDeltaTime() * animation_frames_per_second;
         } else {
             ResetToBindPose(*pose);
             animation_time = 0;

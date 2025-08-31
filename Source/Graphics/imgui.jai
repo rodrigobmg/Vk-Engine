@@ -40,6 +40,8 @@ InitImGuiRenderer :: () {
 DestroyImGuiRenderer :: () {
     renderer := GetImGuiRenderer();
 
+    WaitForGPUIdle();
+
     DestroyImGuiFontsTexture();
     DestroyGfxGraphicsPipeline(*g_imgui_pipeline);
     DestroyGfxBuffer(*renderer.font_upload_buffer);

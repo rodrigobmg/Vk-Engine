@@ -471,9 +471,9 @@ DragVector :: (label : *u8, data_type : ImGui.DataType, values : *void, count : 
     }
 
     s := MakeString(label);
-    hash_index := find_index_from_left(s, "##");
-    if hash_index >= 0 {
-        s.count = hash_index;
+    hash := ImGui.FindRenderedTextEnd(label);
+    if hash {
+        s.count = hash - s.data;
     }
 
     if s.count > 0 {

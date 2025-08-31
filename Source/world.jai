@@ -498,3 +498,63 @@ SaveWorldToDirectory :: (world : *World, output_directory : string) {
     LogContentMessage("Saved world to directory '%' (% entities) in % ms",
         output_directory, saved_entities, total_time_ms);
 }
+
+DestroyKilledEntities :: (using world : *World) {
+    DestroyEntity :: (using world : *World, index : EntityIndex) {
+        entity := GetEntity(world, index);
+        Assert(entity != null);
+
+        type_id := GetEntityTypeId(index);
+
+        if entity.parent != Null_Entity_GUID {
+            DetachEntity(world, entity, keep_same_world_transform=true);
+        }
+
+        while entity.children.count > 0 {
+            child := GetEntity(world, entity.children[0]);
+            if child {
+                DetachEntity(world, child, keep_same_world_transform=true);
+            }
+        }
+
+        CallEntityCallback(world, entity, "OnDespawn");
+
+        ArrayFree(*entity.children);
+
+        if entity.name {
+            Free(entity.name.data ,, entities_by_name.allocator);
+            HashMapRemove(*entities_by_name, entity.name);
+        }
+
+        HashMapRemove(*entities_by_guid, entity.guid);
+
+        slot_info := GetSlotInfo(entity.index);
+
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "if type_id == {");
+
+            for i : 1..Entity_Types.count - 1 {
+                Appendln(*builder, "case .%;", Entity_Types[i]);
+                Appendln(*builder, "    UnreferenceAllAssets(cast(*%, entity));", Entity_Types[i]);
+                Appendln(*builder, "    PagedArrayFreeSlot(*%_storage, slot_info);", Entity_Types[i]);
+            }
+
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    }
+
+    LogSectionScope(*Log_Entities);
+
+    // Sorted by memory proximity and type
+    QuickSort(entities_killed_this_frame, CompareEntityIndex);
+
+    for index : entities_killed_this_frame {
+        DestroyEntity(world, index);
+    }
+
+    ArrayClear(*entities_killed_this_frame);
+}

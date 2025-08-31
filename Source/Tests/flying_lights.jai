@@ -40,7 +40,7 @@ FlyingLightEntity :: struct {
     }
 
     OnEditorUpdate :: (world : *World, using entity : *FlyingLightEntity) {
-        rotate := QuatfFromAxisAngle(rotation_axis, rotation_speed * g_last_frame_time);
+        rotate := QuatfFromAxisAngle(rotation_axis, rotation_speed * GetDeltaTime());
         local_rotation *= rotate;
 
         local_position = spawn_position + orbit_distance * (RightVector(local_rotation) + ForwardVector(local_rotation));

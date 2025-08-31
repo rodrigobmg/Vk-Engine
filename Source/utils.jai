@@ -47,6 +47,8 @@ S64_Min :: Math.S64_MIN;
 S64_Max :: Math.S64_MAX;
 U64_Max :: Math.U64_MAX;
 
+Second_To_Nano :: 1000000000;
+
 Rect :: struct (T : Type) {
     x, y, w, h : T;
 

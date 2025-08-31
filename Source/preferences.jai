@@ -9,6 +9,8 @@ Preferences :: struct {
     irradiance_map_sample_delta : float = 0.025;
 }
 
+g_preferences : Preferences;
+
 Log_Preferences :: Log_Section.{name="Preferences"};
 
 LoadPreferences :: (preferences : *Preferences, filename : string, str : string) {
@@ -208,6 +210,13 @@ LoadPreferences :: (preferences : *Preferences, filename : string, str : string)
 
 LoadPreferences :: (preferences : *Preferences, filename : string) -> bool {
     LogSectionScope(*Log_Preferences);
+    ScopeLongFormStructFormat();
+
+    defer LogMessage("Preferences: %", g_preferences);
+
+    if !file_exists(filename) {
+        return false;
+    }
 
     file_contents, ok := read_entire_file(filename);
     if !ok {

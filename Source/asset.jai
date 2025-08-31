@@ -172,7 +172,7 @@ InitAssetCache :: (
 
     LogSectionScope(*cache.log_section);
 
-    init(*cache.parallel_load_group, g_num_worker_threads, #bake_arguments LoadAssetWorker(T=cache.T));
+    init(*cache.parallel_load_group, GetDefaultNumWorkerThreads(), #bake_arguments LoadAssetWorker(T=cache.T));
     cache.parallel_load_group.name = #run SPrint("Parallel Asset Loading (%)", cache.T);
     cache.parallel_load_group.logging = false;
 
