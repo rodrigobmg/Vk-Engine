@@ -1,3 +1,6 @@
+g_editor_show_debug_drawings := true;
+g_editor_show_grid := true;
+
 Camera :: struct {
     position : Vec3f;
     target_yaw, target_pitch : float;
@@ -134,8 +137,6 @@ UpdateEditorViewport :: (world : *World) {
         DrawEditorGrid();
     }
 }
-
-g_editor_show_grid := true;
 
 DrawEditorGrid :: () {
     Grid_Sizes :: float.[1,2,4,8,16,32,64,128];

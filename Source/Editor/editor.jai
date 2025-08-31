@@ -444,7 +444,7 @@ UpdateEditor :: (world : *World) {
     for :AllEntities entity : world {
         CallEntityCallback(world, entity, "OnEditorUpdate");
 
-        if entity.flags & .Hidden {
+        if !g_editor_show_debug_drawings || entity.flags & .Hidden {
             continue;
         }
 
@@ -456,7 +456,7 @@ UpdateEditor :: (world : *World) {
 
         CallComponentCallback(world, entity, component, "OnEditorUpdate");
 
-        if !entity || entity.flags & .Hidden {
+        if !g_editor_show_debug_drawings || !entity || entity.flags & .Hidden {
             continue;
         }
 
