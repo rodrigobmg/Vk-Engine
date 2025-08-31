@@ -1,3 +1,6 @@
+// This file contains the entry point and engine/game loop.
+// Implementation details of the engine initialization/shutdown/loop can be found in engine_main.jai
+
 #load "engine_main.jai";
 
 UpdateWorld :: (world : *World) {
