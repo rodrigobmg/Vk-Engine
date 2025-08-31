@@ -59,14 +59,18 @@ EditorColors :: struct {
     cancel_button_hovered := Vec4f.{0.182, 0.189, 0.197, 0.78}; @ColorEdit @ShowInInspector
     cancel_button_active := Vec4f.{0.154, 0.154, 0.154, 0.78}; @ColorEdit @ShowInInspector
 
-    #place submit_good_button;
-    all : [9]Vec4f = ---;
+    #place emphasis_button;
+    all : [12]Vec4f = ---;
 } @ShaderType
 
 PushButtonColor :: (color : EditorColor) {
-    ImGui.PushStyleColor(.Button, g_editor_settings.colors.all[color]);
-    ImGui.PushStyleColor(.ButtonHovered, g_editor_settings.colors.all[color + 1]);
-    ImGui.PushStyleColor(.ButtonActive, g_editor_settings.colors.all[color + 2]);
+    normal := Clamp(cast(int, color), 0, g_editor_settings.colors.all.count - 1);
+    hovered := Clamp(cast(int, color + 1), 0, g_editor_settings.colors.all.count - 1);
+    active := Clamp(cast(int, color + 2), 0, g_editor_settings.colors.all.count - 1);
+
+    ImGui.PushStyleColor(.Button, g_editor_settings.colors.all[normal]);
+    ImGui.PushStyleColor(.ButtonHovered, g_editor_settings.colors.all[hovered]);
+    ImGui.PushStyleColor(.ButtonActive, g_editor_settings.colors.all[active]);
 }
 
 PopButtonColor :: () {
@@ -74,9 +78,13 @@ PopButtonColor :: () {
 }
 
 PushFrameBgColor :: (color : EditorColor) {
-    ImGui.PushStyleColor(.FrameBg, g_editor_settings.colors.all[color]);
-    ImGui.PushStyleColor(.FrameBgHovered, g_editor_settings.colors.all[color + 1]);
-    ImGui.PushStyleColor(.FrameBgActive, g_editor_settings.colors.all[color + 2]);
+    normal := Clamp(cast(int, color), 0, g_editor_settings.colors.all.count - 1);
+    hovered := Clamp(cast(int, color + 1), 0, g_editor_settings.colors.all.count - 1);
+    active := Clamp(cast(int, color + 2), 0, g_editor_settings.colors.all.count - 1);
+
+    ImGui.PushStyleColor(.FrameBg, g_editor_settings.colors.all[normal]);
+    ImGui.PushStyleColor(.FrameBgHovered, g_editor_settings.colors.all[hovered]);
+    ImGui.PushStyleColor(.FrameBgActive, g_editor_settings.colors.all[active]);
 }
 
 PopFrameBgColor :: () {
@@ -1000,7 +1008,7 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
     }
 }
 
-g_show_material_editor : bool;
+g_show_material_editor := true;
 g_material_editor_selected_material : *Asset(Material);
 
 OpenMaterialEditor :: (material : *Asset(Material)) {
@@ -1025,13 +1033,20 @@ ShowMaterialEditor :: () {
     world : *World;
     ShowInspector("Selected Material", world, g_material_editor_selected_material, .["AllowCreateAsset"]);
 
-    ImGui.Separator();
-
     if g_material_editor_selected_material {
-        ShowInspector("", world, g_material_editor_selected_material.asset_data, .["InspectorNoTree"]);
+        available := ImGui.GetContentRegionAvail();
+        size := available;
+        size.y -= 2 * ImGui.GetFrameHeightWithSpacing();
+        size.x = Max(size.x, 0);
+        size.y = Max(size.y, 0);
 
-        ImGui.Separator();
-        ImGui.Spacing();
+        if ImGui.BeginChild("material", size=size, child_flags=.Border) {
+            ShowInspector("", world, g_material_editor_selected_material.asset_data, .["InspectorNoTree"]);
+            ImGui.EndChild();
+        } else {
+            ImGui.EndChild();
+            return;
+        }
 
         PushButtonColor(.CancelButton);
         if ImGui.Button("Reload", size=.{-1, 0}) {
