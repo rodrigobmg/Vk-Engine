@@ -57,23 +57,31 @@ FlyingLightsMenu :: (world : *World) {
             defer ImGui.EndMenu();
 
             if ImGui.MenuItem("Spawn 10 Flying Lights") {
+                root := SpawnEntity(world, EmptyEntity, "Flying Lights");
                 for 1..10 {
-                    SpawnEntity(world, FlyingLightEntity);
+                    entity := SpawnEntity(world, FlyingLightEntity);
+                    AttachEntity(world, entity, root);
                 }
             }
             if ImGui.MenuItem("Spawn 50 Flying Lights") {
+                root := SpawnEntity(world, EmptyEntity, "Flying Lights");
                 for 1..50 {
-                    SpawnEntity(world, FlyingLightEntity);
+                    entity := SpawnEntity(world, FlyingLightEntity);
+                    AttachEntity(world, entity, root);
                 }
             }
             if ImGui.MenuItem("Spawn 100 Flying Lights") {
+                root := SpawnEntity(world, EmptyEntity, "Flying Lights");
                 for 1..100 {
-                    SpawnEntity(world, FlyingLightEntity);
+                    entity := SpawnEntity(world, FlyingLightEntity);
+                    AttachEntity(world, entity, root);
                 }
             }
             if ImGui.MenuItem("Spawn 1000 Flying Lights") {
+                root := SpawnEntity(world, EmptyEntity, "Flying Lights");
                 for 1..1000 {
-                    SpawnEntity(world, FlyingLightEntity);
+                    entity := SpawnEntity(world, FlyingLightEntity);
+                    AttachEntity(world, entity, root);
                 }
             }
         }
