@@ -71,6 +71,9 @@ struct EditorBackgroundBlurSettings {
 };
 
 struct EditorColors {
+    float4 emphasis_button;
+    float4 emphasis_button_hovered;
+    float4 emphasis_button_active;
     float4 submit_good_button;
     float4 submit_good_button_hovered;
     float4 submit_good_button_active;

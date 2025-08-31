@@ -12,6 +12,12 @@ Log_Editor :: Log_Section.{name="Editor"};
 Editor_Background_Blur_Iterations :: 3;
 Editor_Background_Blur_Resolution_Factor :: 0.75;
 
+Editor_Base_Font_Size :: 16.0;
+Editor_Medium_Font_Size :: 18.0;
+
+g_editor_base_font : *ImGui.ImFont;
+g_editor_medium_font : *ImGui.ImFont;
+
 EditorBackgroundBlurSettings :: struct {
     enabled := true; @ShowInInspector
     resolution_factor := 0.75; @ShowInInspector @FloatRange(0.1,1)
@@ -25,6 +31,9 @@ EditorSettings :: struct {
 } @ShaderType
 
 EditorColor :: enum {
+    EmphasisButton;
+    EmphasisButtonHovered;
+    EmphasisButtonActive;
     SubmitGoodButton;
     SubmitGoodButtonHovered;
     SubmitGoodButtonActive;
@@ -37,6 +46,9 @@ EditorColor :: enum {
 }
 
 EditorColors :: struct {
+    emphasis_button := Vec4f.{0.847, 0.58, 0.192, 0.78}; @ColorEdit @ShowInInspector
+    emphasis_button_hovered := Vec4f.{0.9, 0.633, 0.244, 0.78}; @ColorEdit @ShowInInspector
+    emphasis_button_active := Vec4f.{0.809, 0.519, 0.097, 0.78}; @ColorEdit @ShowInInspector
     submit_good_button := Vec4f.{0.847, 0.58, 0.192, 0.78}; @ColorEdit @ShowInInspector
     submit_good_button_hovered := Vec4f.{0.9, 0.633, 0.244, 0.78}; @ColorEdit @ShowInInspector
     submit_good_button_active := Vec4f.{0.809, 0.519, 0.097, 0.78}; @ColorEdit @ShowInInspector
@@ -58,6 +70,16 @@ PushButtonColor :: (color : EditorColor) {
 }
 
 PopButtonColor :: () {
+    ImGui.PopStyleColor(3);
+}
+
+PushFrameBgColor :: (color : EditorColor) {
+    ImGui.PushStyleColor(.FrameBg, g_editor_settings.colors.all[color]);
+    ImGui.PushStyleColor(.FrameBgHovered, g_editor_settings.colors.all[color + 1]);
+    ImGui.PushStyleColor(.FrameBgActive, g_editor_settings.colors.all[color + 2]);
+}
+
+PopFrameBgColor :: () {
     ImGui.PopStyleColor(3);
 }
 
@@ -319,16 +341,15 @@ InitEditor :: () {
     SetEditorStyleMoonlight();
     SetEditorStyleForBlurredBackground();
 
-    {
-        Base_Font_Size :: 16.0;
-
+    CreateBaseEditorFont :: (size : float) -> *ImGui.ImFont {
+        io := ImGui.GetIO();
         io.Fonts.TexDesiredWidth = xx GetGfxLimits().max_texture_2d_dimension;
 
         scale_factor := GetWindowScaleFactor(g_window);
-        font := io.Fonts.AddFontFromFileTTF(io.Fonts, "Data/Roboto-Regular.ttf", Base_Font_Size * scale_factor, null, io.Fonts.GetGlyphRangesDefault(io.Fonts));
+        font := io.Fonts.AddFontFromFileTTF(io.Fonts, "Data/Roboto-Regular.ttf", size * scale_factor, null, io.Fonts.GetGlyphRangesDefault(io.Fonts));
         font.Scale = 1 / scale_factor;
 
-        Icon_Font_Size :: #run Round(Base_Font_Size * 1.1);
+        icon_font_size := Round(size * 1.1);
 
         icons_config : ImGui.ImFontConfig;
         icons_config.Constructor(*icons_config);
@@ -339,11 +360,15 @@ InitEditor :: () {
 
         Icon_Ranges :: ImGui.ImWchar.[Icon_Min_MDI, Icon_Max_MDI, 0];
         font = io.Fonts.AddFontFromFileTTF(io.Fonts, Font_Icon_Filename_MDI,
-            Icon_Font_Size * scale_factor, *icons_config, Icon_Ranges.data);
+            icon_font_size * scale_factor, *icons_config, Icon_Ranges.data);
         font.Scale = 1 / scale_factor;
 
-        InitBigFileIconsFont();
+        return font;
     }
+
+    g_editor_base_font   = CreateBaseEditorFont(Editor_Base_Font_Size);
+    g_editor_medium_font = CreateBaseEditorFont(Editor_Medium_Font_Size);
+    InitBigFileIconsFont();
 
     InitEditorMainMenus();
 }
@@ -712,8 +737,6 @@ ShowEntityOutliner :: (world : *World) {
         return;
     }
 
-    defer ImGui.EndChild();
-
     ImGui.InputText("Filter", g_editor_entity_filter_text.data, xx g_editor_entity_filter_text.count);
     ImGui.SameLine();
     Toggle("Aa", *g_editor_entity_filter_case_sensitive);
@@ -723,7 +746,14 @@ ShowEntityOutliner :: (world : *World) {
         else "Enable case sensitive filter"
     );
 
+    ImGui.PushItemWidth(-1);
+    ImGui.PushFont(g_editor_medium_font);
+    PushButtonColor(.EmphasisButton);
     if ImGui.BeginCombo("###create_new_entity", "Create New Entity") {
+        defer ImGui.EndCombo();
+
+        ImGui.PushFont(g_editor_base_font);
+        defer ImGui.PopFont();
         for i : 1..Entity_Types.count - 1 {
             type_id := cast(EntityTypeId, i);
             name := GetNiceEntityTypeName(type_id);
@@ -733,10 +763,12 @@ ShowEntityOutliner :: (world : *World) {
                 SelectEntity(entity.guid);
             }
         }
-
-        ImGui.EndCombo();
     }
+    PopButtonColor();
+    ImGui.PopFont();
+    ImGui.PopItemWidth();
 
+    defer ImGui.EndChild();
     if !ImGui.BeginChild("Outliner", child_flags=.Border, window_flags=.HorizontalScrollbar) {
         return;
     }
@@ -907,7 +939,10 @@ ShowEntityInspector :: (world : *World, entity : *Entity) {
         SelectEntity(entity.guid);
     }
 
-    ImGui.SeparatorText("Properties");
+    defer ImGui.EndChild();
+    if !ImGui.BeginChild("Properties", child_flags=.Border) {
+        return;
+    }
 
     if BeginInspectorTable("entity_inspector") {
         defer ImGui.EndTable();
