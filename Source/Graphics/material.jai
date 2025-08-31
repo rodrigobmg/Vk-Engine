@@ -1,5 +1,6 @@
 MaterialType :: enum u8 {
     Opaque;
+    Unlit;
 } @ShaderType
 
 Num_Material_Types :: #run type_info(MaterialType).values.count;
@@ -17,6 +18,7 @@ Material :: struct {
     emissive_strength : float; @Serialize(10)
     depth_map : *Asset(Texture2D); @Serialize(11)
     depth_map_scale : float; @Serialize(12)
+    alpha_cutoff := 0.5; @Serialize(13) @FloatRange(0,1)
 } @Asset
 
 MaterialFlags :: enum_flags {
@@ -45,6 +47,7 @@ MaterialPerInstance :: struct {
     emissive_tint : Vec3f;
     emissive_strength : float;
     depth_map_scale : float;
+    alpha_cutoff : float;
 } @ShaderType
 
 operator== :: inline (a : MaterialPerInstance, b : MaterialPerInstance) -> bool {
@@ -61,6 +64,7 @@ MakeMaterialPerInstance :: inline (material : *Material) -> MaterialPerInstance 
         emissive_tint=material.emissive_tint,
         emissive_strength=material.emissive_strength,
         depth_map_scale=material.depth_map_scale,
+        alpha_cutoff=material.alpha_cutoff,
     };
 }
 

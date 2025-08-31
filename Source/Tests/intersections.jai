@@ -18,6 +18,10 @@ TestShapeEntity :: struct {
     mesh : *StaticMeshComponent; @Serialize(8)
     ray_length := 10.0; @Serialize(9)
 
+    GetEditorIcon :: (world : *World, using entity : *TestShapeEntity) -> *Asset(Texture2D) {
+        return LoadAssetPermanent(Texture2D, "Editor/Icons/Default.png");
+    }
+
     OnSpawn :: (world : *World, using entity : *TestShapeEntity) {
         mesh = CreateComponent(world, StaticMeshComponent, entity);
     }

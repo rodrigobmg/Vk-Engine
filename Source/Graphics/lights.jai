@@ -50,6 +50,10 @@ DirectionalLightComponent :: struct {
             DebugDrawLine(.{1,1,1,1}, p3, p3 + direction);
         }
     }
+
+    GetEditorIcon :: (world : *World, entity : *Entity, light : *DirectionalLightComponent) -> *Asset(Texture2D) {
+        return LoadAssetPermanent(Texture2D, "Editor/Icons/DirectionalLight.png");
+    }
 } @Component
 
 DirectionalLightEntity :: struct {
@@ -86,6 +90,10 @@ PointLightComponent :: struct {
             DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius);
             DebugDrawSphereOutline(.{1,1,1,1}, position, GetPointLightAttenuationDistance(light));
         }
+    }
+
+    GetEditorIcon :: (world : *World, entity : *Entity, light : *DirectionalLightComponent) -> *Asset(Texture2D) {
+        return LoadAssetPermanent(Texture2D, "Editor/Icons/PointLight.png");
     }
 } @Component
 

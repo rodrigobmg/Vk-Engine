@@ -12,6 +12,8 @@
 MaterialDesc :: struct {
     vertex_shader : string;
     shading_fragment_shader : string;
+    depth_only_fragment_shader : string;
+    entity_guid_fragment_shader := "entity_guid";
 }
 
 // This array describes shaders to be used per material type. The vertex shader is always used in any render pass
@@ -19,6 +21,7 @@ MaterialDesc :: struct {
 g_material_descs : [Num_Material_Types]MaterialDesc = .[
     // Opaque
     .{vertex_shader="mesh_geometry", shading_fragment_shader="opaque_surface"},
+    .{vertex_shader="mesh_geometry", shading_fragment_shader="unlit", depth_only_fragment_shader="alpha_cutoff_depth_only", entity_guid_fragment_shader="alpha_cutoff_entity_guid"},
 ];
 
 // MaterialPipelines stores pipelines for one material depending on variations (e.g. skinned, wireframe, skinned and wireframe)
@@ -117,6 +120,8 @@ MaterialRenderPass :: struct {
 
     // The shader name or one of the following special values:
     //  * FORWARD_SHADING will use MaterialDesc.shading_fragment_shader
+    //  * DEPTH_ONLY will use MaterialDesc.depth_only_fragment_shader
+    //  * ENTITY_GUID will use MaterialDesc.entity_guid_fragment_shader
     fragment_shader : string;
 
     pipeline_template : GfxGraphicsPipelineDesc;
@@ -169,6 +174,10 @@ GetPipeline :: (pass : *MaterialRenderPass, type : MaterialType, flags : Materia
     if pass.fragment_shader == {
     case "FORWARD_SHADING";
         fragment_shader = g_material_descs[type].shading_fragment_shader;
+    case "DEPTH_ONLY";
+        fragment_shader = g_material_descs[type].depth_only_fragment_shader;
+    case "ENTITY_GUID";
+        fragment_shader = g_material_descs[type].entity_guid_fragment_shader;
     case;
         fragment_shader = pass.fragment_shader;
     }

@@ -70,7 +70,7 @@ EntityGUIDPassBindingSet :: struct {
 
 g_entity_guid_material_pass := MaterialRenderPass.{
     name="Entity GUID",
-    fragment_shader="entity_guid",
+    fragment_shader="ENTITY_GUID",
     pipeline_template=.{
         num_color_attachments=1,
         color_formats[0]=.RGBA32UInt,
@@ -115,9 +115,13 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
 
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
-            BindIndexBuffer(*pass, .UInt32, it.index_buffer);
 
-            DrawIndexed(*pass, it.index_count, it.instance_count);
+            if it.index_buffer {
+                BindIndexBuffer(*pass, .UInt32, it.index_buffer);
+                DrawIndexed(*pass, it.index_count, it.instance_count);
+            } else {
+                Draw(*pass, it.vertex_count, it.instance_count);
+            }
         }
     }
     EndGfxRenderPass(*pass);

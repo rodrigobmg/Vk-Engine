@@ -197,9 +197,13 @@ PointShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *PointShado
 
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
-            BindIndexBuffer(*pass, .UInt32, it.index_buffer);
 
-            DrawIndexed(*pass, it.index_count, it.instance_count * Num_Shadow_Map_Cascades);
+            if it.index_buffer {
+                BindIndexBuffer(*pass, .UInt32, it.index_buffer);
+                DrawIndexed(*pass, it.index_count, it.instance_count);
+            } else {
+                Draw(*pass, it.vertex_count, it.instance_count);
+            }
         }
     }
     EndGfxRenderPass(*pass);

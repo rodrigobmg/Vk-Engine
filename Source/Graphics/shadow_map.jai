@@ -194,6 +194,7 @@ ShadowMapPassBindingSet :: struct {
 
 g_shadow_map_material_pass := MaterialRenderPass.{
     name="Shadow Map",
+    fragment_shader="DEPTH_ONLY",
     pipeline_template=.{
         depth_format=.Depth32Float,
         depth_state=.{test_enabled=true, write_enabled=true},
@@ -242,9 +243,13 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, ligh
 
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
-            BindIndexBuffer(*pass, .UInt32, it.index_buffer);
 
-            DrawIndexed(*pass, it.index_count, it.instance_count * Num_Shadow_Map_Cascades);
+            if it.index_buffer {
+                BindIndexBuffer(*pass, .UInt32, it.index_buffer);
+                DrawIndexed(*pass, it.index_count, it.instance_count * Num_Shadow_Map_Cascades);
+            } else {
+                Draw(*pass, it.vertex_count, it.instance_count * Num_Shadow_Map_Cascades);
+            }
         }
     }
     EndGfxRenderPass(*pass);

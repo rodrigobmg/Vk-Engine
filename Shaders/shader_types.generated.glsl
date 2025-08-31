@@ -149,6 +149,7 @@ struct LightCluster {
 
 #define MaterialType int
 #define MaterialType_Opaque 0
+#define MaterialType_Unlit 1
 
 struct MaterialPerInstance {
     MaterialType type;
@@ -159,6 +160,7 @@ struct MaterialPerInstance {
     float3 emissive_tint;
     float emissive_strength;
     float depth_map_scale;
+    float alpha_cutoff;
 };
 
 struct MeshInstance {

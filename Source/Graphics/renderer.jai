@@ -58,6 +58,8 @@ InitRenderer :: () {
 CleanupRenderer :: () {
     DestroyGPUFrameProfiler(*g_gpu_profiler);
 
+    DestroyGfxBuffer(*g_billboard_vertex_buffer);
+
     DestroyRenderTargets();
 
     DestroyAllBindingSetLayouts();
@@ -418,6 +420,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
     ResetBindingSetAllocators();
 
     ClearMeshBuffer(*g_mesh_buffer);
+    ClearMeshBuffer(*g_selected_mesh_buffer);
 
     frustum := MakePerspectiveFrustum(camera.transform, camera.fov_in_degrees, w / cast(float, h), camera.z_near, camera.z_far);
     for :AllMeshesToDraw world {
@@ -432,48 +435,47 @@ RenderFrame :: (world : *World, camera : *Camera) {
         depth := TransformPoint(camera.view, position).z;
         key := MakeMeshBufferKey(it, depth);
         PushMesh(*g_mesh_buffer, key, it);
+
+        if EntityOrParentIsSelected(world, it.entity) {
+            PushMesh(*g_selected_mesh_buffer, key, it);
+        }
     }
 
-    SortMeshBuffer(*g_mesh_buffer);
-    AllocDrawData(*g_mesh_buffer);
+    for :AllEntitiesWithEditorIcon world {
+        icon, icon_material := GetEditorIcon(world, it);
+        if icon {
+            position := TranslationVector(it.world_transform);
+            depth := TransformPoint(camera.view, position).z;
+            key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, false, depth);
+            PushBillboard(*g_mesh_buffer, key, it.guid, icon_material, position, camera.transform, .{1,1});
 
-    ClearMeshBuffer(*g_selected_mesh_buffer);
+            if EntityOrParentIsSelected(world, it) {
+                PushBillboard(*g_selected_mesh_buffer, key, it.guid, icon_material, position, camera.transform, .{1,1});
+            }
+        }
+    }
 
-    for * guid : g_editor_selected_entities {
-        entity := GetEntity(world, guid);
+    for :AllComponentsWithEditorIcon world {
+        entity := GetEntity(world, it.entity);
         if !entity {
             continue;
         }
 
-        for :AllStaticMeshComponents comp : entity {
-            draw, it := MakeMeshToDraw(entity, comp);
-            if !draw {
-                continue;
-            }
-
-            aabb := GetTransformedAABB(it.transform, it.static_bounds);
-            if !AABBIsInFrustum(aabb, frustum) {
-                continue;
-            }
-
-            position := TranslationVector(it.transform);
+        icon, icon_material := GetEditorIcon(world, entity, it);
+        if icon {
+            position := TranslationVector(entity.world_transform);
             depth := TransformPoint(camera.view, position).z;
-            key := MakeMeshBufferKey(it, depth);
-            PushMesh(*g_selected_mesh_buffer, key, it);
-        }
+            key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, false, depth);
+            PushBillboard(*g_mesh_buffer, key, entity.guid, icon_material, position, camera.transform, .{1,1});
 
-        for :AllSkinnedMeshComponents comp : entity {
-            draw, it := MakeMeshToDraw(entity, comp);
-            if !draw {
-                continue;
+            if EntityOrParentIsSelected(world, entity) {
+                PushBillboard(*g_selected_mesh_buffer, key, entity.guid, icon_material, position, camera.transform, .{1,1});
             }
-
-            position := TranslationVector(it.transform);
-            depth := TransformPoint(camera.view, position).z;
-            key := MakeMeshBufferKey(it, depth);
-            PushMesh(*g_selected_mesh_buffer, key, it);
         }
     }
+
+    SortMeshBuffer(*g_mesh_buffer);
+    AllocDrawData(*g_mesh_buffer);
 
     SortMeshBuffer(*g_selected_mesh_buffer);
     AllocDrawData(*g_selected_mesh_buffer);

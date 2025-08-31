@@ -136,6 +136,97 @@ PushMesh :: (
     );
 }
 
+g_billboard_vertex_buffer : GfxBuffer;
+
+InitBillboardVertexBuffer :: () {
+    if !IsNull(*g_billboard_vertex_buffer) {
+        return;
+    }
+
+    Vertices :: StaticVertex.[
+        .{
+            position=.{-0.5,-0.5,0},
+            normal=.{0,0,1},
+            tangent=.{1,0,0,1},
+            tex_coords=.{0,0},
+        },
+        .{
+            position=.{-0.5,0.5,0},
+            normal=.{0,0,1},
+            tangent=.{1,0,0,1},
+            tex_coords=.{0,1},
+        },
+        .{
+            position=.{0.5,0.5,0},
+            normal=.{0,0,1},
+            tangent=.{1,0,0,1},
+            tex_coords=.{1,1},
+        },
+        .{
+            position=.{-0.5,-0.5,0},
+            normal=.{0,0,1},
+            tangent=.{1,0,0,1},
+            tex_coords=.{0,0},
+        },
+        .{
+            position=.{0.5,0.5,0},
+            normal=.{0,0,1},
+            tangent=.{1,0,0,1},
+            tex_coords=.{1,1},
+        },
+        .{
+            position=.{0.5,-0.5,0},
+            normal=.{0,0,1},
+            tangent=.{1,0,0,1},
+            tex_coords=.{1,0},
+        },
+    ];
+
+    desc : GfxBufferDesc;
+    desc.size = size_of(type_of(Vertices));
+    desc.usage = .VertexBuffer;
+    desc.memory_usage = .Upload;
+
+    g_billboard_vertex_buffer = CreateGfxBuffer("Billboard Vertices", desc);
+    Assert(!IsNull(*g_billboard_vertex_buffer), "Could not create vertex buffer for billboard mesh");
+
+    vmaCopyMemoryToAllocation(g_gfx_context.allocator, Vertices.data, g_billboard_vertex_buffer.allocation, 0, desc.size);
+}
+
+PushBillboard :: (
+    buffer : *MeshBuffer,
+    key : u64,
+    entity_guid : EntityGUID,
+    material : *Material,
+    position : Vec3f,
+    camera_transform : Mat4f,
+    scale : Vec2f
+) {
+    InitBillboardVertexBuffer();
+
+    if !material || !material.base_color {
+        return;
+    }
+
+    width := material.base_color.width;
+    height := material.base_color.height;
+    aspect_ratio := height / cast(float, width);
+
+    model_matrix := Mat4fLookAt(position, position - ForwardVector(camera_transform), UpVector(camera_transform));
+    model_matrix *= Mat4fScale(.{scale.x, scale.y * aspect_ratio, 1});
+
+    PushMesh(
+        buffer,
+        key,
+        entity_guid=entity_guid,
+        vertex_buffer=*g_billboard_vertex_buffer, index_buffer=null,
+        vertex_count=6, index_count=0,
+        transform=model_matrix,
+        material=material,
+        is_skinned=false, skinning_matrices=.[]
+    );
+}
+
 PushMesh :: (
     buffer : *MeshBuffer,
     key : u64,
@@ -149,6 +240,9 @@ PushMesh :: (
     is_skinned : bool,
     skinning_matrices : []Mat4f
 ) {
+    Assert(vertex_buffer != null, "Vertex buffer is null");
+    Assert(material != null, "Material is null");
+
     entry := ArrayPush(*buffer.meshes);
     entry.key = key;
     entry.entity_guid = entity_guid;
@@ -173,7 +267,7 @@ CanInstantiateMeshes :: (a : MeshBuffer.Entry, b : MeshBuffer.Entry) -> bool {
         && a.index_buffer  == b.index_buffer
         && a.vertex_count  == b.vertex_count
         && a.index_count   == b.index_count
-        && MakeMaterialPerDrawCall(a.material) == MakeMaterialPerDrawCall(b.material);
+        && (a.material == b.material || MakeMaterialPerDrawCall(a.material) == MakeMaterialPerDrawCall(b.material));
 }
 
 AllocDrawData :: (buffer : *MeshBuffer) {

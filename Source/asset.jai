@@ -229,7 +229,7 @@ DestroyAssetCache :: (using cache : *AssetCache) {
             }
         }
 
-        UnloadAsset(cache, it);
+        UnloadAsset(cache, it, unload_referenced=true, unload_permanent=true);
     }
 
     if leaks != 0 && !Track_Asset_Reference_Locations {
@@ -438,11 +438,11 @@ AllocAsset :: (cache : *AssetCache, name : string, flags : AssetFlags = 0, locat
     return asset;
 }
 
-FreeAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
+FreeAsset :: (cache : *AssetCache, asset : *cache.AssetType, free_referenced := false, free_permanent := false) {
     Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
     Assert(cache == asset.asset_cache);
-    Assert(asset.ref_count == 0, "Freeing asset '%' but it is still referenced", asset.asset_name);
-    Assert(asset.asset_flags & .Permanent == 0, "Freeing permanent asset '%'", asset.asset_name);
+    Assert(free_referenced || asset.ref_count == 0, "Freeing asset '%' but it is still referenced", asset.asset_name);
+    Assert(free_permanent || asset.asset_flags & .Permanent == 0, "Freeing permanent asset '%'", asset.asset_name);
 
     asset_name := asset.asset_name;
     defer Free(asset.asset_name.data ,, cache.assets_by_name.allocator);
@@ -456,19 +456,27 @@ FreeAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
     HashMapRemove(*cache.unreferenced_assets, asset.asset_name);
 }
 
-UnloadAsset :: (cache : *AssetCache, asset : *cache.AssetType) {
+UnloadAsset :: (cache : *AssetCache, asset : *cache.AssetType, unload_referenced := false, unload_permanent := false) {
     Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
     Assert(cache.unload_proc != null);
     Assert(cache == asset.asset_cache);
-    Assert(asset.ref_count == 0, "Unloading asset '%' but it is still referenced", asset.asset_name);
-    Assert(asset.asset_flags & .Permanent == 0, "Unloading permanent asset '%'", asset.asset_name);
+
+    if !unload_referenced && asset.ref_count > 0 {
+        LogError("Unloading asset '%' but it is still referenced", asset.asset_name);
+        return;
+    }
+
+    if !unload_permanent && asset.asset_flags & .Permanent {
+        LogError("Unloading permanent asset '%'", asset.asset_name);
+        return;
+    }
 
     start_time := Basic.current_time_monotonic();
     cache.unload_proc(asset);
     end_time := Basic.current_time_monotonic();
     LogContentMessage("Unloaded asset '%' in % ms", asset.asset_name, Basic.to_float64_seconds(end_time - start_time) * 1000);
 
-    FreeAsset(cache, asset);
+    FreeAsset(cache, asset, unload_referenced, unload_permanent);
 }
 
 #scope_export
@@ -596,6 +604,22 @@ LoadAsset :: (cache : *AssetCache, name : string, location := #caller_location) 
     }
 
     asset.asset_flags &= ~.FromMemory;
+
+    return asset;
+}
+
+LoadAssetPermanent :: inline ($T : Type, name : string, location := #caller_location) -> *Asset(T) {
+    cache := #insert #run SPrint("*g_%_asset_cache;", T);
+    return LoadAssetPermanent(cache, name, location);
+}
+
+LoadAssetPermanent :: (cache : *AssetCache, name : string, location := #caller_location) -> *cache.AssetType {
+    asset := LoadAsset(cache, name, location);
+    if !asset {
+        return null;
+    }
+
+    asset.asset_flags |= .Permanent;
 
     return asset;
 }

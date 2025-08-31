@@ -195,7 +195,7 @@ AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
         #insert -> string {
             builder : StringBuilder;
 
-            Appendln(*builder, "// AllComponents(T=%, E=%)", T, E);
+            Appendln(*builder, "// AllEntityComponents(T=%, E=%)", T, E);
             Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
 
             comp := type_info(T);
@@ -228,7 +228,7 @@ AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
         #insert -> string {
             builder : StringBuilder;
 
-            Appendln(*builder, "// AllComponents(T=%, E=%)", T, E);
+            Appendln(*builder, "// AllEntityComponents(T=%, E=%)", T, E);
 
             comp := type_info(T);
             info := type_info(E);

@@ -22,6 +22,10 @@ Entity :: struct {
 
 EmptyEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
+
+    GetEditorIcon :: (world : *World, using entity : *EmptyEntity) -> *Asset(Texture2D) {
+        return LoadAssetPermanent(Texture2D, "Editor/Icons/Default.png");
+    }
 } @Entity
 
 EntityFlags :: enum_flags {

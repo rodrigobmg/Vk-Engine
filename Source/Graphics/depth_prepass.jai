@@ -4,6 +4,7 @@ DepthPrepassBindingSet :: struct {
 
 g_depth_prepass_material_pass := MaterialRenderPass.{
     name="Depth Prepass",
+    fragment_shader="DEPTH_ONLY",
     pipeline_template=.{
         depth_format=.Depth32Float,
         depth_state=.{test_enabled=true, write_enabled=true},
@@ -43,9 +44,13 @@ DepthPrepass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer 
 
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
-            BindIndexBuffer(*pass, .UInt32, it.index_buffer);
 
-            DrawIndexed(*pass, it.index_count, it.instance_count);
+            if it.index_buffer {
+                BindIndexBuffer(*pass, .UInt32, it.index_buffer);
+                DrawIndexed(*pass, it.index_count, it.instance_count);
+            } else {
+                Draw(*pass, it.vertex_count, it.instance_count);
+            }
         }
     }
     EndGfxRenderPass(*pass);

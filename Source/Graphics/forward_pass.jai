@@ -111,9 +111,13 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
             BindGraphicsBindingSet(*pass, 2, *it.binding_set);
             BindVertexBuffer(*pass, 0, it.vertex_buffer);
-            BindIndexBuffer(*pass, .UInt32, it.index_buffer);
 
-            DrawIndexed(*pass, it.index_count, it.instance_count);
+            if it.index_buffer {
+                BindIndexBuffer(*pass, .UInt32, it.index_buffer);
+                DrawIndexed(*pass, it.index_count, it.instance_count);
+            } else {
+                Draw(*pass, it.vertex_count, it.instance_count);
+            }
         }
     }
     EndGfxRenderPass(*pass);

@@ -12,6 +12,9 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="alpha_cutoff_entity_guid"},
+    .{name="unlit"},
+    .{name="alpha_cutoff_depth_only"},
     .{name="build_cluster_grid"},
     .{name="populate_cluster_grid"},
     .{name="kawase_blur_downsample"},
