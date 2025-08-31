@@ -69,7 +69,7 @@ TestShapeEntity :: struct {
                     capsule_normal := UpVector(it.world_transform);
                     capsule_center := TranslationVector(it.world_transform);
                     capsule_base := capsule_center - capsule_normal * it.capsule_height * 0.5;
-                    capsule_tip := capsule_center - capsule_normal * it.capsule_height * 0.5;
+                    capsule_tip := capsule_center + capsule_normal * it.capsule_height * 0.5;
                     intersects, point, _, normal =
                         RayIntersectsCapsule(position, direction, ray_length, capsule_base, capsule_tip, it.capsule_radius);
 
