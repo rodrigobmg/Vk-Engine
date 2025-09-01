@@ -10,12 +10,13 @@ layout(location=0) out float3 out_position;
 layout(location=1) out float3 out_viewpoint_position;
 
 void main() {
+    const float Grid_Size = 100;
     const float3 Positions[] = float3[](
-        float3(-1,0,-1), float3(-1,0,1), float3(1,0,1),
-        float3(-1,0,-1), float3(1,0,1), float3(1,0,-1)
+        float3(-Grid_Size,0,-Grid_Size), float3(-Grid_Size,0,Grid_Size), float3(Grid_Size,0,Grid_Size),
+        float3(-Grid_Size,0,-Grid_Size), float3(Grid_Size,0,Grid_Size), float3(Grid_Size,0,-Grid_Size)
     );
 
-    float3 position = Positions[gl_VertexIndex] * 100;
+    float3 position = Positions[gl_VertexIndex];
     position.x += u_viewpoint.position.x;
     position.z += u_viewpoint.position.z;
 
