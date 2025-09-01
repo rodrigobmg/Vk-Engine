@@ -6,7 +6,7 @@ using _ :: struct {
     Num_Shadow_Map_Samples :: Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples;
 } @ShaderType
 
-#if Reverse_Depth_Range {
+#if Shadow_Map_Reverse_Depth_Range {
     Shadow_Map_Depth_Compare_Op :: GfxCompareOp.GreaterEqual;
     Shadow_Map_Depth_Clear :: 0.0;
 } else {
