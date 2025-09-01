@@ -59,4 +59,8 @@ void main() {
 
     float alpha_falloff = (1 - clamp(length(in_position.xz - in_viewpoint_position.xz) / grid_size, 0, 1));
     out_color.a *= alpha_falloff;
+
+    if (out_color.a == 0) {
+        discard;
+    }
 }
