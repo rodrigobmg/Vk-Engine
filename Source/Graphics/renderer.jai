@@ -702,10 +702,10 @@ RenderFrame :: (world : *World, camera : *Camera) {
     PrepareClusters(*ctx, camera);
     ForwardPass(*ctx, camera, *g_mesh_buffer);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
+    DebugLinesPass(*ctx, camera);
     if g_editor_show_grid {
         InfiniteGridPass(*ctx, camera);
     }
-    DebugLinesPass(*ctx, camera);
 
     {
         BeginGfxDebugMarker(*cmd_buffer, "Entity Selection");
