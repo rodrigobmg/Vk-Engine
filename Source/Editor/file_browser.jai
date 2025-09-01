@@ -596,6 +596,7 @@ FileBrowserPopup :: (using browser : *FileBrowser) {
         then "All files (.*)".data
         else CTPrint("% (%)", filters[selected_filter].description, filters[selected_filter].extensions);
 
+    ImGui.SetNextItemWidth(-1);
     if ImGui.BeginCombo("##filetype_combo", preview) {
         for i : -1..filters.count - 1 {
             if i == -1 {

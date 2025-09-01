@@ -223,9 +223,9 @@ ShowEntityOutliner :: (world : *World) {
         else "Enable case sensitive filter"
     );
 
-    ImGui.PushItemWidth(-1);
     ImGui.PushFont(g_editor_medium_font);
     PushButtonColor(.EmphasisButton);
+    ImGui.SetNextItemWidth(-1);
     if ImGui.BeginCombo("###create_new_entity", "Create New Entity") {
         defer ImGui.EndCombo();
 
@@ -243,7 +243,6 @@ ShowEntityOutliner :: (world : *World) {
     }
     PopButtonColor();
     ImGui.PopFont();
-    ImGui.PopItemWidth();
 
     defer ImGui.EndChild();
     if !ImGui.BeginChild("Outliner", child_flags=.Border, window_flags=.HorizontalScrollbar) {
