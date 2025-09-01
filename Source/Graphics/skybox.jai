@@ -30,7 +30,6 @@ CreateSkyboxPipeline :: () {
     AddColorAttachment(*desc, g_color_texture.desc.pixel_format);
     desc.depth_format = g_depth_texture.desc.pixel_format;
 
-    desc.rasterizer_state = .{winding_order=Winding_Order};
     desc.depth_state = .{test_enabled=true, compare_op=Depth_Compare_Op};
 
     desc.layout.binding_sets = .[
@@ -69,7 +68,7 @@ SkyboxPass :: (using ctx : *FrameRenderContext, camera : *Camera, skybox_texture
     pass := BeginGfxRenderPass(cmd_buffer, "Skybox", pass_desc);
     {
         BindGraphicsPipeline(*pass, *g_skybox_pipeline);
-        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
+        SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(*pass, 1, *binding_set);

@@ -1,19 +1,13 @@
 using _ :: struct {
-    Reverse_Depth_Range :: false;
+    Reverse_Depth_Range :: true;
 } @ShaderType
 
 #if Reverse_Depth_Range {
     Depth_Compare_Op :: GfxCompareOp.GreaterEqual;
     Depth_Clear :: 0.0;
-    Depth_Range_Min :: 0.0;
-    Depth_Range_Max :: 1.0;
-    Winding_Order :: GfxWindingOrder.CounterClockwise;
 } else {
     Depth_Compare_Op :: GfxCompareOp.LessEqual;
     Depth_Clear :: 1.0;
-    Depth_Range_Min :: 0.0;
-    Depth_Range_Max :: 1.0;
-    Winding_Order :: GfxWindingOrder.CounterClockwise;
 }
 
 g_linear_clamp_sampler : GfxSampler;

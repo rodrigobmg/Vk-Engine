@@ -75,7 +75,6 @@ g_entity_guid_material_pass := MaterialRenderPass.{
         num_color_attachments=1,
         color_formats[0]=.RGBA32UInt,
         depth_format=.Depth32Float,
-        rasterizer_state=.{winding_order=Winding_Order},
         depth_state=.{test_enabled=true, write_enabled=true, compare_op=Depth_Compare_Op},
     },
 };
@@ -105,7 +104,7 @@ EntityGUIDPass :: (using ctx : *FrameRenderContext, texture : *GfxTexture, depth
 
     pass := BeginGfxRenderPass(cmd_buffer, "Entity GUID", pass_desc);
     {
-        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
+        SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(cmd_buffer, *g_entity_guid_material_pass.pipeline_layout, 1, *binding_set);

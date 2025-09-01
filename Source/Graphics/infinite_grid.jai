@@ -17,7 +17,7 @@ CreateInfiniteGridPipeline :: () {
         g_binding_set_layouts.InfiniteGridBindingSet,
     ];
 
-    desc.rasterizer_state = .{cull_face=.None, winding_order=Winding_Order};
+    desc.rasterizer_state = .{cull_face=.None};
     desc.depth_state = .{test_enabled=true, write_enabled=true, compare_op=Depth_Compare_Op};
     desc.blend_states[0] = .{enabled=true};
 
@@ -46,7 +46,7 @@ InfiniteGridPass :: (using ctx : *FrameRenderContext, camera : *Camera) {
     pass := BeginGfxRenderPass(cmd_buffer, "Infinite Grid", pass_desc);
     {
         BindGraphicsPipeline(*pass, *g_infinite_grid_pipeline);
-        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
+        SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(*pass, 1, *pass_binding_set);

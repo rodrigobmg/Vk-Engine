@@ -7,7 +7,6 @@ g_depth_prepass_material_pass := MaterialRenderPass.{
     fragment_shader="DEPTH_ONLY",
     pipeline_template=.{
         depth_format=.Depth32Float,
-        rasterizer_state=.{winding_order=Winding_Order},
         depth_state=.{test_enabled=true, write_enabled=true, compare_op=Depth_Compare_Op},
     },
 };
@@ -34,7 +33,7 @@ DepthPrepass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer 
 
     pass := BeginGfxRenderPass(cmd_buffer, "Depth Prepass", pass_desc);
     {
-        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
+        SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(cmd_buffer, *g_depth_prepass_material_pass.pipeline_layout, 1, *binding_set);

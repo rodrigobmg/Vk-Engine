@@ -281,7 +281,7 @@ DebugLinesPass :: (using ctx : *FrameRenderContext, camera : *Camera) {
     pass := BeginGfxRenderPass(cmd_buffer, "Debug Lines", pass_desc);
     {
         BindGraphicsPipeline(*pass, *g_debug_lines_pipeline);
-        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
+        SetViewport(*pass, .{width=xx w, height=xx h});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(*pass, 1, *binding_set);
