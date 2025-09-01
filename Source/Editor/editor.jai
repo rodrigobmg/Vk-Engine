@@ -491,6 +491,11 @@ OpenMaterialEditor :: (material : *Asset(Material)) {
 
     DerefAsset(*g_material_editor_selected_material);
     g_material_editor_selected_material = AddRef(material);
+
+    window := ImGui.FindWindowByName("Material Editor");
+    if window {
+        ImGui.FocusWindow(window);
+    }
 }
 
 ShowMaterialEditor :: () {
