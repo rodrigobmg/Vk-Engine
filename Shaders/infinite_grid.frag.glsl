@@ -51,9 +51,6 @@ void main() {
     float4 grid_color_thick = float4(1,1,1,0.8);
     float4 grid_color_thin = float4(0.6,0.6,0.6,0.3);
 
-    float thick_alpha = 0.8;
-    float thin_alpha = 0.3;
-
     float4 color_thick = grid_color_thick;
     float4 color_thin = grid_color_thin;
 
