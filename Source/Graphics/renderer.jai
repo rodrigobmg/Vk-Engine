@@ -357,7 +357,7 @@ MakeMeshToDraw :: (entity : *Entity, component : *StaticMeshComponent) -> bool, 
         material=ifx component.material then component.material else g_default_material,
         cast_shadows=component.cast_shadows,
         cast_point_shadows=component.cast_point_shadows,
-        is_skinned=true,
+        is_skinned=false,
     };
 }
 
@@ -365,7 +365,7 @@ MakeMeshToDraw :: (world : *World, component : *StaticMeshComponent) -> bool, Me
     entity := GetEntity(world, component.entity);
     if !entity {
         LogError("Could not get entity %", component.entity);
-        return true, .{};
+        return false, .{};
     }
 
     ok, mesh := MakeMeshToDraw(entity, component);
@@ -396,7 +396,7 @@ MakeMeshToDraw :: (world : *World, component : *SkinnedMeshComponent) -> bool, M
     entity := GetEntity(world, component.entity);
     if !entity {
         LogError("Could not get entity");
-        return true, .{};
+        return false, .{};
     }
 
     ok, mesh := MakeMeshToDraw(entity, component);
