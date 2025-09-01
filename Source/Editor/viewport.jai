@@ -28,7 +28,7 @@ Camera :: struct {
 g_editor_camera : Camera;
 
 UpdateCamera :: (using camera : *Camera) {
-    is_moving_camera := IsMouseButtonDown(.Right);
+    is_moving_camera := IsMouseButtonDown(.Right) && !IsMouseButtonDown(.Left);
     is_moving_camera &= !ImGui.GetIO().WantCaptureMouse;
     is_moving_camera &= !ImGui.GetIO().WantCaptureKeyboard;
     is_moving_camera &= g_gizmo_ctx.active_id == 0;
@@ -119,25 +119,135 @@ WorldToCamera :: (camera : *Camera, point : Vec3f) -> is_behind : bool, Vec2f {
     return false, proj.xy;
 }
 
+g_editor_is_box_selecting_entities : bool;
+g_editor_box_selection_start : Vec2i;
+
+IsBoxSelectingEntities :: inline () -> bool {
+    Selection_Threshold :: 4;
+    mouse_x, mouse_y := GetMousePixelPosition(g_window);
+
+    return g_editor_is_box_selecting_entities
+        && Abs(g_editor_box_selection_start.x - mouse_x) >= Selection_Threshold
+        && Abs(g_editor_box_selection_start.y - mouse_y) >= Selection_Threshold;
+}
+
+UpdateEntitySelection :: (world : *World) {
+    // Entity selection
+    if ImGui.GetIO().WantCaptureMouse || GizmoHasMouse(*g_gizmo_ctx) || IsMouseButtonDown(.Right) {
+        return;
+    }
+
+    if IsMouseButtonPressed(.Left) {
+        g_editor_is_box_selecting_entities = true;
+        g_editor_box_selection_start.x, g_editor_box_selection_start.y = GetMousePixelPosition(g_window);
+    }
+
+    if IsMouseButtonReleased(.Left) {
+        if g_editor_is_box_selecting_entities{
+            mouse_x, mouse_y := GetMousePixelPosition(g_window);
+            x1, y1, x2, y2 : s32;
+            if IsBoxSelectingEntities() {
+                x1 = Min(g_editor_box_selection_start.x, mouse_x);
+                x2 = Max(g_editor_box_selection_start.x, mouse_x);
+                y1 = Min(g_editor_box_selection_start.y, mouse_y);
+                y2 = Max(g_editor_box_selection_start.y, mouse_y);
+            } else {
+                x1 = mouse_x;
+                x2 = mouse_x;
+                y1 = mouse_y;
+                y2 = mouse_y;
+            }
+
+            scale_factor := GetWindowScaleFactor(g_window);
+            x1 = xx (x1 * scale_factor);
+            x2 = xx (x2 * scale_factor);
+            y1 = xx (y1 * scale_factor);
+            y2 = xx (y2 * scale_factor);
+
+            if GetModState() != .Shift && GetModState() != .Ctrl | .Shift {
+                ArrayClear(*g_editor_selected_entities);
+            }
+
+            for y : y1..y2 {
+                for x : x1..x2 {
+                    guid := GetEntityGUIDAtPoint(x, y);
+                    if guid != Null_Entity_GUID {
+                        if GetModState() == .Ctrl | .Shift {
+                            DeselectEntity(guid);
+                        } else {
+                            SelectEntity(guid, add_to_selection=true);
+                        }
+                    }
+                }
+            }
+
+            g_editor_is_box_selecting_entities = false;
+        }
+    }
+}
+
 UpdateEditorViewport :: (world : *World) {
     UpdateCamera(*g_editor_camera);
     // Update after camera, because this is where we check for mouse interaction
     UpdateGizmos(world, *g_gizmo_ctx);
+    UpdateEntitySelection(world);
 
-    // Entity selection
-    if !ImGui.GetIO().WantCaptureMouse && !GizmoHasMouse(*g_gizmo_ctx) && !IsMouseButtonDown(.Right) && IsMouseButtonPressed(.Left) {
-        x, y := GetMousePixelPosition(g_window);
-        entity := GetEntityAtPoint(world, x, y);
-        if entity {
-            if EntityIsSelected(entity.guid) {
-                DeselectEntity(entity.guid);
-            } else {
-                SelectEntity(entity.guid, add_to_selection=IsKeyDown(.Shift));
-            }
-        } else if !IsKeyDown(.Shift) {
-            ArrayClear(*g_editor_selected_entities);
+    EntityGizmo(world, *g_gizmo_ctx);
+
+    w, h := GetWindowPointSize(g_window);
+    window_flags := ImGui.WindowFlags.NoTitleBar | .NoResize | .NoScrollbar | .NoBackground
+        | .NoInputs | .NoSavedSettings | .NoFocusOnAppearing | .NoBringToFrontOnFocus;
+    ImGui.SetNextWindowPos(.{0,0});
+    ImGui.SetNextWindowSize(.{xx w, xx h});
+    if ImGui.Begin("Editor Overlay", flags=window_flags) {
+        if IsBoxSelectingEntities() {
+            DrawEntitySelectionBox();
         }
     }
 
-    EntityGizmo(world, *g_gizmo_ctx);
+    ImGui.End();
+}
+
+DrawEntitySelectionBox :: () {
+    draw_list := ImGui.GetWindowDrawList();
+
+    mouse_x, mouse_y := GetMousePixelPosition(g_window);
+
+    x1 := Min(g_editor_box_selection_start.x, mouse_x);
+    y1 := Min(g_editor_box_selection_start.y, mouse_y);
+    x2 := Max(g_editor_box_selection_start.x, mouse_x);
+    y2 := Max(g_editor_box_selection_start.y, mouse_y);
+
+    Bg_Color :: Vec4f.{1,1,1,0.2};
+    Outline_Color :: Vec4f.{1,1,1,1};
+    Outline_Dash_Length :: 5.0;
+    Outline_Dash_Space :: 5.0;
+    Outline_Dash_Thickness :: 1.0;
+
+    draw_list.AddRectFilled(draw_list, .{xx x1, xx y1}, .{xx x2, xx y2}, ImGui.ColorConvertFloat4ToU32(Bg_Color));
+
+    AddDashedLine(draw_list,
+        .{xx x1, xx y1}, .{xx x2, xx y1},
+        Outline_Dash_Length, Outline_Dash_Space,
+        ImGui.ColorConvertFloat4ToU32(Outline_Color),
+        Outline_Dash_Thickness
+    );
+    AddDashedLine(draw_list,
+        .{xx x1, xx y2}, .{xx x2, xx y2},
+        Outline_Dash_Length, Outline_Dash_Space,
+        ImGui.ColorConvertFloat4ToU32(Outline_Color),
+        Outline_Dash_Thickness
+    );
+    AddDashedLine(draw_list,
+        .{xx x1, xx y1}, .{xx x1, xx y2},
+        Outline_Dash_Length, Outline_Dash_Space,
+        ImGui.ColorConvertFloat4ToU32(Outline_Color),
+        Outline_Dash_Thickness
+    );
+    AddDashedLine(draw_list,
+        .{xx x2, xx y1}, .{xx x2, xx y2},
+        Outline_Dash_Length, Outline_Dash_Space,
+        ImGui.ColorConvertFloat4ToU32(Outline_Color),
+        Outline_Dash_Thickness
+    );
 }
