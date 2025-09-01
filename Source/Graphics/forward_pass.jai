@@ -14,7 +14,8 @@ g_forward_material_pass := MaterialRenderPass.{
         num_color_attachments=1,
         color_formats[0]=.RGBA16Float,
         depth_format=.Depth32Float,
-        depth_state=.{test_enabled=true, write_enabled=false},
+        rasterizer_state=.{winding_order=Winding_Order},
+        depth_state=.{test_enabled=true, write_enabled=false, compare_op=Depth_Compare_Op},
     },
 };
 
@@ -100,7 +101,7 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
 
     pass := BeginGfxRenderPass(cmd_buffer, "Forward Pass", pass_desc);
     {
-        SetViewport(*pass, .{width=xx w, height=xx h});
+        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(cmd_buffer, *g_forward_material_pass.pipeline_layout, 1, *binding_set);

@@ -74,7 +74,13 @@ UpdateCamera :: (using camera : *Camera) {
     w, h := GetWindowPixelSize(g_window);
 
     aspect := w / cast(float, h);
-    projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_near, z_far);
+
+    if Reverse_Depth_Range {
+        projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_far, z_near);
+    } else {
+        projection = Mat4fPerspectiveProjection(fov_in_degrees, aspect, z_near, z_far);
+    }
+
     inv_projection = Inverse(projection);
 
     ortho_projection = Mat4fOrthographicProjection(0, xx w, xx h, 0, -1, 1);

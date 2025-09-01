@@ -1,3 +1,21 @@
+using _ :: struct {
+    Reverse_Depth_Range :: false;
+} @ShaderType
+
+#if Reverse_Depth_Range {
+    Depth_Compare_Op :: GfxCompareOp.GreaterEqual;
+    Depth_Clear :: 0.0;
+    Depth_Range_Min :: 0.0;
+    Depth_Range_Max :: 1.0;
+    Winding_Order :: GfxWindingOrder.CounterClockwise;
+} else {
+    Depth_Compare_Op :: GfxCompareOp.LessEqual;
+    Depth_Clear :: 1.0;
+    Depth_Range_Min :: 0.0;
+    Depth_Range_Max :: 1.0;
+    Winding_Order :: GfxWindingOrder.CounterClockwise;
+}
+
 g_linear_clamp_sampler : GfxSampler;
 g_nearest_clamp_sampler : GfxSampler;
 g_material_texture_sampler : GfxSampler;
@@ -339,7 +357,7 @@ MakeMeshToDraw :: (entity : *Entity, component : *StaticMeshComponent) -> bool, 
         material=ifx component.material then component.material else g_default_material,
         cast_shadows=component.cast_shadows,
         cast_point_shadows=component.cast_point_shadows,
-        is_skinned=false,
+        is_skinned=true,
     };
 }
 
@@ -347,7 +365,7 @@ MakeMeshToDraw :: (world : *World, component : *StaticMeshComponent) -> bool, Me
     entity := GetEntity(world, component.entity);
     if !entity {
         LogError("Could not get entity %", component.entity);
-        return false, .{};
+        return true, .{};
     }
 
     ok, mesh := MakeMeshToDraw(entity, component);
@@ -378,7 +396,7 @@ MakeMeshToDraw :: (world : *World, component : *SkinnedMeshComponent) -> bool, M
     entity := GetEntity(world, component.entity);
     if !entity {
         LogError("Could not get entity");
-        return false, .{};
+        return true, .{};
     }
 
     ok, mesh := MakeMeshToDraw(entity, component);
@@ -453,7 +471,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         if icon {
             position := TranslationVector(it.world_transform);
             depth := TransformPoint(camera.view, position).z;
-            key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, false, depth);
+            key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, true, depth);
             PushBillboard(*g_mesh_buffer, key, it.guid, icon_material, position, camera.transform, .{1,1});
 
             if EntityOrParentIsSelected(world, it) {
@@ -476,7 +494,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         if icon {
             position := TranslationVector(entity.world_transform);
             depth := TransformPoint(camera.view, position).z;
-            key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, false, depth);
+            key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, true, depth);
             PushBillboard(*g_mesh_buffer, key, entity.guid, icon_material, position, camera.transform, .{1,1});
 
             if EntityOrParentIsSelected(world, entity) {

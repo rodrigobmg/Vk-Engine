@@ -244,7 +244,7 @@ CreateDebugLinesPipeline :: () {
     desc.depth_format = g_depth_texture.desc.pixel_format;
 
     desc.blend_states[0] = .{enabled=true};
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
+    desc.depth_state = .{test_enabled=true, write_enabled=true, compare_op=Depth_Compare_Op};
 
     ok := CreateGfxGraphicsPipeline(*g_debug_lines_pipeline, "Debug Lines", desc);
     Assert(ok, "Could not create debug lines pipeline");
@@ -281,7 +281,7 @@ DebugLinesPass :: (using ctx : *FrameRenderContext, camera : *Camera) {
     pass := BeginGfxRenderPass(cmd_buffer, "Debug Lines", pass_desc);
     {
         BindGraphicsPipeline(*pass, *g_debug_lines_pipeline);
-        SetViewport(*pass, .{width=xx w, height=xx h});
+        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(*pass, 1, *binding_set);

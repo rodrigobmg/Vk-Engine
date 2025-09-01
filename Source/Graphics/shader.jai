@@ -148,6 +148,8 @@ LoadAllShaders :: () -> bool {
 
     end_time := Basic.current_time_monotonic();
 
+    CleanupSPIRVFiles();
+
     LogMessage("Loaded all shaders in % s", Basic.to_float64_seconds(end_time - start_time));
 
     return true;
@@ -193,6 +195,8 @@ ShaderFileChangeCallback :: (watcher : *File_Watcher(void), change : *File_Chang
             ReloadShader(it);
         }
     }
+
+    CleanupSPIRVFiles();
 }
 
 ReloadShader :: (shader : *LoadedShader) -> bool {

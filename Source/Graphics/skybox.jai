@@ -20,11 +20,18 @@ CreateSkyboxPipeline :: () {
     }
 
     desc : GfxGraphicsPipelineDesc;
-    desc.vertex_shader = GetVertexShader("background_screen_effect");
+    if Reverse_Depth_Range {
+        desc.vertex_shader = GetVertexShader("screen_effect");
+    } else {
+        desc.vertex_shader = GetVertexShader("background_screen_effect");
+    }
     desc.fragment_shader = GetFragmentShader("skybox");
+
     AddColorAttachment(*desc, g_color_texture.desc.pixel_format);
     desc.depth_format = g_depth_texture.desc.pixel_format;
-    desc.depth_state = .{test_enabled=true};
+
+    desc.rasterizer_state = .{winding_order=Winding_Order};
+    desc.depth_state = .{test_enabled=true, compare_op=Depth_Compare_Op};
 
     desc.layout.binding_sets = .[
         g_binding_set_layouts.FrameBindingSet,
@@ -62,7 +69,7 @@ SkyboxPass :: (using ctx : *FrameRenderContext, camera : *Camera, skybox_texture
     pass := BeginGfxRenderPass(cmd_buffer, "Skybox", pass_desc);
     {
         BindGraphicsPipeline(*pass, *g_skybox_pipeline);
-        SetViewport(*pass, .{width=xx w, height=xx h});
+        SetViewport(*pass, .{width=xx w, height=xx h, min_depth=Depth_Range_Min, max_depth=Depth_Range_Max});
         SetScissor(*pass, .{w=xx w, h=xx h});
 
         BindGraphicsBindingSet(*pass, 1, *binding_set);
