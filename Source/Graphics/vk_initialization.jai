@@ -221,6 +221,7 @@ InitGfxContext :: (window : *SDL_Window) {
 
     vulkan13_features : VkPhysicalDeviceVulkan13Features;
     vulkan13_features.dynamicRendering = VK_TRUE;
+    vulkan13_features.shaderDemoteToHelperInvocation = VK_TRUE;
     vulkan12_features.pNext = *vulkan13_features;
 
     if vkCreateDevice(ctx.physical_device, *device_info, g_vk_alloc_callbacks, *ctx.device) != .SUCCESS {

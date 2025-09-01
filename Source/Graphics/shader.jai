@@ -12,6 +12,7 @@ LoadedShader :: struct {
 
 g_shader_file_watcher : File_Watcher;
 g_shaders := LoadedShader.[
+    .{name="infinite_grid"},
     .{name="alpha_cutoff_entity_guid"},
     .{name="unlit"},
     .{name="alpha_cutoff_depth_only"},

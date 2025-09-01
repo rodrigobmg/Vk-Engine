@@ -2,9 +2,11 @@ g_editor_show_debug_drawings := true;
 g_editor_show_grid := true;
 
 Camera :: struct {
-    position : Vec3f;
-    target_yaw, target_pitch : float;
-    yaw, pitch : float;
+    position := #run Normalized(Vec3f.{-1,1,-1}) * 10;
+    target_yaw := #run ToRads(30.0);
+    target_pitch := #run ToRads(30.0);
+    yaw := #run ToRads(30.0);
+    pitch := #run ToRads(30.0);
     rotation : Quatf;
     fov_in_degrees := 80.0;
     z_near := 0.1;
@@ -56,15 +58,15 @@ UpdateCamera :: (using camera : *Camera) {
 
         target_yaw += ToRads(rotation_delta.x);
         target_pitch += ToRads(rotation_delta.y);
-        target_pitch = Clamp(target_pitch, ToRads(-90), ToRads(90));
-
-        yaw = Lerp(yaw, target_yaw, rotation_smoothing);
-        pitch = Lerp(pitch, target_pitch, rotation_smoothing);
-
-        rotation = QuatfFromEulerAnglesYXZ(.{x=pitch,y=yaw});
     } else {
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
+
+    target_pitch = Clamp(target_pitch, ToRads(-90), ToRads(90));
+    yaw = Lerp(yaw, target_yaw, rotation_smoothing);
+    pitch = Lerp(pitch, target_pitch, rotation_smoothing);
+
+    rotation = QuatfFromEulerAnglesYXZ(.{x=pitch,y=yaw});
 
     transform = Mat4fTranslate(position) * Mat4fFromQuat(rotation);
     view = Inverse(transform);
@@ -132,22 +134,4 @@ UpdateEditorViewport :: (world : *World) {
     }
 
     EntityGizmo(world, *g_gizmo_ctx);
-
-    if g_editor_show_grid {
-        DrawEditorGrid();
-    }
-}
-
-DrawEditorGrid :: () {
-    Grid_Sizes :: float.[1,2,4,8,16,32,64,128];
-    Grid_Size_Steps :: 5.0;
-
-    grid_size_index := cast(int, Abs(g_editor_camera.position.y) / Grid_Size_Steps);
-    grid_size_index = Min(grid_size_index, Grid_Sizes.count - 1);
-    grid_size := Grid_Sizes[grid_size_index];
-    center := Vec3f.{Snap(g_editor_camera.position.x, grid_size), 0, Snap(g_editor_camera.position.z, grid_size)};
-
-    num_cells := cast(int, Grid_Sizes[Grid_Sizes.count - 1] * 2 / grid_size);
-    DebugDrawGrid(.{1,1,1,0.1}, center, .{1,0,0}, .{0,0,1}, num_cells * 2, grid_size * 0.5);
-    DebugDrawGrid(.{1,1,1,0.2}, center, .{1,0,0}, .{0,0,1}, num_cells, grid_size);
 }

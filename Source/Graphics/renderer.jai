@@ -115,6 +115,7 @@ DestroyAllPipelines :: () {
     DestroyGfxComputePipeline(*g_build_cluster_grid_pipeline);
     DestroyGfxComputePipeline(*g_populate_cluster_grid_pipeline);
 
+    DestroyGfxGraphicsPipeline(*g_infinite_grid_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_lines_pipeline);
     DestroyGfxGraphicsPipeline(*g_gizmo_pipeline);
     DestroyGfxGraphicsPipeline(*g_debug_lines_pipeline);
@@ -701,6 +702,9 @@ RenderFrame :: (world : *World, camera : *Camera) {
     PrepareClusters(*ctx, camera);
     ForwardPass(*ctx, camera, *g_mesh_buffer);
     SkyboxPass(*ctx, camera, ifx world.skybox && world.skybox.base_texture then *world.skybox.base_texture.texture);
+    if g_editor_show_grid {
+        InfiniteGridPass(*ctx, camera);
+    }
     DebugLinesPass(*ctx, camera);
 
     {

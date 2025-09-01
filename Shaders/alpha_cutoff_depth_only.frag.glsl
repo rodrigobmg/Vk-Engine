@@ -2,7 +2,7 @@
 
 DECLARE_PER_FRAME_PARAMS();
 
-layout(set=1, binding=0) uniform Viewpoints {
+layout(set=1, binding=0, std140) uniform Viewpoints {
     uint u_num_viewpoints;
     Viewpoint u_viewpoints[Max_Viewpoints];
 };

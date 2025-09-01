@@ -513,4 +513,8 @@ uint GetLightClusterIndex(Viewpoint viewpoint, float3 world_position, float2 scr
         + (cluster_tile.z * Num_Clusters_X * Num_Clusters_Y);
 }
 
+float Log10(float x) {
+    return log(x) / 2.30258509299;
+}
+
 #endif
