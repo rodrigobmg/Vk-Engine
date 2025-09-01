@@ -25,7 +25,8 @@ void main() {
     float cell_size_lod1 = cell_size_lod0 * 10;
     float cell_size_lod2 = cell_size_lod1 * 10;
 
-    dudv *= 2;
+    float line_thickness = 2;
+    dudv *= line_thickness;
 
     float2 lod0_alpha_xz = float2(1) - mod(in_position.xz, cell_size_lod0) / dudv;
     lod0_alpha_xz = abs(clamp(lod0_alpha_xz, 0, 1) * 2 - float2(1));
@@ -41,19 +42,38 @@ void main() {
 
     float lod_fade = fract(lod);
 
-    out_color = float4(0);
+    float4 grid_color_thick_x = float4(1,0,0,0.8);
+    float4 grid_color_thin_x = float4(1,0,0,0.3);
+
+    float4 grid_color_thick_z = float4(0,0,1,0.8);
+    float4 grid_color_thin_z = float4(0,0,1,0.3);
 
     float4 grid_color_thick = float4(1,1,1,0.8);
     float4 grid_color_thin = float4(0.6,0.6,0.6,0.3);
 
+    float thick_alpha = 0.8;
+    float thin_alpha = 0.3;
+
+    float4 color_thick = grid_color_thick;
+    float4 color_thin = grid_color_thin;
+
+    if (abs(in_position.z / dudv.y) < line_thickness * 0.5) {
+        color_thick = grid_color_thick_z;
+        color_thin = grid_color_thin_z;
+    }
+    if (abs(in_position.x / dudv.x) < line_thickness * 0.5) {
+        color_thick = grid_color_thick_x;
+        color_thin = grid_color_thin_x;
+    }
+
     if (lod2_alpha > 0) {
-        out_color = grid_color_thick;
+        out_color = color_thick;
         out_color.a *= lod2_alpha;
     } else if (lod1_alpha > 0) {
-        out_color = mix(grid_color_thick, grid_color_thin, lod_fade);
+        out_color = mix(color_thick, color_thin, lod_fade);
         out_color.a *= lod1_alpha;
     } else {
-        out_color = grid_color_thin;
+        out_color = color_thin;
         out_color.a *= lod0_alpha * (1 - lod_fade);
     }
 
