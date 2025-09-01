@@ -54,11 +54,11 @@ void main() {
     float4 color_thick = grid_color_thick;
     float4 color_thin = grid_color_thin;
 
-    if (abs(in_position.z / dudv.y) < 1) {
+    if (abs(in_position.x / dudv.x) < 1) {
         color_thick = grid_color_thick_z;
         color_thin = grid_color_thin_z;
     }
-    if (abs(in_position.x / dudv.x) < 1) {
+    if (abs(in_position.z / dudv.y) < 1) {
         color_thick = grid_color_thick_x;
         color_thin = grid_color_thin_x;
     }
