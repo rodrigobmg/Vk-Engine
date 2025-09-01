@@ -201,22 +201,22 @@ UpdateEditorViewport :: (world : *World) {
     ImGui.SetNextWindowSize(.{xx w, xx h});
     if ImGui.Begin("Editor Overlay", flags=window_flags) {
         if IsBoxSelectingEntities() {
-            DrawEntitySelectionBox();
+            mouse_x, mouse_y := GetMousePixelPosition(g_window);
+
+            x1 := Min(g_editor_box_selection_start.x, mouse_x);
+            y1 := Min(g_editor_box_selection_start.y, mouse_y);
+            x2 := Max(g_editor_box_selection_start.x, mouse_x);
+            y2 := Max(g_editor_box_selection_start.y, mouse_y);
+
+            DrawSelectionBox(x1, x2, y1, y2);
         }
     }
 
     ImGui.End();
 }
 
-DrawEntitySelectionBox :: () {
+DrawSelectionBox :: (x1 : s32, x2 : s32, y1 : s32, y2 : s32) {
     draw_list := ImGui.GetWindowDrawList();
-
-    mouse_x, mouse_y := GetMousePixelPosition(g_window);
-
-    x1 := Min(g_editor_box_selection_start.x, mouse_x);
-    y1 := Min(g_editor_box_selection_start.y, mouse_y);
-    x2 := Max(g_editor_box_selection_start.x, mouse_x);
-    y2 := Max(g_editor_box_selection_start.y, mouse_y);
 
     Bg_Color :: Vec4f.{1,1,1,0.2};
     Outline_Color :: Vec4f.{1,1,1,1};
