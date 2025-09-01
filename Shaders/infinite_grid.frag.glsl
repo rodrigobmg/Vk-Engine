@@ -25,22 +25,19 @@ void main() {
     float cell_size_lod1 = cell_size_lod0 * 10;
     float cell_size_lod2 = cell_size_lod1 * 10;
 
-    dudv *= 4;
+    dudv *= 2;
 
     float2 lod0_alpha_xz = float2(1) - mod(in_position.xz, cell_size_lod0) / dudv;
     lod0_alpha_xz = abs(clamp(lod0_alpha_xz, 0, 1) * 2 - float2(1));
     float lod0_alpha = max(1 - lod0_alpha_xz.x, 1 - lod0_alpha_xz.y);
-    lod0_alpha = clamp(lod0_alpha, 0, 1);
 
     float2 lod1_alpha_xz = float2(1) - mod(in_position.xz, cell_size_lod1) / dudv;
     lod1_alpha_xz = abs(clamp(lod1_alpha_xz, 0, 1) * 2 - float2(1));
     float lod1_alpha = max(1 - lod1_alpha_xz.x, 1 - lod1_alpha_xz.y);
-    lod1_alpha = clamp(lod1_alpha, 0, 1);
 
     float2 lod2_alpha_xz = float2(1) - mod(in_position.xz, cell_size_lod2) / dudv;
     lod2_alpha_xz = abs(clamp(lod2_alpha_xz, 0, 1) * 2 - float2(1));
     float lod2_alpha = max(1 - lod2_alpha_xz.x, 1 - lod2_alpha_xz.y);
-    lod2_alpha = clamp(lod2_alpha, 0, 1);
 
     float lod_fade = fract(lod);
 
