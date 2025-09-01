@@ -307,6 +307,8 @@ GenerateGLSLConstant :: (builder : *StringBuilder, using struct_and_member : Str
     ptr := struct_info.constant_storage.data + member.offset_into_constant_storage;
 
     if member.type.type == {
+    case .BOOL;
+        Appendln(builder, "#define % %", member.name, cast(*u8, ptr).*);
     case .FLOAT;
         if member.type.runtime_size == {
         case 4; Appendln(builder, "#define % %", member.name, cast(*float32, ptr).*);

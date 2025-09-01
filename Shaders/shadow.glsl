@@ -5,6 +5,9 @@
 
 int GetShadowCascadeIndex(ShadowMapParams params, DirectionalLight light, float3 position, float3 normal, out float3 coords) {
     float3 normal_offset = normal / float(light.shadow_map_resolution) * params.normal_bias;
+    #if Shadow_Map_Reverse_Depth_Range
+        normal_offset = -normal_offset;
+    #endif
 
     int cascade_index = 0;
     for (; cascade_index < Num_Shadow_Map_Cascades; cascade_index += 1) {
@@ -60,6 +63,9 @@ float SampleShadowMap(
     float depth_bias = lerp(params.depth_bias_min_max.x, params.depth_bias_min_max.y, bias_factor);
     depth_bias *= shadow_map_texel_size.x;
     depth_bias /= light.shadow_map_cascade_sizes[cascade_index] / 20;
+    #if Shadow_Map_Reverse_Depth_Range
+        depth_bias = -depth_bias;
+    #endif
 
     float3 forward = float3(0,0,1);
     float3 right = cross(world_normal, forward);

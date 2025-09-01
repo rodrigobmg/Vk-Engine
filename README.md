@@ -23,7 +23,6 @@ Supports Linux and Windows.
 * Clustered forward rendering
 
 ## To explore/implement next:
-* Reversed depth range
 * Global illumination
 * Non pre-baked reflections
 * GTAO

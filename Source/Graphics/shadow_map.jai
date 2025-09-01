@@ -1,9 +1,18 @@
 using _ :: struct {
+    Shadow_Map_Reverse_Depth_Range :: true;
     Num_Shadow_Map_Cascades :: 4;
     Shadow_Map_Noise_Size :: 32;
     Num_Shadow_Map_Sqrt_Samples :: 8;
     Num_Shadow_Map_Samples :: Num_Shadow_Map_Sqrt_Samples * Num_Shadow_Map_Sqrt_Samples;
 } @ShaderType
+
+#if Reverse_Depth_Range {
+    Shadow_Map_Depth_Compare_Op :: GfxCompareOp.GreaterEqual;
+    Shadow_Map_Depth_Clear :: 0.0;
+} else {
+    Shadow_Map_Depth_Compare_Op :: GfxCompareOp.LessEqual;
+    Shadow_Map_Depth_Clear :: 1.0;
+}
 
 #assert Num_Shadow_Map_Cascades <= Max_Viewpoints;
 
@@ -63,7 +72,7 @@ CreateGlobalShadowMapObjects :: () {
         sampler_desc.mag_filter = .Linear;
         sampler_desc.u_address_mode = .ClampToEdge;
         sampler_desc.v_address_mode = .ClampToEdge;
-        sampler_desc.compare_op = .Greater;
+        sampler_desc.compare_op = ifx Shadow_Map_Reverse_Depth_Range then .Less else .Greater;
 
         g_shadow_map_sampler = CreateGfxSampler("Shadow Map", sampler_desc);
         Assert(!IsNull(*g_shadow_map_sampler), "Could not create shadow map sampler");
@@ -111,7 +120,11 @@ GetShadowMapViewpoint :: (shadow_map : *ShadowMap, light_direction : Vec3f, view
     center := TranslationVector(viewpoint_transform) + ForwardVector(viewpoint_transform) * size * 0.5 * Shadow_Map_Forward_Offset;
 
     viewpoint : Viewpoint;
-    viewpoint.projection = Mat4fOrthographicProjection(-size * 0.5, size * 0.5, -size * 0.5, size * 0.5, -depth * 0.5, depth * 0.5);
+    if Shadow_Map_Reverse_Depth_Range {
+        viewpoint.projection = Mat4fOrthographicProjection(-size * 0.5, size * 0.5, -size * 0.5, size * 0.5, depth * 0.5, -depth * 0.5);
+    } else {
+        viewpoint.projection = Mat4fOrthographicProjection(-size * 0.5, size * 0.5, -size * 0.5, size * 0.5, -depth * 0.5, depth * 0.5);
+    }
     viewpoint.inv_projection = Inverse(viewpoint.projection);
 
     viewpoint.transform = Mat4fLookAt(center, center + light_direction, .{1,0,0});
@@ -197,7 +210,7 @@ g_shadow_map_material_pass := MaterialRenderPass.{
     fragment_shader="DEPTH_ONLY",
     pipeline_template=.{
         depth_format=.Depth32Float,
-        depth_state=.{test_enabled=true, write_enabled=true},
+        depth_state=.{test_enabled=true, write_enabled=true, compare_op=Shadow_Map_Depth_Compare_Op},
     },
 };
 
@@ -228,7 +241,7 @@ ShadowMapPass :: (using ctx : *FrameRenderContext, shadow_map : *ShadowMap, ligh
     pass_desc : GfxRenderPassDesc;
     pass_desc.num_layers = Num_Shadow_Map_Cascades;
     AddDepthAttachment(*pass_desc, *shadow_map.depth_texture);
-    ClearDepth(*pass_desc, 1);
+    ClearDepth(*pass_desc, Shadow_Map_Depth_Clear);
 
     pass := BeginGfxRenderPass(cmd_buffer, "Shadow Map", pass_desc);
     {
