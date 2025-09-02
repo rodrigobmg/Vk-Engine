@@ -12,7 +12,7 @@ SphereColliderComponent :: struct {
             DebugDrawSphereOutline(.{0,1,0,1}, center, radius);
         }
     }
-} @Component
+} @Component @Category(Colliders)
 
 CapsuleColliderComponent :: struct {
     #as using _ : Component; @Serialize(1) @InspectorNoTree
@@ -27,7 +27,7 @@ CapsuleColliderComponent :: struct {
             DebugDrawCapsuleOutline(.{0,1,0,1}, center - up * height * 0.5, center + up * height * 0.5, radius);
         }
     }
-} @Component
+} @Component @Category(Colliders)
 
 BoxColliderComponent :: struct {
     #as using _ : Component; @Serialize(1) @InspectorNoTree
@@ -39,13 +39,13 @@ BoxColliderComponent :: struct {
             DebugDrawBoxOutline(.{0,1,0,1}, .{0,0,0}, half_extents, entity.world_transform);
         }
     }
-} @Component
+} @Component @Category(Colliders)
 
 MeshColliderComponent :: struct {
     #as using _ : Component; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(StaticMesh); @Serialize(2)
-} @Component
+} @Component @Category(Colliders)
 
 Sphere :: struct {
     center : Vec3f;

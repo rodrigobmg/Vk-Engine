@@ -5,7 +5,8 @@
 #load "inspector.jai";
 #load "file_browser.jai";
 #load "gizmo.jai";
-#load "entity.jai";
+#load "entity_outliner.jai";
+#load "entity_inspector.jai";
 #load "world.jai";
 #load "viewport.jai";
 #load "material.jai";
