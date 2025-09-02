@@ -33,6 +33,7 @@ Supports Linux and Windows.
 * Variance shadow maps
 * Particle system
 * Pipelining
+* Hot reloading
 
 ## Goals
 * Sponza running at 155 FPS with all point lights casting shadows
