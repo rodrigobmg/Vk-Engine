@@ -103,7 +103,7 @@ CopyWorld :: (dest : *World, src : *World) {
         new_entity := SpawnEntity(dest_world, GetEntityTypeId(entity.index), name=entity.name, guid=entity.guid);
         cached_name := new_entity.name;
 
-        result := DeserializeEntity(str, new_entity);
+        result := DeserializeEntity(str, dest_world, new_entity);
         if !result.ok {
             LogError("There were errors when deserializing for duplicating entity:\n%:%: %",
                 result.line_index + 1, result.byte_index + 1, result.error_msg);
@@ -404,7 +404,7 @@ LoadWorldFromDirectory :: (world : *World, directory : string) {
 
             entity := SpawnEntity(world, type_id, guid=guid);
 
-            result := DeserializeEntity(file_contents, entity);
+            result := DeserializeEntity(file_contents, world, entity);
             if !result.ok {
                 LogContentError("There were errors when deserializing entity:\n%:%:%: %",
                     it, result.line_index + 1, result.byte_index + 1, result.error_msg);

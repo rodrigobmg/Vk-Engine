@@ -439,7 +439,6 @@ DeserializeParser :: struct {
     line_index : int;
     byte_index : int;
     indent_level : int;
-    has_mismatching_version : bool;
 }
 
 DeserializeResult :: struct {

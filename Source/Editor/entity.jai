@@ -77,7 +77,7 @@ EditorDuplicateEntity :: (world : *World, entity : *Entity, location := #caller_
     new_entity := SpawnEntity(world, GetEntityTypeId(entity.index));
     cached_guid := new_entity.guid;
 
-    result := DeserializeEntity(str, new_entity);
+    result := DeserializeEntity(str, world, new_entity);
     if !result.ok {
         LogError("There were errors when deserializing for duplicating entity:\n%:%: %",
             result.line_index, result.byte_index, result.error_msg);

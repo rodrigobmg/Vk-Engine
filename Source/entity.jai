@@ -641,7 +641,7 @@ SpawnAndDeserializeEntity :: (using world : *World, text : string, type_id : Ent
     entity := SpawnEntity(world, type_id, guid=guid, name=name);
     cached_name := entity.name;
 
-    result := DeserializeEntity(text, entity);
+    result := DeserializeEntity(text, world, entity);
     if !result.ok {
         LogContentError("There were errors when deserializing entity:\n%_%:%:%: %",
             type_id, guid, result.line_index + 1, result.byte_index + 1, result.error_msg);
@@ -681,20 +681,87 @@ SerializeEntity :: inline (serializer : *Serializer, entity : *Entity) {
     any.value_pointer = entity;
 
     SerializeAny(serializer, any);
+
+    for entity.components {
+        type_id := GetComponentTypeId(it);
+
+        Appendln(serializer, "\n[%]", type_id);
+
+        any : Any;
+        any.type = cast(*Type_Info, GetComponentType(type_id));
+        any.value_pointer = it;
+        SerializeAny(serializer, any);
+    }
 }
 
-DeserializeEntity :: inline (text : string, entity : *Entity) -> DeserializeResult {
-    any : Any = ---;
-    any.type = cast(*Type_Info, GetEntityType(GetEntityTypeId(entity.index)));
-    any.value_pointer = entity;
-
+DeserializeEntity :: inline (text : string, world : *World, entity : *Entity) -> DeserializeResult {
     cached_guid := entity.guid;
     cached_index := entity.index;
-    result := DeserializeAny(text, any);
-    entity.guid = cached_guid;
-    entity.index = cached_index;
 
-    return result;
+    parser : DeserializeParser;
+    InitParser(*parser, text ,, Temp);
+
+    all_lines := parser.lines;
+    parser.lines.count = 0;
+
+    parsing_entity_properties := true;
+    while parser.lines.count < all_lines.count {
+        defer parsing_entity_properties = false;
+
+        any : Any = ---;
+
+        if parsing_entity_properties {
+            any.type = cast(*Type_Info, GetEntityType(GetEntityTypeId(entity.index)));
+            any.value_pointer = entity;
+        } else {
+            parser.lines.count = all_lines.count;
+
+            component_line := all_lines[parser.line_index];
+            if component_line[0] != #char "[" || component_line[component_line.count - 1] != #char "]" {
+                return DeserializeError(*parser, "Expected line in the format '[component type]'");
+            }
+
+            StringAdvance(*component_line, 1);
+            component_line.count -= 1;
+
+            type_id_index := ArrayFindFirst(type_info(ComponentTypeId).names, component_line);
+            if type_id_index <= 0 {
+                return DeserializeError(*parser, "Invalid component type '%'", component_line);
+            }
+
+            AdvanceToNextLine(*parser);
+
+            type_id := cast(ComponentTypeId, type_id_index);
+            component := AddComponent(world, type_id, entity);
+
+            any.type = cast(*Type_Info, GetComponentType(type_id));
+            any.value_pointer = component;
+        }
+
+        // Make sure the parse only sees up to the next [Component]
+        parser.lines.count = parser.line_index;
+        for i : parser.line_index..all_lines.count - 1 {
+            line := all_lines[i];
+            if line[0] == #char "[" {
+                break;
+            }
+
+            parser.lines.count += 1;
+        }
+
+        result := DeserializeAny(*parser, any);
+
+        if parsing_entity_properties {
+            entity.guid = cached_guid;
+            entity.index = cached_index;
+        }
+
+        if !result.ok {
+            return result;
+        }
+    }
+
+    return DeserializeOk(*parser);;
 }
 
 KillEntity :: (using world : *World, guid : EntityGUID) {
