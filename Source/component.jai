@@ -315,4 +315,15 @@ AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
             return StringBuilderBuild(*builder);
         }
     }
+
+    Type_Id :: #run GetComponentTypeId(T);
+    for comp, index : entity.components {
+        defer it_index += 1;
+        if GetComponentTypeId(comp) != Type_Id {
+            continue;
+        }
+
+        it = cast(*T, comp);
+        #insert body;
+    }
 }
