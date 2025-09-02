@@ -15,7 +15,7 @@ CreateGizmoPipeline :: () {
     desc.fragment_shader = GetFragmentShader("gizmo");
     desc.rasterizer_state = .{cull_face=.None, num_samples=Gizmo_Texture_Num_Samples};
     desc.blend_states[0] = .{enabled=true};
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
+    desc.depth_state = .{test_enabled=true, write_enabled=true, compare_op=Depth_Compare_Op};
 
     AddColorAttachment(*desc, .RGBA8UNorm);
     desc.depth_format = .Depth32Float;
@@ -93,7 +93,7 @@ GizmoPass :: (using ctx : *FrameRenderContext, gizmo_ctx : *GizmoContext) {
     AddColorAttachment(*pass_desc, *gizmo_ctx.color_texture, resolve_texture=*gizmo_ctx.color_resolve);
     AddDepthAttachment(*pass_desc, *gizmo_ctx.depth_texture);
     ClearColor(*pass_desc, 0, Vec4f.{0,0,0,0});
-    ClearDepth(*pass_desc, 1);
+    ClearDepth(*pass_desc, Depth_Clear);
 
     pass := BeginGfxRenderPass(cmd_buffer, "Gizmo", pass_desc);
     {
