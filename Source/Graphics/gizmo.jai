@@ -140,7 +140,7 @@ CreateGizmoLinesPipeline :: () {
     desc.depth_format = .Depth32Float;
 
     desc.blend_states[0] = .{enabled=true};
-    desc.depth_state = .{test_enabled=true, write_enabled=true};
+    desc.depth_state = .{test_enabled=true, write_enabled=true, compare_op=Depth_Compare_Op};
 
     ok := CreateGfxGraphicsPipeline(*g_gizmo_lines_pipeline, "Gizmo Lines", desc);
     Assert(ok, "Could not create gizmo lines pipeline");
