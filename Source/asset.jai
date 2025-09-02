@@ -900,6 +900,8 @@ UnreferenceAllAssets :: (value : *$T)
     #insert -> string {
         builder : StringBuilder;
 
+        Appendln(*builder, "// UnreferenceAllAssets(%)", T);
+
         info := type_info(T);
         for info.members {
             if it.type.type == .STRUCT {
