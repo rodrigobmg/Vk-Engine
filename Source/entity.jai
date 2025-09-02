@@ -738,7 +738,7 @@ DeserializeEntity :: inline (text : string, world : *World, entity : *Entity) ->
             any.value_pointer = component;
         }
 
-        // Make sure the parse only sees up to the next [Component]
+        // Make sure the parser only sees up to the next [Component]
         parser.lines.count = parser.line_index;
         for i : parser.line_index..all_lines.count - 1 {
             line := all_lines[i];
