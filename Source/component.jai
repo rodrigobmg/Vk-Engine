@@ -155,32 +155,7 @@ RemoveComponent :: (world : *World, component : *$T, entity : *Entity)
     DestroyComponent(world, component);
 }
 
-#scope_file
-
-AppendGetComponent :: (builder : *StringBuilder, name : string, entity : *Type_Info_Struct, component : *Type_Info_Struct) {
-    found := false;
-    for entity.members {
-        // @Todo: handle array of components, structs containing components
-        if it.type.type != .POINTER {
-            continue;
-        }
-
-        type := cast(*Type_Info_Pointer, it.type).pointer_to;
-        if type == component {
-            Appendln(builder, "return %.%;", name, it.name);
-            found = true;
-            break;
-        }
-    }
-
-    if !found {
-        Appendln(builder, "return null;");
-    }
-}
-
-#scope_export
-
-// @Todo: Handle multiple components
+// If you want all the components consider using AllEntityComponents iterator
 GetComponent :: inline (entity : *$E, $T : Type) -> *T
 #modify { return (E == Entity || IsInEntityTypesArray(E)) && IsInComponentTypesArray(T); } {
     #if E == Entity {
@@ -190,22 +165,44 @@ GetComponent :: inline (entity : *$E, $T : Type) -> *T
             Appendln(*builder, "if GetEntityTypeId(entity.index) == {");
 
             for i : 1..Entity_Types.count - 1 {
-                Appendln(*builder, "case .%1;", Entity_Types[i]);
-                Appendln(*builder, "    e := cast(*%, entity);", Entity_Types[i]);
-                AppendGetComponent(*builder, "e", xx cast(*Type_Info, Entity_Types[i]), type_info(T));
+                Appendln(*builder, "case .%1; return GetComponent(entity, %1);", Entity_Types[i]);
             }
 
             Appendln(*builder, "}");
 
             return StringBuilderBuild(*builder);
         }
+
+        return null;
     } else {
-        #insert -> string {
-            builder : StringBuilder;
+        Code :: #run -> string {
+            found := false;
+            for entity.members {
+                // @Todo: handle array of components, structs containing components
+                if it.type.type != .POINTER {
+                    continue;
+                }
 
-            AppendGetComponent(*builder, "entity", type_info(E), type_info(T));
+                type := cast(*Type_Info_Pointer, it.type).pointer_to;
+                if type == component {
+                    return TPrint("return %.%;", name, it.name);
+                }
+            }
 
-            return StringBuilderBuild(*builder);
+            return "";
+        }
+
+        #if Code.count > 0 {
+            #insert Code;
+        } else {
+            Type_Id :: #run GetComponentTypeId(T);
+            for entity.components {
+                if GetComponentTypeId(it) == Type_Id {
+                    return it;
+                }
+            }
+
+            return null;
         }
     }
 }
