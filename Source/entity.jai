@@ -18,6 +18,8 @@ Entity :: struct {
     inv_world_transform : Mat4f;
     parent : EntityGUID; @Serialize(6)
     children : [..]EntityIndex;
+
+    components : [..]*Component;
 }
 
 EmptyEntity :: struct {

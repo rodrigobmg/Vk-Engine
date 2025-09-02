@@ -521,6 +521,12 @@ DestroyKilledEntities :: (using world : *World) {
 
         ArrayFree(*entity.children);
 
+        for entity.components {
+            DestroyComponent(world, it);
+        }
+
+        ArrayFree(*entity.components);
+
         if entity.name {
             Free(entity.name.data ,, entities_by_name.allocator);
             HashMapRemove(*entities_by_name, entity.name);

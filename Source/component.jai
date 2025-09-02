@@ -48,8 +48,16 @@ GetComponentTypeId :: (type : Type) -> ComponentTypeId {
     return .Invalid;
 }
 
-GetComponentTypeId :: (component : *Component) -> ComponentTypeId {
+GetComponentTypeId :: inline (component : *Component) -> ComponentTypeId {
     return cast(ComponentTypeId, component.type_id);
+}
+
+GetComponentType :: inline (type_id : ComponentTypeId) -> Type {
+    return Component_Types[type_id];
+}
+
+GetComponentType :: inline (component : *Component) -> Type {
+    return GetComponentType(GetComponentTypeId(component));
 }
 
 CreateComponent :: (world : *World, storage : *ComponentStorage($T), entity : EntityGUID) -> *T {
@@ -86,9 +94,65 @@ CreateComponent :: (world : *World, $T : Type, entity : EntityGUID) -> *T
 }
 
 DestroyComponent :: (world : *World, component : *$T)
+#modify { return T == Component || IsInComponentTypesArray(T); } {
+    #if T == Component {
+        #insert -> string {
+            builder : StringBuilder;
+
+            Appendln(*builder, "if GetComponentTypeId(component) == {");
+            for i : 1..Component_Types.count - 1 {
+                Appendln(*builder, "case .%1; inline DestroyComponent(world, cast(*%1, component));", Component_Types[i]);
+            }
+            Appendln(*builder, "}");
+
+            return StringBuilderBuild(*builder);
+        }
+    } else {
+        storage := #insert #run TPrint("*world.%_storage;", T);
+        DestroyComponent(world, storage, component);
+    }
+}
+
+AddComponent :: (world : *World, $T : Type, entity : *Entity) -> *T
 #modify { return IsInComponentTypesArray(T); } {
-    storage := #insert #run TPrint("*world.%_storage;", T);
-    DestroyComponent(world, storage, component);
+    component := CreateComponent(world, T, entity.guid);
+    ArrayPush(*entity.components, component);
+
+    return component;
+}
+
+AddComponent :: (world : *World, type_id : ComponentTypeId, entity : *Entity) -> *Component {
+    #insert -> string {
+        builder : StringBuilder;
+
+        Appendln(*builder, "if type_id == {");
+        for i : 1..Component_Types.count - 1 {
+            Appendln(*builder, "case .%1; return inline AddComponent(world, %1, entity);", Component_Types[i]);
+        }
+        Appendln(*builder, "case; LogError(\"Invalid component type\");");
+        Appendln(*builder, "}");
+
+        return StringBuilderBuild(*builder);
+    }
+
+    return null;
+}
+
+RemoveComponent :: (world : *World, component : *$T, entity : *Entity)
+#modify { return T == Component || IsInComponentTypesArray(T); } {
+    if component.entity != entity.guid {
+        LogError("Component does not belong to entity %", entity.guid);
+        return;
+    }
+
+    index := ArrayFindFirst(entity.components, component);
+    if index < 0 {
+        LogError("Component is static and has not been added using AddComponent");
+        return;
+    }
+
+    ArrayOrderedRemove(*entity.components, index);
+    DestroyComponent(world, component);
 }
 
 #scope_file

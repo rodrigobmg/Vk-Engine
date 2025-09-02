@@ -156,6 +156,8 @@ InspectEntityGUID :: (label : *u8, using ctx : *InspectorContext, any : Any, not
     }
 
     if ImGui.BeginPopupContextItem(CTPrint("Entity %###context_menu", guid.*)) {
+        defer ImGui.EndPopup();
+
         ImGui.BeginDisabled(guid.* == Null_Entity_GUID);
         if ImGui.MenuItem("Open In Inspector") {
             SelectEntity(guid, focus=false);
@@ -181,8 +183,6 @@ InspectEntityGUID :: (label : *u8, using ctx : *InspectorContext, any : Any, not
                 state |= .Submitted;
             }
         }
-
-        ImGui.EndPopup();
     }
 
     if !not_editable {
@@ -685,7 +685,7 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
         opened := true;
         if !no_tree {
             NewInspectorLine();
-            opened = ImGui.TreeNodeEx(label);
+            opened = ImGui.TreeNodeEx(label, .SpanAllColumns);
         }
 
         if opened {
