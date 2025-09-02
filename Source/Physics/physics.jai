@@ -1,6 +1,31 @@
 #load "intersection.jai";
 #load "collision_mesh.jai";
 
+SphereColliderComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    radius : float; @Serialize(2)
+} @Component
+
+CapsuleColliderComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    height : float = 2; @Serialize(2)
+    radius : float = 0.5; @Serialize(3)
+} @Component
+
+BoxColliderComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    half_extents : Vec3f = .{1,1,1}; @Serialize(2)
+} @Component
+
+MeshColliderComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    mesh : *Asset(StaticMesh); @Serialize(2)
+} @Component
+
 Sphere :: struct {
     center : Vec3f;
     radius : float;
@@ -27,6 +52,24 @@ Ray :: struct {
 Plane :: struct {
     origin : Vec3f;
     normal : Vec3f;
+}
+
+MakePlane :: inline (origin : Vec3f, normal : Vec3f) -> Plane {
+    return .{origin, Normalized(normal)};
+}
+
+SignedDistanceToPlane :: inline (point : Vec3f, plane : Plane) -> float {
+    return Dot(plane.normal, point) - Dot(plane.normal, plane.origin);
+}
+
+AABBIsInFrontOrOnPlane :: (aabb : AABB, plane : Plane) -> bool {
+    r := aabb.half_extents.x * Abs(plane.normal.x)
+        + aabb.half_extents.y * Abs(plane.normal.y)
+        + aabb.half_extents.z * Abs(plane.normal.z);
+
+    dist_to_plane := SignedDistanceToPlane(aabb.center, plane);
+
+    return dist_to_plane > 0 || Abs(dist_to_plane) <= r;
 }
 
 Frustum :: struct {
@@ -68,25 +111,6 @@ GetTransformedAABB :: (transform : Mat4f, aabb : AABB) -> AABB {
     max := Max(Max(Max(Max(Max(Max(Max(a, b), c), d), e), f), g), h);
 
     return .{center=(max + min) * 0.5, half_extents=(max - min) * 0.5};
-}
-
-
-MakePlane :: inline (origin : Vec3f, normal : Vec3f) -> Plane {
-    return .{origin, Normalized(normal)};
-}
-
-SignedDistanceToPlane :: inline (point : Vec3f, plane : Plane) -> float {
-    return Dot(plane.normal, point) - Dot(plane.normal, plane.origin);
-}
-
-AABBIsInFrontOrOnPlane :: (aabb : AABB, plane : Plane) -> bool {
-    r := aabb.half_extents.x * Abs(plane.normal.x)
-        + aabb.half_extents.y * Abs(plane.normal.y)
-        + aabb.half_extents.z * Abs(plane.normal.z);
-
-    dist_to_plane := SignedDistanceToPlane(aabb.center, plane);
-
-    return dist_to_plane > 0 || Abs(dist_to_plane) <= r;
 }
 
 AABBIsInFrustum :: inline (aabb : AABB, using frustum : Frustum) -> bool {
