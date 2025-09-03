@@ -138,29 +138,6 @@ GenerateEntityCode :: (workspace : Workspace) {
     LogMessage("Generated entity code");
 }
 
-IsSubclassType :: (info : *Type_Info, of : *Type_Info, first_call := true) -> bool {
-    Assert(of != null);
-
-    if !TypeIsStruct(info) {
-        return false;
-    }
-
-    if info == of {
-        return !first_call;
-    }
-
-    member := GetNonConstantStructMember(info, 0);
-    if !member || !(member.flags & .AS) || !(member.flags & .USING) {
-        return false;
-    }
-
-    if !IsSubclassType(member.type, of, false) {
-        return false;
-    }
-
-    return true;
-}
-
 ContainsPointerTo :: (
     info : *Type_Info,
     predicate : (*Type_Info) -> bool,
@@ -223,7 +200,7 @@ ContainsPointerToComponent :: (info : *Type_Info) -> bool {
 TypecheckEntityStruct :: (struct_node : *Code_Struct) {
     struct_type := struct_node.defined_type;
 
-    if !IsSubclassType(struct_type, g_entity_type) {
+    if !TypeIsSubstructOf(struct_type, g_entity_type) {
         compiler_report("@Entity struct is not a substruct of type Entity.", make_location(struct_node));
     }
 
@@ -239,7 +216,7 @@ TypecheckEntityStruct :: (struct_node : *Code_Struct) {
 TypecheckComponentStruct :: (struct_node : *Code_Struct) {
     struct_type := struct_node.defined_type;
 
-    if !IsSubclassType(struct_type, g_component_type) {
+    if !TypeIsSubstructOf(struct_type, g_component_type) {
         compiler_report("@Component struct is not a substruct of type Component.", make_location(struct_node));
     }
 

@@ -1,11 +1,11 @@
 SphereColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     radius : float = 1; @Serialize(2)
 
-    OnDebugDraw :: (world : *World, entity : *Entity, using,except(entity) sphere : *SphereColliderComponent) {
+    OnDebugDraw :: (world : *World, entity : *Entity, using sphere : *SphereColliderComponent) {
         if EntityOrParentIsSelected(world, entity) {
-            center := TranslationVector(entity.world_transform);
+            center := TranslationVector(world_transform);
             DebugDrawSphereOutline(.{0,1,0,1}, center, radius);
         }
     }
@@ -17,7 +17,7 @@ RayIntersection :: (world : *World, sphere : *SphereColliderComponent, ray_origi
         return .{};
     }
 
-    center := TranslationVector(entity.world_transform);
+    center := TranslationVector(sphere.world_transform);
     // @Todo: take the full transform into account
     intersects, point, dist, normal := RayIntersectsSphere(ray_origin, ray_direction, ray_length, center, sphere.radius);
 
@@ -32,15 +32,15 @@ RayIntersection :: (world : *World, sphere : *SphereColliderComponent, ray_origi
 }
 
 CapsuleColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     height : float = 2; @Serialize(2)
     radius : float = 0.5; @Serialize(3)
 
-    OnDebugDraw :: (world : *World, entity : *Entity, using,except(entity) capsule : *CapsuleColliderComponent) {
+    OnDebugDraw :: (world : *World, entity : *Entity, using capsule : *CapsuleColliderComponent) {
         if EntityOrParentIsSelected(world, entity) {
-            center := TranslationVector(entity.world_transform);
-            up := UpVector(entity.world_transform);
+            center := TranslationVector(world_transform);
+            up := UpVector(world_transform);
             DebugDrawCapsuleOutline(.{0,1,0,1}, center - up * height * 0.5, center + up * height * 0.5, radius);
         }
     }
@@ -52,8 +52,8 @@ RayIntersection :: (world : *World, capsule : *CapsuleColliderComponent, ray_ori
         return .{};
     }
 
-    center := TranslationVector(entity.world_transform);
-    up := UpVector(entity.world_transform);
+    center := TranslationVector(capsule.world_transform);
+    up := UpVector(capsule.world_transform);
     base := center - up * capsule.height * 0.5;
     tip  := center + up * capsule.height * 0.5;
     // @Todo: take the full transform into account
@@ -70,13 +70,13 @@ RayIntersection :: (world : *World, capsule : *CapsuleColliderComponent, ray_ori
 }
 
 BoxColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     half_extents : Vec3f = .{1,1,1}; @Serialize(2)
 
-    OnDebugDraw :: (world : *World, entity : *Entity, using,except(entity) box : *BoxColliderComponent) {
+    OnDebugDraw :: (world : *World, entity : *Entity, using box : *BoxColliderComponent) {
         if EntityOrParentIsSelected(world, entity) {
-            DebugDrawBoxOutline(.{0,1,0,1}, .{0,0,0}, half_extents, entity.world_transform);
+            DebugDrawBoxOutline(.{0,1,0,1}, .{0,0,0}, half_extents, world_transform);
         }
     }
 } @Component @Category(Colliders)
@@ -87,7 +87,7 @@ RayIntersection :: (world : *World, box : *BoxColliderComponent, ray_origin : Ve
         return .{};
     }
 
-    intersects, point, dist, normal := RayIntersectsBox(ray_origin, ray_direction, ray_length, box.half_extents, entity.world_transform);
+    intersects, point, dist, normal := RayIntersectsBox(ray_origin, ray_direction, ray_length, box.half_extents, box.world_transform);
 
     return .{
         hit=intersects,
@@ -100,7 +100,7 @@ RayIntersection :: (world : *World, box : *BoxColliderComponent, ray_origin : Ve
 }
 
 MeshColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(StaticMesh); @Serialize(2)
 } @Component @Category(Colliders)
@@ -111,7 +111,7 @@ RayIntersection :: (world : *World, mesh : *MeshColliderComponent, ray_origin : 
         return .{};
     }
 
-    intersects, point, dist, normal := RayIntersectsMesh(ray_origin, ray_direction, ray_length, mesh.mesh, entity.world_transform, entity.inv_world_transform);
+    intersects, point, dist, normal := RayIntersectsMesh(ray_origin, ray_direction, ray_length, mesh.mesh, mesh.world_transform, mesh.inv_world_transform);
 
     return .{
         hit=intersects,

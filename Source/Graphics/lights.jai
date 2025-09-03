@@ -20,7 +20,7 @@ PointLight :: struct {
 } @ShaderType
 
 DirectionalLightComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
     intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
@@ -33,10 +33,10 @@ DirectionalLightComponent :: struct {
 
     OnDebugDraw :: (world : *World, entity : *Entity, light : *DirectionalLightComponent) {
         if EntityOrParentIsSelected(world, entity.guid) {
-            position := TranslationVector(entity.world_transform);
-            right := RightVector(entity.world_transform);
-            up := UpVector(entity.world_transform);
-            direction := ForwardVector(entity.world_transform);
+            position := TranslationVector(light.world_transform);
+            right := RightVector(light.world_transform);
+            up := UpVector(light.world_transform);
+            direction := ForwardVector(light.world_transform);
 
             p0 := position + right * 0.3;
             p1 := position - right * 0.3;
@@ -71,7 +71,7 @@ DirectionalLightEntity :: struct {
 } @Entity
 
 PointLightComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     color : Vec3f = .{1,1,1}; @Serialize(2) @ColorEdit
     intensity : float = 1; @Serialize(3) @FloatRange(0,1000)
@@ -86,7 +86,7 @@ PointLightComponent :: struct {
 
     OnDebugDraw :: (world : *World, entity : *Entity, light : *PointLightComponent) {
         if EntityOrParentIsSelected(world, entity.guid) {
-            position := TranslationVector(entity.world_transform);
+            position := TranslationVector(light.world_transform);
             DebugDrawSphereOutline(.{1,1,1,1}, position, light.source_radius);
             DebugDrawSphereOutline(.{1,1,1,1}, position, GetPointLightAttenuationDistance(light));
         }

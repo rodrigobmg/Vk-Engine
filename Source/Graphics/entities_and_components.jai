@@ -1,5 +1,5 @@
 StaticMeshComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(StaticMesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)
@@ -10,7 +10,7 @@ StaticMeshComponent :: struct {
 AllStaticMeshComponents :: #bake_arguments AllEntityComponents(T=StaticMeshComponent);
 
 SkinnedMeshComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
+    #as using _ : SpatialComponent; @Serialize(1) @InspectorNoTree
 
     mesh : *Asset(SkinnedMesh); @Serialize(2)
     material : *Asset(Material); @Serialize(3)

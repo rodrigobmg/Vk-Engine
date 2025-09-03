@@ -342,7 +342,7 @@ MakeMeshToDraw :: (entity : *Entity, component : *StaticMeshComponent) -> bool, 
 
     return true, .{
         entity=entity,
-        transform=entity.world_transform,
+        transform=component.world_transform,
         vertex_buffer=*component.mesh.vertex_buffer,
         index_buffer=*component.mesh.index_buffer,
         vertex_count=component.mesh.vertex_count,
@@ -373,7 +373,7 @@ MakeMeshToDraw :: (entity : *Entity, component : *SkinnedMeshComponent) -> bool,
 
     return true, .{
         entity=entity,
-        transform=entity.world_transform,
+        transform=component.world_transform,
         vertex_buffer=*component.mesh.vertex_buffer,
         index_buffer=*component.mesh.index_buffer,
         vertex_count=component.mesh.vertex_count,
@@ -486,7 +486,8 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
         icon, icon_material := GetEditorIcon(world, entity, it);
         if icon {
-            position := TranslationVector(entity.world_transform);
+            transform := ifx ComponentIsSpatial(it) then cast(*SpatialComponent, it).world_transform else entity.world_transform;
+            position := TranslationVector(transform);
             depth := TransformPoint(camera.view, position).z;
             key := MakeMeshBufferKey(*g_billboard_vertex_buffer, null, icon_material, true, depth);
             PushBillboard(*g_mesh_buffer, key, entity.guid, icon_material, position, camera.transform, .{1,1});
@@ -513,7 +514,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(entity.world_transform), camera.transform);
+        PopulateShadowMapMeshBuffer(world, *it.shadow_map, ForwardVector(it.world_transform), camera.transform);
     }
 
     for * world.PointLightComponent_storage {
@@ -527,7 +528,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
 
         UpdatePointShadowMapFarPlane(it);
-        PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(entity.world_transform));
+        PopulateShadowMapMeshBuffers(world, *it.shadow_map, TranslationVector(it.world_transform));
     }
 
     ctx : FrameRenderContext;
@@ -560,7 +561,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
 
         directional_light := DirectionalLight.{
-            direction=ForwardVector(entity.world_transform),
+            direction=ForwardVector(it.world_transform),
             color=it.color,
             intensity=it.intensity,
             shadow_map_index=ifx it.cast_shadows then shadow_map_index else -1,
@@ -601,7 +602,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
         }
 
         point_light := PointLight.{
-            position=TranslationVector(entity.world_transform),
+            position=TranslationVector(it.world_transform),
             color=it.color,
             intensity=it.intensity,
             intensity_radius=GetPointLightAttenuationDistance(it) - it.source_radius,
@@ -667,7 +668,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(entity.world_transform), camera);
+        ShadowMapPass(*ctx, *it.shadow_map, ForwardVector(it.world_transform), camera);
     }
 
     for * world.PointLightComponent_storage {
@@ -680,7 +681,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(entity.world_transform));
+        PointShadowMapPass(*ctx, *it.shadow_map, TranslationVector(it.world_transform));
     }
 
     AddTextureBarriers(*cmd_buffer, .Undefined, .ColorAttachment, .[*g_color_texture, *g_entity_guid_texture, *g_selected_entity_guid_texture]);

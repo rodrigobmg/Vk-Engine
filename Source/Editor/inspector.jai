@@ -194,6 +194,31 @@ InspectEntityGUID :: (label : *u8, using ctx : *InspectorContext, any : Any, not
     return state;
 }
 
+InspectSpatialComponent :: (label : *u8, using ctx : *InspectorContext, any : Any, notes : []string, data : *void) -> InteractionState {
+    spatial := cast(*SpatialComponent, any.value_pointer);
+    prev_local_position := spatial.local_position;
+    prev_local_rotation := spatial.local_rotation;
+    prev_local_scale := spatial.local_scale;
+
+    state := ShowInspector(label, ctx, any, notes, use_custom_inspector=false);
+
+    if !world {
+        LogError("Inspecting spatial component but world is null");
+        return state;
+    }
+
+    if spatial.local_position != prev_local_position
+    || spatial.local_rotation != prev_local_rotation
+    || spatial.local_scale    != prev_local_scale {
+        entity := GetEntity(world, spatial.entity_index);
+        if entity {
+            UpdateWorldTransform(entity, spatial);
+        }
+    }
+
+    return state;
+}
+
 InspectAssetPointer :: (label : *u8, using ctx : *InspectorContext, any : Any, notes : []string, data : *void) -> InteractionState {
     imgui_ctx := ImGui.GetCurrentContext();
     info_pointer := cast(*Type_Info_Pointer, Devariantize(any.type));
@@ -392,6 +417,7 @@ InspectQuaternionAsEulerAngles :: (label : *u8, using ctx : *InspectorContext, q
 
 InitCustomInspectors :: () {
     RegisterCustomInspector(EntityGUID, InspectEntityGUID, null);
+    RegisterCustomInspector(SpatialComponent, InspectSpatialComponent, null);
     RegisterCustomInspector(TypeGetSourcePolymorph(type_info(Asset(struct{}))), InspectAsset, null);
     RegisterCustomInspector(Quatf, InspectQuatfAsEulerAngles, null);
     RegisterCustomInspector(Quatd, InspectQuatdAsEulerAngles, null);

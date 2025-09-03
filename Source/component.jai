@@ -28,6 +28,45 @@ Component :: struct {
     type_id : int;
 }
 
+SpatialComponent :: struct {
+    #as using _ : Component; @Serialize(1) @InspectorNoTree
+
+    local_position : Vec3f; @Serialize(2)
+    local_rotation : Quatf; @Serialize(3)
+    local_scale : Vec3f = .{1,1,1}; @Serialize(4)
+
+    world_transform : Mat4f;
+    inv_world_transform : Mat4f;
+}
+
+#insert -> string {
+    builder : StringBuilder;
+
+    Appendln(*builder, "Component_Is_Spatial :: bool.[");
+    Appendln(*builder, "    false,");
+    for i : 1..Component_Types.count - 1 {
+        info := cast(*Type_Info_Struct, Component_Types[i]);
+        Appendln(*builder, "    %,", TypeIsSubstructOf(info, type_info(SpatialComponent)));
+    }
+    Appendln(*builder, "];");
+
+    return StringBuilderBuild(*builder);
+}
+
+ComponentIsSpatial :: inline (type_id : ComponentTypeId) -> bool {
+    return Component_Is_Spatial[type_id];
+}
+
+ComponentIsSpatial :: inline (component : *Component) -> bool {
+    return Component_Is_Spatial[GetComponentTypeId(component)];
+}
+
+UpdateWorldTransform :: (entity : *Entity, using spatial : *SpatialComponent) {
+    local_transform := Mat4fTransformSRT(local_position, local_rotation, local_scale);
+    world_transform = entity.world_transform * local_transform;
+    inv_world_transform = Inverse(world_transform);
+}
+
 IsInComponentTypesArray :: (type : Type) -> bool {
     for i : 1..Component_Types.count - 1 {
         if Component_Types[i] == type {
@@ -247,8 +286,8 @@ CallComponentCallback :: inline (world : *World, entity : *Entity, component : *
     }
 }
 
-AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
-#modify { return (E == Entity || IsInEntityTypesArray(E)) && IsInComponentTypesArray(T); } #expand {
+AllEntityComponents :: (entity : *$E, body : Code, flags : For_Flags, $T : Type = Component)
+#modify { return (E == Entity || IsInEntityTypesArray(E)) && (T == Component || IsInComponentTypesArray(T)); } #expand {
     `it : *T;
     `it_index := 0;
 
@@ -270,7 +309,7 @@ AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
                     }
 
                     type := cast(*Type_Info_Pointer, it.type).pointer_to;
-                    if type == comp {
+                    if type == comp || (T == Component && IsInComponentTypesArray(get_type(type))) {
                         Appendln(*builder, "    it = cast(*%1, entity).%2;", Entity_Types[i], it.name);
                         Appendln(*builder, "    while it {");
                         Appendln(*builder, "        defer it_index += 1;");
@@ -299,7 +338,7 @@ AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
                 }
 
                 type := cast(*Type_Info_Pointer, it.type).pointer_to;
-                if type == comp {
+                if T == Component || type == comp {
                     Appendln(*builder, "it = entity.%;", it.name);
                     Appendln(*builder, "while it {");
                     Appendln(*builder, "    defer it_index += 1;");
@@ -316,7 +355,7 @@ AllEntityComponents :: ($T : Type, entity : *$E, body : Code, flags : For_Flags)
     Type_Id :: #run GetComponentTypeId(T);
     for comp, index : entity.components {
         defer it_index += 1;
-        if GetComponentTypeId(comp) != Type_Id {
+        if T != Component && GetComponentTypeId(comp) != Type_Id {
             continue;
         }
 

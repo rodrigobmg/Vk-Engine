@@ -551,7 +551,7 @@ DetachEntity :: (using world : *World, entity : *Entity, keep_same_world_transfo
     LogMessage("Detached entity % from %", entity.guid, parent.guid, flags=.VERBOSE_ONLY);
 }
 
-UpdateWorldTransform :: (world : *World, entity : *Entity, update_children := true) {
+UpdateWorldTransform :: (world : *World, entity : *Entity, update_children := true, update_components := true) {
     parent := ifx entity.parent != Null_Entity_GUID then GetEntity(world, *entity.parent);
 
     local_transform := Mat4fTransformSRT(entity.local_position, entity.local_rotation, entity.local_scale);
@@ -570,6 +570,17 @@ UpdateWorldTransform :: (world : *World, entity : *Entity, update_children := tr
     } else {
         entity.world_transform = local_transform;
         entity.inv_world_transform = Inverse(local_transform);
+    }
+
+    if update_components {
+        for :AllEntityComponents entity {
+            if !ComponentIsSpatial(it) {
+                continue;
+            }
+
+            spatial := cast(*SpatialComponent, it);
+            UpdateWorldTransform(entity, spatial);
+        }
     }
 
     if update_children {
