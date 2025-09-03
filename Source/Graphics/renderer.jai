@@ -356,9 +356,9 @@ MakeMeshToDraw :: (entity : *Entity, component : *StaticMeshComponent) -> bool, 
 }
 
 MakeMeshToDraw :: (world : *World, component : *StaticMeshComponent) -> bool, MeshToDraw {
-    entity := GetEntity(world, component.entity);
+    entity := GetEntity(world, component.entity_index);
     if !entity {
-        LogError("Could not get entity %", component.entity);
+        LogError("Could not get entity %", component.entity_index);
         return false, .{};
     }
 
@@ -387,7 +387,7 @@ MakeMeshToDraw :: (entity : *Entity, component : *SkinnedMeshComponent) -> bool,
 }
 
 MakeMeshToDraw :: (world : *World, component : *SkinnedMeshComponent) -> bool, MeshToDraw {
-    entity := GetEntity(world, component.entity);
+    entity := GetEntity(world, component.entity_index);
     if !entity {
         LogError("Could not get entity");
         return false, .{};
@@ -479,7 +479,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity {
             continue;
         }
@@ -508,7 +508,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity || entity.flags & .Hidden {
             continue;
         }
@@ -521,7 +521,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity || entity.flags & .Hidden {
             continue;
         }
@@ -550,7 +550,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     shadow_map_index : s32 = 0;
     for * world.DirectionalLightComponent_storage {
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity || entity.flags & .Hidden {
             continue;
         }
@@ -591,7 +591,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
 
     point_shadow_map_index : s32 = 0;
     for * world.PointLightComponent_storage {
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity || entity.flags & .Hidden {
             continue;
         }
@@ -662,7 +662,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity || entity.flags & .Hidden {
             continue;
         }
@@ -675,7 +675,7 @@ RenderFrame :: (world : *World, camera : *Camera) {
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
+        entity := GetEntity(world, it.entity_index);
         if !entity || entity.flags & .Hidden {
             continue;
         }

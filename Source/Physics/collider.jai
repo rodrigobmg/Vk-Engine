@@ -12,7 +12,7 @@ SphereColliderComponent :: struct {
 } @Component @Category(Colliders)
 
 RayIntersection :: (world : *World, sphere : *SphereColliderComponent, ray_origin : Vec3f, ray_direction : Vec3f, ray_length : float) -> RaycastResult {
-    entity := GetEntity(world, sphere.entity);
+    entity := GetEntity(world, sphere.entity_index);
     if !entity {
         return .{};
     }
@@ -47,7 +47,7 @@ CapsuleColliderComponent :: struct {
 } @Component @Category(Colliders)
 
 RayIntersection :: (world : *World, capsule : *CapsuleColliderComponent, ray_origin : Vec3f, ray_direction : Vec3f, ray_length : float) -> RaycastResult {
-    entity := GetEntity(world, capsule.entity);
+    entity := GetEntity(world, capsule.entity_index);
     if !entity {
         return .{};
     }
@@ -82,7 +82,7 @@ BoxColliderComponent :: struct {
 } @Component @Category(Colliders)
 
 RayIntersection :: (world : *World, box : *BoxColliderComponent, ray_origin : Vec3f, ray_direction : Vec3f, ray_length : float) -> RaycastResult {
-    entity := GetEntity(world, box.entity);
+    entity := GetEntity(world, box.entity_index);
     if !entity {
         return .{};
     }
@@ -106,7 +106,7 @@ MeshColliderComponent :: struct {
 } @Component @Category(Colliders)
 
 RayIntersection :: (world : *World, mesh : *MeshColliderComponent, ray_origin : Vec3f, ray_direction : Vec3f, ray_length : float) -> RaycastResult {
-    entity := GetEntity(world, mesh.entity);
+    entity := GetEntity(world, mesh.entity_index);
     if !entity {
         return .{};
     }

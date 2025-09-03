@@ -54,12 +54,8 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
-        if !entity {
-            continue;
-        }
-
-        if entity.flags & .Hidden {
+        entity := GetEntity(world, it.entity_index);
+        if !entity || entity.flags & .Hidden {
             continue;
         }
 
@@ -77,12 +73,8 @@ ForwardPass :: (using ctx : *FrameRenderContext, camera : *Camera, mesh_buffer :
             continue;
         }
 
-        entity := GetEntity(world, it.entity);
-        if !entity {
-            continue;
-        }
-
-        if entity.flags & .Hidden {
+        entity := GetEntity(world, it.entity_index);
+        if !entity || entity.flags & .Hidden {
             continue;
         }
 

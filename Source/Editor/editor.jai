@@ -454,7 +454,7 @@ UpdateEditor :: (world : *World) {
     }
 
     for :AllComponents component : world {
-        entity := GetEntity(world, component.entity);
+        entity := GetEntity(world, component.entity_index);
 
         CallComponentCallback(world, entity, component, "OnEditorUpdate");
 

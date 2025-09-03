@@ -23,7 +23,7 @@ Components_Per_Page :: 20;
 ComponentStorage :: #bake_arguments PagedArray(Page_Size=Components_Per_Page);
 
 Component :: struct {
-    entity : EntityGUID;
+    entity_index : EntityIndex;
     index : PagedArraySlotInfo;
     type_id : int;
 }
@@ -60,9 +60,9 @@ GetComponentType :: inline (component : *Component) -> Type {
     return GetComponentType(GetComponentTypeId(component));
 }
 
-CreateComponent :: (world : *World, storage : *ComponentStorage($T), entity : EntityGUID) -> *T {
+CreateComponent :: (world : *World, storage : *ComponentStorage($T), entity : *Entity) -> *T {
     component, index := PagedArrayFindSlot(storage);
-    component.entity = entity;
+    component.entity_index = entity.index;
     component.index = index;
     component.type_id = #run cast(int, GetComponentTypeId(T));
 
@@ -87,7 +87,7 @@ DestroyComponent :: (world : *World, storage : *ComponentStorage($T), component 
     PagedArrayFreeSlot(storage, component.index);
 }
 
-CreateComponent :: (world : *World, $T : Type, entity : EntityGUID) -> *T
+CreateComponent :: (world : *World, $T : Type, entity : *Entity) -> *T
 #modify { return IsInComponentTypesArray(T); } {
     storage := #insert #run TPrint("*world.%_storage;", T);
     return CreateComponent(world, storage, entity);
@@ -115,7 +115,7 @@ DestroyComponent :: (world : *World, component : *$T)
 
 AddComponent :: (world : *World, $T : Type, entity : *Entity) -> *T
 #modify { return IsInComponentTypesArray(T); } {
-    component := CreateComponent(world, T, entity.guid);
+    component := CreateComponent(world, T, entity);
     ArrayPush(*entity.components, component);
 
     return component;
@@ -140,7 +140,7 @@ AddComponent :: (world : *World, type_id : ComponentTypeId, entity : *Entity) ->
 
 RemoveComponent :: (world : *World, component : *$T, entity : *Entity)
 #modify { return T == Component || IsInComponentTypesArray(T); } {
-    if component.entity != entity.guid {
+    if component.entity_index != entity.index {
         LogError("Component does not belong to entity %", entity.guid);
         return;
     }
