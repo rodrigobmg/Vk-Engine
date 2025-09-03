@@ -11,6 +11,7 @@ Supports Linux and Windows.
 * No "big idea" (e.g. ECS), simple and pragmatic entity system
 * Graphics abstraction layer
 * Shader hot reloading
+* Ref counted asset system
 * Asset hot reloading
 * Highly backward and forward compatible serialization system using manual indices
 * Simple editor with gizmos
