@@ -11,7 +11,7 @@ layout(location=0) out float4 out_color;
 
 void main() {
     float grid_size = 100;
-    float min_cell_size = 0.1;
+    float min_cell_size = 0.01;
     float min_pixels_between_cells = 2;
 
     float2 dvx = float2(dFdx(in_position.x), dFdy(in_position.x));
