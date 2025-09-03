@@ -448,26 +448,34 @@ UpdateEditor :: (world : *World) {
 
     ShowEntityInspector(world, entity_to_inspect);
 
-    for :AllEntities entity : world {
-        CallEntityCallback(world, entity, "OnEditorUpdate");
+    {
+        ProfileBlock(*g_cpu_profiler, "Entity.OnEditorUpdate+OnDebugDraw");
 
-        if !g_editor_show_debug_drawings || entity.flags & .Hidden {
-            continue;
+        for :AllEntities entity : world {
+            CallEntityCallback(world, entity, "OnEditorUpdate");
+
+            if !g_editor_show_debug_drawings || entity.flags & .Hidden {
+                continue;
+            }
+
+            CallEntityCallback(world, entity, "OnDebugDraw");
         }
-
-        CallEntityCallback(world, entity, "OnDebugDraw");
     }
 
-    for :AllComponents component : world {
-        entity := GetEntity(world, component.entity_index);
+    {
+        ProfileBlock(*g_cpu_profiler, "Component.OnEditorUpdate+OnDebugDraw");
 
-        CallComponentCallback(world, entity, component, "OnEditorUpdate");
+        for :AllComponents component : world {
+            entity := GetEntity(world, component.entity_index);
 
-        if !g_editor_show_debug_drawings || !entity || entity.flags & .Hidden {
-            continue;
+            CallComponentCallback(world, entity, component, "OnEditorUpdate");
+
+            if !g_editor_show_debug_drawings || !entity || entity.flags & .Hidden {
+                continue;
+            }
+
+            CallComponentCallback(world, entity, component, "OnDebugDraw");
         }
-
-        CallComponentCallback(world, entity, component, "OnDebugDraw");
     }
 
     UpdateAllFileBrowsers();
