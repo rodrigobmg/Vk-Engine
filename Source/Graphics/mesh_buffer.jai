@@ -73,7 +73,7 @@ FreeMeshBuffer :: (buffer : *MeshBuffer) {
 
 MakeMeshBufferKey :: (mesh_to_draw : MeshToDraw, depth : float) -> u64 {
     return MakeMeshBufferKey(mesh_to_draw.vertex_buffer, mesh_to_draw.index_buffer, mesh_to_draw.material, mesh_to_draw.is_skinned, depth);
-}
+} @NoProfile
 
 MakeMeshBufferKey :: (vertex_buffer : *GfxBuffer, index_buffer : *GfxBuffer, material : *Material, is_skinned : bool, depth : float) -> u64 {
     mesh_buffers : [2]*GfxBuffer = .[vertex_buffer, index_buffer];
@@ -116,7 +116,7 @@ MakeMeshBufferKey :: (vertex_buffer : *GfxBuffer, index_buffer : *GfxBuffer, mat
     result |= cast(u64, is_skinned) << Is_Skinned_Offset; // 1 bit for skinning
 
     return result;
-}
+} @NoProfile
 
 PushMesh :: (
     buffer : *MeshBuffer,
@@ -134,7 +134,7 @@ PushMesh :: (
         mesh_to_draw.is_skinned,
         mesh_to_draw.skinning_matrices
     );
-}
+} @NoProfile
 
 g_billboard_vertex_buffer : GfxBuffer;
 
@@ -225,7 +225,7 @@ PushBillboard :: (
         material=material,
         is_skinned=false, skinning_matrices=.[]
     );
-}
+} @NoProfile
 
 PushMesh :: (
     buffer : *MeshBuffer,
@@ -256,19 +256,19 @@ PushMesh :: (
     entry.skinning_matrices = skinning_matrices;
 
     buffer.total_num_skinning_matrices += xx skinning_matrices.count;
-}
+} @NoProfile
 
 SortMeshBuffer :: (buffer : *MeshBuffer) {
     QuickSort(buffer.meshes, (a, b) => cast,no_check(int) a.key - cast,no_check(int) b.key);
 }
 
-CanInstantiateMeshes :: (a : MeshBuffer.Entry, b : MeshBuffer.Entry) -> bool {
+CanInstantiateMeshes :: inline (a : MeshBuffer.Entry, b : MeshBuffer.Entry) -> bool {
     return a.vertex_buffer == b.vertex_buffer
         && a.index_buffer  == b.index_buffer
         && a.vertex_count  == b.vertex_count
         && a.index_count   == b.index_count
         && (a.material == b.material || MakeMaterialPerDrawCall(a.material) == MakeMaterialPerDrawCall(b.material));
-}
+} @NoProfile
 
 AllocDrawData :: (buffer : *MeshBuffer) {
     skinning_matrices : *Mat4f;

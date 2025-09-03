@@ -565,7 +565,7 @@ AllocAndLoadAssetFromMemory :: (cache : *AssetCache, name : string, data : []u8,
 LoadAsset :: inline ($T : Type, name : string, location := #caller_location) -> *Asset(T) {
     cache := #insert #run SPrint("*g_%_asset_cache;", T);
     return LoadAsset(cache, name, location);
-}
+} @NoProfile
 
 LoadAsset :: (cache : *AssetCache, name : string, location := #caller_location) -> *cache.AssetType {
     Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
@@ -606,12 +606,12 @@ LoadAsset :: (cache : *AssetCache, name : string, location := #caller_location) 
     asset.asset_flags &= ~.FromMemory;
 
     return asset;
-}
+} @NoProfile
 
 LoadAssetPermanent :: inline ($T : Type, name : string, location := #caller_location) -> *Asset(T) {
     cache := #insert #run SPrint("*g_%_asset_cache;", T);
     return LoadAssetPermanent(cache, name, location);
-}
+} @NoProfile
 
 LoadAssetPermanent :: (cache : *AssetCache, name : string, location := #caller_location) -> *cache.AssetType {
     asset := LoadAsset(cache, name, location);
@@ -622,7 +622,7 @@ LoadAssetPermanent :: (cache : *AssetCache, name : string, location := #caller_l
     asset.asset_flags |= .Permanent;
 
     return asset;
-}
+} @NoProfile
 
 TryReloadAsset :: (cache : *AssetCache, name : string, location := #caller_location) -> bool, *cache.AssetType {
     Assert(cache.initialized, "Asset cache % is not initialized", cache.AssetType);
