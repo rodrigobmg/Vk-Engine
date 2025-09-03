@@ -34,7 +34,16 @@ Supports Linux and Windows.
 * Variance shadow maps
 * Particle system
 * Pipelining
-* Hot reloading
+* Hot reloading code
+
+## To-do on the game side of things:
+* Particle system
+* Animation system
+* Animation graph (ideally a UE like graph that's more of a general purpose visual scripting tool)
+* Animation joint attachments
+* Collision detection queries (maybe we can use Jolt)
+* Physics engine integration (probably Jolt)
+* Simple input system
 
 ## Goals
 * Sponza running at 155 FPS with all point lights casting shadows
