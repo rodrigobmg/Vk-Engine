@@ -38,6 +38,7 @@ Supports Linux and Windows.
 * Variance shadow maps
 * Particle system
 ### Editor:
+* Gizmo interaction improvements and rework
 * Texture viewer
 ### Core:
 * Pipelining
