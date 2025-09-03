@@ -21,6 +21,8 @@ InitEngine :: () {
 
     LoadPreferences(*g_preferences, "engine.prefs");
 
+    InitFrameProfiler(*g_cpu_profiler);
+
     g_window = SDL_CreateWindow("Vulkan", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xx g_preferences.startup_window_width, xx g_preferences.startup_window_height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 
     InitGfxContext(g_window);
@@ -263,6 +265,7 @@ ExecuteRuntimeTests :: () {
 #load "component.jai";
 #load "world.jai";
 #load "preferences.jai";
+#load "profiler.jai";
 
 #load "Graphics/graphics.jai";
 #load "Physics/physics.jai";

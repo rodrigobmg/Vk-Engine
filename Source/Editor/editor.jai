@@ -10,6 +10,7 @@
 #load "world.jai";
 #load "viewport.jai";
 #load "material.jai";
+#load "profiler.jai";
 
 Log_Editor :: Log_Section.{name="Editor"};
 
@@ -363,6 +364,9 @@ UpdateEditor :: (world : *World) {
             if ImGui.MenuItem("Engine Settings", selected=g_show_engine_settings) {
                 g_show_engine_settings = true;
             }
+            if ImGui.MenuItem("CPU Profiler", selected=g_show_cpu_profiler) {
+                g_show_cpu_profiler = true;
+            }
             if ImGui.MenuItem("GPU Profiler", selected=g_show_gpu_profiler) {
                 g_show_gpu_profiler = true;
             }
@@ -433,6 +437,7 @@ UpdateEditor :: (world : *World) {
     ShowEntityOutliner(world);
     ShowMaterialEditor();
     ShowEngineSettings();
+    ShowCPUProfiler();
     ShowGPUProfiler();
     ShowDebugWindow(world);
 

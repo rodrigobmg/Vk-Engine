@@ -17,6 +17,7 @@ String :: #import "String";
 #load "Source/Build/shader_codegen.jai";
 #load "Source/Build/renderer.jai";
 #load "Source/Build/editor.jai";
+#load "Source/Build/profiler.jai";
 
 Default_Plugins :: string.[
     "Check(CHECK_BINDINGS=false)",
@@ -84,6 +85,8 @@ GetRootDirectory :: inline () -> string {
 }
 
 HandleCompilerMessage :: (msg : *Message) {
+    HandleCompilerMessageForProfiling(msg);
+
     if msg.kind == {
     case .ERROR;
         if g_report_all_undeclared_identifiers {

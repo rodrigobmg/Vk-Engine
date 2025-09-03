@@ -129,7 +129,7 @@ ProfilerBeginEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfi
     profiler.num_events_for_frame[g_gfx_context.frame_in_flight] += 1;
 
     return event;
-}
+} @NoProfile
 
 ProfilerEndEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfiler, event : *GPUProfilingEvent) {
     if !event {
@@ -138,9 +138,9 @@ ProfilerEndEvent :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfile
 
     vkCmdWriteTimestamp(cmd_buffer.cmd_buffer, .BOTTOM_OF_PIPE_BIT, profiler.query_pools[g_gfx_context.frame_in_flight], xx (event.index * 2 + 1));
     profiler.current_event = event.parent;
-}
+} @NoProfile
 
 ProfileGPUZone :: (cmd_buffer : *GfxCommandBuffer, profiler : *GPUFrameProfiler, name : string) #expand {
     event := ProfilerBeginEvent(cmd_buffer, profiler, name);
     `defer ProfilerEndEvent(cmd_buffer, profiler, event);
-}
+} @NoProfile

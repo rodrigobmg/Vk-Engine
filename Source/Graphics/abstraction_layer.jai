@@ -78,7 +78,7 @@ GfxFrameStatistics :: struct {
 
 GetGfxFrameStatistics :: () -> GfxFrameStatistics {
     return g_gfx_context.last_frame_statistics;
-}
+} @NoProfile
 
 // Tool to defer destroying objects after the last frame they were used is finished processing on the GPU
 GfxGarbageCollector :: struct($T : Type, destroy_func : #type (*T) = null) {
@@ -87,7 +87,7 @@ GfxGarbageCollector :: struct($T : Type, destroy_func : #type (*T) = null) {
 
 AddGarbage :: (collector : *GfxGarbageCollector, garbage : collector.T) {
     ArrayPush(*collector.garbage, garbage);
-}
+} @NoProfile
 
 DestroyGfxGarbageCollector :: (collector : *GfxGarbageCollector) {
     CollectGarbage(collector);
@@ -139,11 +139,11 @@ MakeGfxLimits :: inline (limits : VkPhysicalDeviceLimits) -> GfxLimits {
     result.timestamp_tick_period = xx limits.timestampPeriod;
 
     return result;
-}
+} @NoProfile
 
 GetGfxLimits :: inline () -> GfxLimits {
     return g_gfx_context.limits;
-}
+} @NoProfile
 
 BeginFrame :: () {
     ctx := *g_gfx_context;
@@ -155,8 +155,12 @@ BeginFrame :: () {
     ctx.frame_in_flight %= Gfx_Num_Frames_In_Flight;
     ctx.frame_index += 1;
 
-    wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Frame_Max_Wait);
-    Assert(wait_result == .SUCCESS, "vkWaitForFences failed: %", wait_result);
+    {
+        ProfileBlock(*g_cpu_profiler, "WaitForFrameFence");
+
+        wait_result := vkWaitForFences(ctx.device, 1, *ctx.frame_in_flight_fences[ctx.frame_in_flight], VK_TRUE, Frame_Max_Wait);
+        Assert(wait_result == .SUCCESS, "vkWaitForFences failed: %", wait_result);
+    }
 
     while true {
         acquire_result := vkAcquireNextImageKHR(ctx.device, ctx.swapchain, Frame_Max_Wait, ctx.swapchain_image_acquired_semaphores[ctx.frame_in_flight], null, *ctx.frame_swapchain_image_index);
@@ -219,7 +223,7 @@ SubmitFrame :: () {
 
 WaitForGPUIdle :: () {
     vkDeviceWaitIdle(g_gfx_context.device);
-}
+} @Profile
 
 GfxCommandPool :: struct {
     pool : VkCommandPool;
@@ -230,7 +234,7 @@ GfxCommandPool :: struct {
 
 IsNull :: inline (pool : *GfxCommandPool) -> bool {
     return pool == null || pool.pool == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxCommandPool :: (name : string) -> GfxCommandPool {
     ctx := *g_gfx_context;
@@ -273,7 +277,7 @@ GfxCommandBuffer :: struct {
 
 IsNull :: inline (cmd_buffer : *GfxCommandBuffer) -> bool {
     return cmd_buffer == null || cmd_buffer.cmd_buffer == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxCommandBuffer :: (name : string) -> GfxCommandBuffer {
     ctx := *g_gfx_context;
@@ -329,7 +333,7 @@ GfxShader :: struct {
 
 IsNull :: inline (shader : *GfxShader) -> bool {
     return shader == null || shader.module == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 // @Todo: integrate libshaderc instead of launching a child process
 LoadGfxShader :: (name : string, extra_compiler_args : []string = .[], dependencies : *[..]string = null) -> GfxShader {
@@ -478,7 +482,7 @@ MakeVkShaderStageFlags :: inline (stages : GfxShaderStageFlags) -> VkShaderStage
     }
 
     return result;
-}
+} @NoProfile
 
 GfxBindingType :: enum u8 {
     UniformBuffer;
@@ -507,7 +511,7 @@ GetGfxBindingType :: (type : *Type_Info) -> GfxBindingType {
 
     Panic("Invalid shader param type %", get_type(type));
     return xx 0;
-}
+} @NoProfile
 
 MakeVkDescriptorType :: inline (type : GfxBindingType) -> VkDescriptorType {
     if #complete type == {
@@ -518,7 +522,7 @@ MakeVkDescriptorType :: inline (type : GfxBindingType) -> VkDescriptorType {
     case .CombinedTextureSampler; return .COMBINED_IMAGE_SAMPLER;
     case .StorageImage;           return .STORAGE_IMAGE;
     }
-}
+} @NoProfile
 
 GfxBindingFlags :: enum_flags u8 {
     AllowNull;
@@ -531,7 +535,7 @@ MakeVkDescriptorBindingFlags :: inline (flags : GfxBindingFlags) -> VkDescriptor
     }
 
     return result;
-}
+} @NoProfile
 
 GfxBindingDesc :: struct {
     binding : u32;
@@ -553,7 +557,7 @@ GfxBindingSetLayout :: struct {
 
 IsNull :: inline (layout : *GfxBindingSetLayout) -> bool {
     return layout == null || layout.layout == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxBindingSetLayout :: (name : string, desc : GfxBindingSetLayoutDesc) -> GfxBindingSetLayout {
     LogSectionScope(*Log_Vulkan);
@@ -616,7 +620,7 @@ GfxBindingPool :: struct {
 
 IsNull :: inline (pool : *GfxBindingPool) -> bool {
     return pool == null || pool.pool == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxBindingPool :: (name : string, desc : GfxBindingPoolDesc) -> GfxBindingPool {
     pool_sizes : [..]VkDescriptorPoolSize;
@@ -671,7 +675,7 @@ GfxBindingSet :: struct {
 
 IsNull :: inline (set : *GfxBindingSet) -> bool {
     return set == null || set.set == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 GfxBindingPoolAllocResult :: enum {
     Success;
@@ -691,7 +695,7 @@ MakeGfxBindingPoolAllocResult :: inline (result : VkResult) -> GfxBindingPoolAll
     case .ERROR_FRAGMENTED_POOL; return .FragmentedPool;
     case; return .UnknownError;
     }
-}
+} @NoProfile
 
 AllocGfxBindingSet :: (pool : *GfxBindingPool, layout : *GfxBindingSetLayout) -> GfxBindingSet, GfxBindingPoolAllocResult {
     info : VkDescriptorSetAllocateInfo;
@@ -706,7 +710,7 @@ AllocGfxBindingSet :: (pool : *GfxBindingPool, layout : *GfxBindingSetLayout) ->
     }
 
     return .{set=set}, .Success;
-}
+} @NoProfile
 
 // Generates VkDescriptorBufferInfo, VkDescriptorImageInfo and VkWriteDescriptorSet then calls vkUpdateDescriptorSets automatically
 // @AllowNull bindings are handled using the partially bound feature, so it is expected that when the binding is null it
@@ -880,7 +884,7 @@ UpdateGfxBindingSet :: (set : *GfxBindingSet, value : $T) {
     }
 
     vkUpdateDescriptorSets(g_gfx_context.device, xx writes.count, writes.data, 0, null);
-}
+} @NoProfile
 
 // To help reduce error prone boilerplate code for layout creation and binding set allocation, we provide
 // these types below. You can define a struct containing these members, and that struct can be used to both
@@ -1068,7 +1072,7 @@ GetPixelSize :: inline (pixel_format : GfxPixelFormat) -> u32 {
     }
 
     return 0;
-}
+} @NoProfile
 
 MakeVkFormat :: inline (pixel_format : GfxPixelFormat) -> VkFormat {
     if #complete pixel_format == {
@@ -1095,7 +1099,7 @@ MakeVkFormat :: inline (pixel_format : GfxPixelFormat) -> VkFormat {
     case .Stencil8; return .S8_UINT;
     }
     return .UNDEFINED;
-}
+} @NoProfile
 
 MakeGfxPixelFormat :: inline (format : VkFormat) -> GfxPixelFormat {
     if format == {
@@ -1122,7 +1126,7 @@ MakeGfxPixelFormat :: inline (format : VkFormat) -> GfxPixelFormat {
     case .S8_UINT; return .Stencil8;
     }
     return .Invalid;
-}
+} @NoProfile
 
 GfxVertexFormat :: enum {
     Invalid;
@@ -1185,7 +1189,7 @@ MakeVkFormat :: (format : GfxVertexFormat, normalized : bool) -> VkFormat {
     case .UInt3; return .R32G32B32_UINT;
     case .UInt4; return .R32G32B32A32_UINT;
     }
-}
+} @NoProfile
 
 MakeGfxVertexFormat :: inline (type : Type) -> GfxVertexFormat {
     if type == {
@@ -1215,7 +1219,7 @@ MakeGfxVertexFormat :: inline (type : Type) -> GfxVertexFormat {
     case Vec3u; return .UInt3;
     case Vec4u; return .UInt4;
     }
-}
+} @NoProfile
 
 GfxVertexInputAttribute :: struct {
     location : u32;
@@ -1237,7 +1241,7 @@ GfxVertexInputDesc :: struct {
 
 MakeVertexInputDesc :: inline ($T : Type, buffer_binding : u32) -> GfxVertexInputDesc {
     return MakeVertexInputDesc(T, .[buffer_binding]);
-}
+} @NoProfile
 
 MakeVertexInputDesc :: ($T : Type, buffer_bindings : []u32) -> GfxVertexInputDesc {
     desc : GfxVertexInputDesc;
@@ -1342,7 +1346,7 @@ MakeVkCompareOp :: inline (compare_op : GfxCompareOp) -> VkCompareOp {
     case .NotEqual;     return .NOT_EQUAL;
     }
     return .MAX_ENUM;
-}
+} @NoProfile
 
 GfxDepthStateDesc :: struct {
     test_enabled := false;
@@ -1374,7 +1378,7 @@ MakeVkStencilOp :: inline (stencil_op : GfxStencilOp) -> VkStencilOp {
     case .Invert;         return .INVERT;
     }
     return .MAX_ENUM;
-}
+} @NoProfile
 
 GfxStencilFaceStateDesc :: struct {
     failed_op : GfxStencilOp = .Keep;
@@ -1437,7 +1441,7 @@ MakeVkBlendFactor :: inline (blend_factor : GfxBlendFactor) -> VkBlendFactor {
     case .OneMinusSrc1Alpha;     return .ONE_MINUS_SRC1_ALPHA;
     }
     return .MAX_ENUM;
-}
+} @NoProfile
 
 GfxBlendOp :: enum u8 {
     Add;
@@ -1456,7 +1460,7 @@ MakeVkBlendOp :: inline (blend_op : GfxBlendOp) -> VkBlendOp {
     case .Max;             return .MAX;
     }
     return .MAX_ENUM;
-}
+} @NoProfile
 
 GfxBlendStateDesc :: struct {
     enabled := false;
@@ -1478,7 +1482,7 @@ GfxPipelineLayout :: struct {
 
 IsNull :: inline (layout : *GfxPipelineLayout) -> bool {
     return layout == null || layout.layout == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxPipelineLayout :: (name : string, desc : GfxPipelineLayoutDesc) -> GfxPipelineLayout {
     LogSectionScope(*Log_Vulkan);
@@ -1528,7 +1532,7 @@ GfxGraphicsPipelineDesc :: struct {
 AddColorAttachment :: (desc : *GfxGraphicsPipelineDesc, format : GfxPixelFormat) {
     desc.color_formats[desc.num_color_attachments] = format;
     desc.num_color_attachments += 1;
-}
+} @NoProfile
 
 GfxGraphicsPipeline :: struct {
     layout : GfxPipelineLayout;
@@ -1539,7 +1543,7 @@ GfxGraphicsPipeline :: struct {
 
 IsNull :: inline (pipeline : *GfxGraphicsPipeline) -> bool {
     return pipeline == null || pipeline.pipeline == VK_NULL_HANDLE || IsNull(*pipeline.layout);
-}
+} @NoProfile
 
 CreateGfxGraphicsPipeline :: (name : string, desc : GfxGraphicsPipelineDesc) -> GfxGraphicsPipeline {
     LogSectionScope(*Log_Vulkan);
@@ -1729,7 +1733,7 @@ GfxComputePipeline :: struct {
 
 IsNull :: inline (pipeline : *GfxComputePipeline) -> bool {
     return pipeline == null || pipeline.pipeline == VK_NULL_HANDLE || IsNull(*pipeline.layout);
-}
+} @NoProfile
 
 CreateGfxComputePipeline :: (name : string, desc : GfxComputePipelineDesc) -> GfxComputePipeline {
     LogSectionScope(*Log_Vulkan);
@@ -1795,7 +1799,7 @@ GfxBuffer :: struct {
 
 IsNull :: inline (buffer : *GfxBuffer) -> bool {
     return buffer == null || buffer.buffer == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxBuffer :: (name : string, desc : GfxBufferDesc) -> GfxBuffer {
     LogSectionScope(*Log_Vulkan);
@@ -1844,7 +1848,7 @@ CreateGfxBuffer :: (name : string, desc : GfxBufferDesc) -> GfxBuffer {
     SetDebugName(buffer, TPrint("Buffer '%'", name));
 
     return .{buffer=buffer, allocation=allocation, name=StringClone(name), desc=desc};
-}
+} @NoProfile
 
 DestroyGfxBuffer :: (buffer : *GfxBuffer) {
     LogSectionScope(*Log_Vulkan);
@@ -1852,13 +1856,13 @@ DestroyGfxBuffer :: (buffer : *GfxBuffer) {
     Free(buffer.name.data);
     vmaDestroyBuffer(g_gfx_context.allocator, buffer.buffer, buffer.allocation);
     buffer.* = .{};
-}
+} @NoProfile
 
 QueueDestroyGfxBuffer :: (buffer : *GfxBuffer) {
     collector := *g_gfx_context.buffer_collectors[g_gfx_context.frame_in_flight];
     AddGarbage(collector, buffer);
     buffer.* = .{};
-}
+} @NoProfile
 
 GfxTextureType :: enum u8 {
     Invalid;
@@ -1896,7 +1900,7 @@ GfxTextureDesc :: struct {
 
 GetNumMipmapLevelsForTextureSize :: (width : u32, height : u32) -> u32 {
     return cast(u32, Floor(Log2(xx Max(width, height)))) + 1;
-}
+} @NoProfile
 
 GetTextureMemoryRequirementsForLevel0 :: (desc : GfxTextureAndViewDesc) -> u64 {
     size := desc.width * desc.height * desc.depth * desc.num_array_layers * GetPixelSize(desc.pixel_format);
@@ -1905,7 +1909,7 @@ GetTextureMemoryRequirementsForLevel0 :: (desc : GfxTextureAndViewDesc) -> u64 {
     }
 
     return size;
-}
+} @NoProfile
 
 GfxTextureViewDesc :: struct {
     type : GfxTextureType;
@@ -1936,7 +1940,7 @@ GetTextureMipWidth :: (w : u32, mipmap_level : int) -> u32 {
     }
 
     return w;
-}
+} @NoProfile
 
 GetTextureMipHeight :: (h : u32, mipmap_level : int) -> u32 {
     for 1..mipmap_level {
@@ -1944,7 +1948,7 @@ GetTextureMipHeight :: (h : u32, mipmap_level : int) -> u32 {
     }
 
     return h;
-}
+} @NoProfile
 
 GetTextureMipSize :: (w : u32, h : u32, mipmap_level : int) -> w : u32, h : u32 {
     for 1..mipmap_level {
@@ -1953,12 +1957,12 @@ GetTextureMipSize :: (w : u32, h : u32, mipmap_level : int) -> w : u32, h : u32 
     }
 
     return w, h;
-}
+} @NoProfile
 
 GetTextureMipSize :: (desc : GfxTextureAndViewDesc, mipmap_level : int) -> w : u32, h : u32 {
     w, h := GetTextureMipSize(desc.width, desc.height, mipmap_level);
     return w, h;
-}
+} @NoProfile
 
 MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureDesc) -> GfxTextureAndViewDesc {
     return .{
@@ -1972,7 +1976,7 @@ MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureDesc) -> GfxTextureAndView
         num_mipmap_levels=desc.num_mipmap_levels,
         num_samples=desc.num_samples,
     };
-}
+} @NoProfile
 
 MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureAndViewDesc, view_desc : GfxTextureViewDesc) -> GfxTextureAndViewDesc {
     result := desc;
@@ -1984,7 +1988,7 @@ MakeGfxTextureAndViewDesc :: inline (desc : GfxTextureAndViewDesc, view_desc : G
     result.num_mipmap_levels = view_desc.num_mipmap_levels;
 
     return result;
-}
+} @NoProfile
 
 GfxTexture :: struct {
     image : VkImage;
@@ -2017,7 +2021,7 @@ MakeVkImageSubresourceRange :: (desc : GfxTextureAndViewDesc) -> VkImageSubresou
     }
 
     return subresource;
-}
+} @NoProfile
 
 MakeVkImageSubresourceLayers :: (desc : GfxTextureAndViewDesc, mip_level : u32) -> VkImageSubresourceLayers {
     subresource : VkImageSubresourceLayers;
@@ -2041,11 +2045,11 @@ MakeVkImageSubresourceLayers :: (desc : GfxTextureAndViewDesc, mip_level : u32) 
     }
 
     return subresource;
-}
+} @NoProfile
 
 IsNull :: inline (texture : *GfxTexture) -> bool {
     return texture == null || texture.image == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
     LogSectionScope(*Log_Vulkan);
@@ -2165,7 +2169,7 @@ CreateGfxTexture :: (name : string, desc : GfxTextureDesc) -> GfxTexture {
     SetDebugName(image_view, TPrint("Image View '%'", name));
 
     return .{image=image, image_view=image_view, allocation=allocation, name=StringClone(name), desc=MakeGfxTextureAndViewDesc(desc)};
-}
+} @NoProfile
 
 DestroyGfxTexture :: (texture : *GfxTexture) {
     LogSectionScope(*Log_Vulkan);
@@ -2174,13 +2178,13 @@ DestroyGfxTexture :: (texture : *GfxTexture) {
     vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     vmaDestroyImage(g_gfx_context.allocator, texture.image, texture.allocation);
     texture.* = .{};
-}
+} @NoProfile
 
 QueueDestroyGfxTexture :: (texture : *GfxTexture) {
     collector := *g_gfx_context.texture_collectors[g_gfx_context.frame_in_flight];
     AddGarbage(collector, texture);
     texture.* = .{};
-}
+} @NoProfile
 
 CreateGfxTextureView :: (name : string, desc : GfxTextureViewDesc, texture : *GfxTexture) -> GfxTexture {
     if IsNull(texture) {
@@ -2228,7 +2232,7 @@ CreateGfxTextureView :: (name : string, desc : GfxTextureViewDesc, texture : *Gf
     SetDebugName(image_view, TPrint("Image View '%'", name));
 
     return .{image=texture.image, image_view=image_view, allocation=texture.allocation, name=StringClone(name), desc=MakeGfxTextureAndViewDesc(texture.desc, desc)};
-}
+} @NoProfile
 
 DestroyGfxTextureView :: (texture : *GfxTexture) {
     LogSectionScope(*Log_Vulkan);
@@ -2236,13 +2240,13 @@ DestroyGfxTextureView :: (texture : *GfxTexture) {
     Free(texture.name.data);
     vkDestroyImageView(g_gfx_context.device, texture.image_view, g_vk_alloc_callbacks);
     texture.* = .{};
-}
+} @NoProfile
 
 QueueDestroyGfxTextureView :: (texture : *GfxTexture) {
     collector := *g_gfx_context.texture_view_collectors[g_gfx_context.frame_in_flight];
     AddGarbage(collector, texture);
     texture.* = .{};
-}
+} @NoProfile
 
 GfxSamplerFilter :: enum u8 {
     Nearest;
@@ -2254,14 +2258,14 @@ MakeVkFilter :: inline (filter : GfxSamplerFilter) -> VkFilter {
     case .Nearest; return .NEAREST;
     case .Linear; return .LINEAR;
     }
-}
+} @NoProfile
 
 MakeVkSamplerMipmapMode :: inline (filter : GfxSamplerFilter) -> VkSamplerMipmapMode {
     if #complete filter == {
     case .Nearest; return .NEAREST;
     case .Linear; return .LINEAR;
     }
-}
+} @NoProfile
 
 GfxSamplerAddressMode :: enum u8 {
     Repeat;
@@ -2279,7 +2283,7 @@ MakeVkSamplerAddressMode :: (mode : GfxSamplerAddressMode) -> VkSamplerAddressMo
     case .MirrorRepeat;      return .MIRRORED_REPEAT;
     case .MirrorClampToEdge; return .MIRROR_CLAMP_TO_EDGE;
     }
-}
+} @NoProfile
 
 GfxSamplerBorderColor :: enum u8 {
     Transparent;
@@ -2293,7 +2297,7 @@ MakeVkBorderColor :: (color : GfxSamplerBorderColor) -> VkBorderColor {
     case .OpaqueBlack; return .FLOAT_OPAQUE_BLACK;
     case .OpaqueWhite; return .FLOAT_OPAQUE_WHITE;
     }
-}
+} @NoProfile
 
 GfxSamplerDesc :: struct {
     min_filter : GfxSamplerFilter = .Nearest;
@@ -2319,7 +2323,7 @@ GfxSampler :: struct {
 
 IsNull :: inline (sampler : *GfxSampler) -> bool {
     return sampler == null || sampler.sampler == VK_NULL_HANDLE;
-}
+} @NoProfile
 
 CreateGfxSampler :: (name : string, desc : GfxSamplerDesc) -> GfxSampler {
     LogSectionScope(*Log_Vulkan);
@@ -2350,7 +2354,7 @@ CreateGfxSampler :: (name : string, desc : GfxSamplerDesc) -> GfxSampler {
     SetDebugName(sampler, TPrint("Sampler '%'", name));
 
     return .{sampler=sampler, name=StringClone(name), desc=desc};
-}
+} @NoProfile
 
 DestroyGfxSampler :: (sampler : *GfxSampler) {
     LogSectionScope(*Log_Vulkan);
@@ -2358,13 +2362,13 @@ DestroyGfxSampler :: (sampler : *GfxSampler) {
     Free(sampler.name.data);
     vkDestroySampler(g_gfx_context.device, sampler.sampler, g_vk_alloc_callbacks);
     sampler.* = .{};
-}
+} @NoProfile
 
 QueueDestroyGfxSampler :: (sampler : *GfxSampler) {
     collector := *g_gfx_context.sampler_collectors[g_gfx_context.frame_in_flight];
     AddGarbage(collector, sampler);
     sampler.* = .{};
-}
+} @NoProfile
 
 BeginGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer, name : string) {
     LogSectionScope(*Log_Vulkan);
@@ -2376,7 +2380,7 @@ BeginGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer, name : string) {
     label : VkDebugUtilsLabelEXT;
     label.pLabelName = CStringClone(name ,, Temp);
     g_gfx_context.vkCmdBeginDebugUtilsLabelEXT(cmd_buffer.cmd_buffer, *label);
-}
+} @NoProfile
 
 EndGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer) {
     LogSectionScope(*Log_Vulkan);
@@ -2386,7 +2390,7 @@ EndGfxDebugMarker :: (cmd_buffer : *GfxCommandBuffer) {
     }
 
     g_gfx_context.vkCmdEndDebugUtilsLabelEXT(cmd_buffer.cmd_buffer);
-}
+} @NoProfile
 
 BeginGfxDebugMarker :: (name : string) {
     LogSectionScope(*Log_Vulkan);
@@ -2398,7 +2402,7 @@ BeginGfxDebugMarker :: (name : string) {
     label : VkDebugUtilsLabelEXT;
     label.pLabelName = CStringClone(name ,, Temp);
     g_gfx_context.vkQueueBeginDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue, *label);
-}
+} @NoProfile
 
 EndGfxDebugMarker :: () {
     LogSectionScope(*Log_Vulkan);
@@ -2408,7 +2412,7 @@ EndGfxDebugMarker :: () {
     }
 
     g_gfx_context.vkQueueEndDebugUtilsLabelEXT(g_gfx_context.general_purpose_queue);
-}
+} @NoProfile
 
 GfxAttachmentLoadOp :: enum {
     Load;
@@ -2422,7 +2426,7 @@ MakeVkAttachmentLoadOp :: inline (op : GfxAttachmentLoadOp) -> VkAttachmentLoadO
     case .Clear;    return .CLEAR;
     case .DontCare; return .DONT_CARE;
     }
-}
+} @NoProfile
 
 GfxAttachmentStoreOp :: enum {
     Store;
@@ -2434,7 +2438,7 @@ MakeVkAttachmentStoreOp :: inline (op : GfxAttachmentStoreOp) -> VkAttachmentSto
     case .Store;    return .STORE;
     case .DontCare; return .DONT_CARE;
     }
-}
+} @NoProfile
 
 GfxAttachment :: struct {
     texture : *GfxTexture;
@@ -2487,7 +2491,7 @@ AddColorAttachment :: (
         store_op=store_op
     };
     pass_desc.num_color_attachments += 1;
-}
+} @NoProfile
 
 AddDepthAttachment :: (
     pass_desc : *GfxRenderPassDesc,
@@ -2499,7 +2503,7 @@ AddDepthAttachment :: (
     Assert(pass_desc.depth_attachment.texture == null, "Depth attachment is already set");
 
     pass_desc.depth_attachment = .{texture=texture, resolve_texture=resolve_texture, load_op=load_op, store_op=store_op};
-}
+} @NoProfile
 
 AddStencilAttachment :: (
     pass_desc : *GfxRenderPassDesc,
@@ -2511,7 +2515,7 @@ AddStencilAttachment :: (
     Assert(pass_desc.depth_attachment.texture == null, "Stencil attachment is already set");
 
     pass_desc.stencil_attachment = .{texture=texture, resolve_texture=resolve_texture, load_op=load_op, store_op=store_op};
-}
+} @NoProfile
 
 ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4f) {
     Assert(index < pass_desc.num_color_attachments, "No color attachment at index %", index);
@@ -2521,7 +2525,7 @@ ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4f
     pass_desc.color_attachments[index].clear_value.float4[1] = value.g;
     pass_desc.color_attachments[index].clear_value.float4[2] = value.b;
     pass_desc.color_attachments[index].clear_value.float4[3] = value.a;
-}
+} @NoProfile
 
 ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4i) {
     Assert(index < pass_desc.num_color_attachments, "No color attachment at index %", index);
@@ -2531,7 +2535,7 @@ ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4i
     pass_desc.color_attachments[index].clear_value.int4[1] = value.g;
     pass_desc.color_attachments[index].clear_value.int4[2] = value.b;
     pass_desc.color_attachments[index].clear_value.int4[3] = value.a;
-}
+} @NoProfile
 
 ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4u) {
     Assert(index < pass_desc.num_color_attachments, "No color attachment at index %", index);
@@ -2541,17 +2545,17 @@ ClearColor :: inline (pass_desc : *GfxRenderPassDesc, index : u32, value : Vec4u
     pass_desc.color_attachments[index].clear_value.uint4[1] = value.g;
     pass_desc.color_attachments[index].clear_value.uint4[2] = value.b;
     pass_desc.color_attachments[index].clear_value.uint4[3] = value.a;
-}
+} @NoProfile
 
 ClearDepth :: inline (pass_desc : *GfxRenderPassDesc, value : float) {
     pass_desc.depth_attachment.load_op = .Clear;
     pass_desc.depth_attachment.clear_value = value;
-}
+} @NoProfile
 
 ClearStencil :: inline (pass_desc : *GfxRenderPassDesc, value : u32) {
     pass_desc.stencil_attachment.load_op = .Clear;
     pass_desc.stencil_attachment.clear_value = value;
-}
+} @NoProfile
 
 GfxRenderPass :: struct {
     cmd_buffer : *GfxCommandBuffer;
@@ -2668,13 +2672,13 @@ BindGraphicsPipeline :: (pass : *GfxRenderPass, pipeline : *GfxGraphicsPipeline)
     vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .GRAPHICS, pipeline.pipeline);
 
     g_gfx_context.frame_statistics.num_graphics_pipeline_binds += 1;
-}
+} @NoProfile
 
 BindGraphicsBindingSet :: (pass : *GfxRenderPass, index : u32, set : *GfxBindingSet) {
     Assert(pass.current_pipeline != null, "Render pass has no pipeline bound yet. Use BindGraphicsBindingSet on a command buffer and specify pipeline layout or bind a pipeline first");
 
     BindGraphicsBindingSet(pass.cmd_buffer, *pass.current_pipeline.layout, index, set);
-}
+} @NoProfile
 
 GfxViewport :: struct {
     top_left_x : float;
@@ -2688,35 +2692,35 @@ GfxViewport :: struct {
 SetViewport :: (pass : *GfxRenderPass, viewport : GfxViewport) {
     vk_viewport := VkViewport.{x=viewport.top_left_x, y=viewport.top_left_y, width=viewport.width, height=viewport.height, minDepth=viewport.min_depth, maxDepth=viewport.max_depth};
     vkCmdSetViewport(pass.cmd_buffer.cmd_buffer, 0, 1, *vk_viewport);
-}
+} @NoProfile
 
 SetScissor :: (pass : *GfxRenderPass, rect : Recti) {
     vk_scissor := VkRect2D.{offset=.{rect.x, rect.y}, extent=.{xx rect.w, xx rect.h}};
     vkCmdSetScissor(pass.cmd_buffer.cmd_buffer, 0, 1, *vk_scissor);
-}
+} @NoProfile
 
 SetStencilReference :: (pass : *GfxRenderPass, front_value : u32, back_value : u32) {
     vkCmdSetStencilReference(pass.cmd_buffer.cmd_buffer, .FACE_FRONT_BIT, front_value);
     vkCmdSetStencilReference(pass.cmd_buffer.cmd_buffer, .FACE_BACK_BIT, back_value);
-}
+} @NoProfile
 
 SetBlendConstant :: (pass : *GfxRenderPass, color : Vec4f) {
     vkCmdSetBlendConstants(pass.cmd_buffer.cmd_buffer, xx *color);
-}
+} @NoProfile
 
 BindVertexBuffer :: (pass : *GfxRenderPass, binding : u32, buffer : *GfxBuffer, offset : u64 = 0) {
     vkCmdBindVertexBuffers(pass.cmd_buffer.cmd_buffer, binding, 1, *buffer.buffer, *offset);
-}
+} @NoProfile
 
 BindGraphicsBindingSet :: (cmd_buffer : *GfxCommandBuffer, layout : *GfxPipelineLayout, index : u32, set : *GfxBindingSet) {
     vkCmdBindDescriptorSets(cmd_buffer.cmd_buffer, .GRAPHICS, layout.layout, index, 1, *set.set, 0, null);
     g_gfx_context.frame_statistics.num_graphics_binding_set_binds += 1;
-}
+} @NoProfile
 
 BindComputeBindingSet :: (cmd_buffer : *GfxCommandBuffer, layout : *GfxPipelineLayout, index : u32, set : *GfxBindingSet) {
     vkCmdBindDescriptorSets(cmd_buffer.cmd_buffer, .COMPUTE, layout.layout, index, 1, *set.set, 0, null);
     g_gfx_context.frame_statistics.num_compute_binding_set_binds += 1;
-}
+} @NoProfile
 
 GfxIndexType :: enum {
     UInt16;
@@ -2731,7 +2735,7 @@ BindIndexBuffer :: (pass : *GfxRenderPass, type : GfxIndexType, buffer : *GfxBuf
     }
 
     vkCmdBindIndexBuffer(pass.cmd_buffer.cmd_buffer, buffer.buffer, offset, vk_index_type);
-}
+} @NoProfile
 
 Draw :: (
     pass : *GfxRenderPass,
@@ -2742,7 +2746,7 @@ Draw :: (
 ) {
     vkCmdDraw(pass.cmd_buffer.cmd_buffer, vertex_count, instance_count, base_vertex, base_instance);
     g_gfx_context.frame_statistics.num_draw_calls += 1;
-}
+} @NoProfile
 
 DrawIndexed :: (
     pass : *GfxRenderPass,
@@ -2754,7 +2758,7 @@ DrawIndexed :: (
 ) {
     vkCmdDrawIndexed(pass.cmd_buffer.cmd_buffer, index_count, instance_count, base_index, xx base_vertex, base_instance);
     g_gfx_context.frame_statistics.num_draw_calls += 1;
-}
+} @NoProfile
 
 GfxComputePass :: struct {
     cmd_buffer : *GfxCommandBuffer;
@@ -2788,18 +2792,18 @@ BindComputePipeline :: (pass : *GfxComputePass, pipeline : *GfxComputePipeline) 
     pass.current_pipeline = pipeline;
     vkCmdBindPipeline(pass.cmd_buffer.cmd_buffer, .COMPUTE, pipeline.pipeline);
     g_gfx_context.frame_statistics.num_compute_pipeline_binds += 1;
-}
+} @NoProfile
 
 BindComputeBindingSet :: (pass : *GfxComputePass, index : u32, set : *GfxBindingSet) {
     Assert(pass.current_pipeline != null, "Render pass has no pipeline bound yet. Use BindComputeBindingSet on a command buffer and specify pipeline layout or bind a pipeline first");
 
     BindComputeBindingSet(pass.cmd_buffer, *pass.current_pipeline.layout, index, set);
-}
+} @NoProfile
 
 Dispatch :: (pass : *GfxComputePass, num_groups_x : u32, num_groups_y : u32, num_groups_z : u32) {
     vkCmdDispatch(pass.cmd_buffer.cmd_buffer, num_groups_x, num_groups_y, num_groups_z);
     g_gfx_context.frame_statistics.num_dispatch_calls += 1;
-}
+} @NoProfile
 
 GfxCopyPass :: struct {
     cmd_buffer : *GfxCommandBuffer;
@@ -2814,7 +2818,7 @@ BeginGfxCopyPass :: (cmd_buffer : *GfxCommandBuffer, name : string) -> GfxCopyPa
     profiling_event := ProfilerBeginEvent(cmd_buffer, *g_gpu_profiler, name);
 
     return .{cmd_buffer=cmd_buffer, profiling_event=profiling_event, name=name};
-}
+} @NoProfile
 
 EndGfxCopyPass :: (pass : *GfxCopyPass) {
     LogSectionScope(*Log_Vulkan);
@@ -2823,7 +2827,7 @@ EndGfxCopyPass :: (pass : *GfxCopyPass) {
     EndGfxDebugMarker(pass.cmd_buffer);
 
     AddBarrier(pass.cmd_buffer);
-}
+} @NoProfile
 
 CopyBufferToTexture :: (pass : *GfxCopyPass, src_buffer : *GfxBuffer, dst_texture : *GfxTexture) {
     copy : VkBufferImageCopy;
@@ -2831,7 +2835,7 @@ CopyBufferToTexture :: (pass : *GfxCopyPass, src_buffer : *GfxBuffer, dst_textur
     copy.imageExtent = .{dst_texture.desc.width, dst_texture.desc.height, dst_texture.desc.depth};
 
     vkCmdCopyBufferToImage(pass.cmd_buffer.cmd_buffer, src_buffer.buffer, dst_texture.image, .TRANSFER_DST_OPTIMAL, 1, *copy);
-}
+} @NoProfile
 
 CopyTextureToBuffer :: (pass : *GfxCopyPass, src_texture : *GfxTexture, dst_buffer : *GfxBuffer) {
     copy : VkBufferImageCopy;
@@ -2839,7 +2843,7 @@ CopyTextureToBuffer :: (pass : *GfxCopyPass, src_texture : *GfxTexture, dst_buff
     copy.imageExtent = .{src_texture.desc.width, src_texture.desc.height, src_texture.desc.depth};
 
     vkCmdCopyImageToBuffer(pass.cmd_buffer.cmd_buffer, src_texture.image, .TRANSFER_SRC_OPTIMAL, dst_buffer.buffer, 1, *copy);
-}
+} @NoProfile
 
 CopyBufferToBuffer :: (pass : *GfxCopyPass, src_buffer : *GfxBuffer, dst_buffer : *GfxBuffer, src_offset : u64, dst_offset : u64, size : u64) {
     region : VkBufferCopy;
@@ -2848,7 +2852,7 @@ CopyBufferToBuffer :: (pass : *GfxCopyPass, src_buffer : *GfxBuffer, dst_buffer 
     region.size = size;
 
     vkCmdCopyBuffer(pass.cmd_buffer.cmd_buffer, src_buffer.buffer, dst_buffer.buffer, 1, *region);
-}
+} @NoProfile
 
 GenerateMipmaps :: (pass : *GfxCopyPass, texture : *GfxTexture, old_layout : GfxTextureLayout, new_layout : GfxTextureLayout) {
     if texture.desc.num_mipmap_levels < 2 {
@@ -2973,7 +2977,7 @@ MakeVkPipelineStageFlags :: inline (sync_point : GfxBarrierSyncPointFlags) -> Vk
     }
 
     return result;
-}
+} @NoProfile
 
 MakeVkAccessFlags :: inline (access : GfxBarrierAccessFlags) -> VkAccessFlags {
     result : VkAccessFlags;
@@ -2985,7 +2989,7 @@ MakeVkAccessFlags :: inline (access : GfxBarrierAccessFlags) -> VkAccessFlags {
     }
 
     return result;
-}
+} @NoProfile
 
 AddBarrier :: (
     cmd_buffer : *GfxCommandBuffer,
@@ -3003,11 +3007,11 @@ AddBarrier :: (
     );
 
     g_gfx_context.frame_statistics.num_execution_barriers += 1;
-}
+} @NoProfile
 
 AddBarrier :: inline (cmd_buffer : *GfxCommandBuffer) {
     AddBarrier(cmd_buffer, .AllCommands, .AllCommands);
-}
+} @NoProfile
 
 AddMemoryBarrier :: (
     cmd_buffer : *GfxCommandBuffer,
@@ -3030,7 +3034,7 @@ AddMemoryBarrier :: (
     );
 
     g_gfx_context.frame_statistics.num_memory_barriers += 1;
-}
+} @NoProfile
 
 GfxTextureLayout :: enum {
     Undefined;
@@ -3054,7 +3058,7 @@ MakeVkImageLayout :: inline (layout : GfxTextureLayout) -> VkImageLayout {
     case .DepthStencilAttachment; return .DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     case .PresentSrc;             return .PRESENT_SRC_KHR;
     }
-}
+} @NoProfile
 
 AddTextureBarrier :: (
     cmd_buffer : *GfxCommandBuffer,
@@ -3085,7 +3089,7 @@ AddTextureBarrier :: (
     );
 
     g_gfx_context.frame_statistics.num_texture_barriers += 1;
-}
+} @NoProfile
 
 AddTextureBarrier :: (
     cmd_buffer : *GfxCommandBuffer,
@@ -3098,7 +3102,7 @@ AddTextureBarrier :: (
         new_layout,
         texture
     );
-}
+} @NoProfile
 
 AddTextureBarriers :: (
     cmd_buffer : *GfxCommandBuffer,
@@ -3131,7 +3135,7 @@ AddTextureBarriers :: (
     );
 
     g_gfx_context.frame_statistics.num_texture_barriers += barriers.count;
-}
+} @NoProfile
 
 SetDebugName :: (obj : $T, name : string) {
     ctx := *g_gfx_context;
@@ -3184,7 +3188,7 @@ SetDebugName :: (obj : $T, name : string) {
     name_info.objectHandle = xx obj;
     name_info.pObjectName = CStringClone(name ,, Temp);
     ctx.vkSetDebugUtilsObjectNameEXT(ctx.device, *name_info);
-}
+} @NoProfile
 
 VulkanDebugCallback :: (
     severity : VkDebugUtilsMessageSeverityFlagBitsEXT,
