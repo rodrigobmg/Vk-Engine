@@ -1,4 +1,4 @@
-# Game Engine in Jai
+# Jai Game Engine
 *Warning*: you might not be able to clone the project if all my GitHub LFS bandwidth has been used. I have to find a solution to put assets outside of the main repository.
 
 Started as a toy engine project to learn Vulkan and advanced rendering techniques, this is now taking the direction of a fully fledged game engine.
