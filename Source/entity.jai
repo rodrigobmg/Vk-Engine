@@ -26,6 +26,18 @@ EmptyEntity :: struct {
     #as using _ : Entity; @Serialize(1) @InspectorNoTree
 
     GetEditorIcon :: (world : *World, using entity : *EmptyEntity) -> *Asset(Texture2D) {
+        // If any component has an icon, or if it is drawable then don't set an icon
+        for components {
+            type := GetComponentTypeId(it);
+            if type == .StaticMeshComponent || type == .SkinnedMeshComponent {
+                return null;
+            }
+
+            if GetEditorIcon(world, entity, it) {
+                return null;
+            }
+        }
+
         return LoadAssetPermanent(Texture2D, "Editor/Icons/Default.png");
     }
 } @Entity
