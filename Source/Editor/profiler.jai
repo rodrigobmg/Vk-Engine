@@ -164,15 +164,15 @@ ShowCPUProfiler :: () {
 
     ImGui.SliderInt("Max Events", *g_editor_profiler_max_events, 1, 100);
 
-    table_flags := ImGui.TableFlags.Resizable | .RowBg | .ScrollY
+    table_flags := ImGui.TableFlags.Resizable | .RowBg | .ScrollX | .ScrollY
         | .Sortable | .SortMulti | .Hideable | .Reorderable;
-    if ImGui.BeginTable("Events", 4, table_flags) {
+    if ImGui.BeginTable("Events", 3, table_flags) {
         defer ImGui.EndTable();
 
-        ImGui.TableSetupColumn("Name", .NoHide, user_id=Column_Name);
-        ImGui.TableSetupColumn("Self Time", .DefaultSort | .PreferSortDescending, user_id=Column_Self_Time);
-        ImGui.TableSetupColumn("Total Time", .PreferSortDescending, user_id=Column_Total_Time);
-        ImGui.TableSetupColumn("Location", user_id=Column_Location);
+        ImGui.TableSetupColumn("Name", .NoHide | .WidthStretch, 0.5, user_id=Column_Name);
+        ImGui.TableSetupColumn("Self Time", .DefaultSort | .PreferSortDescending | .WidthStretch, 0.25, user_id=Column_Self_Time);
+        ImGui.TableSetupColumn("Total Time", .PreferSortDescending | .WidthStretch, 0.25, user_id=Column_Total_Time);
+        // ImGui.TableSetupColumn("Location", user_id=Column_Location);
         ImGui.TableSetupScrollFreeze(0, 1); // Keep headers visible when scrolling
         ImGui.TableHeadersRow();
 
@@ -194,8 +194,9 @@ ShowCPUProfiler :: () {
             ImGui.TableSetColumnIndex(Column_Total_Time);
             ImGui.Text("% ms", Basic.to_float64_seconds(GetTotalTime(event)) * 1000);
 
-            ImGui.TableSetColumnIndex(Column_Location);
-            ImGui.Text("%:%", event.filename, event.line_number);
+            // @Todo: location is almost always wrong, and set to Build/profiler.jai
+            // ImGui.TableSetColumnIndex(Column_Location);
+            // ImGui.Text("%:%", event.filename, event.line_number);
         }
     }
 
