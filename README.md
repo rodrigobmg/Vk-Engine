@@ -1,15 +1,22 @@
-# Vulkan Based Rendering Engine
+# Game Engine in Jai
 *Warning*: you might not be able to clone the project if all my GitHub LFS bandwidth has been used. I have to find a solution to put assets outside of the main repository.
 
-Toy engine project to learn Vulkan and advanced rendering techniques.
+Started as a toy engine project to learn Vulkan and advanced rendering techniques, this is now taking the direction of a fully fledged game engine.
+
+There is still a lot to do on the graphics side of things, but currently I am directing my efforts on game stuff.
 
 Supports Linux and Windows.
 
 ## Features:
-* Abstraction layer
+* No "big idea" (e.g. ECS), simple and pragmatic entity system
+* Graphics abstraction layer
 * Shader hot reloading
 * Asset hot reloading
-* Highly backward and forward compatible serialization system
+* Highly backward and forward compatible serialization system using manual indices
+* Simple editor with gizmos
+* Simple CPU profiler
+* Simple GPU profiler
+* Skinned meshes
 * Physically based opaque surface shading
 * Image based lighting
 * HDR textures
@@ -17,35 +24,34 @@ Supports Linux and Windows.
 * Parallax occlusion mapping with self shadowing
 * Bloom
 * Omnidirectional shadow maps
-* Simple editor with gizmos
-* Simple CPU profiler
-* Simple GPU profiler
-* Skinned meshes
 * Clustered forward rendering
 
 ## To explore/implement next:
+### Graphics:
 * Global illumination
 * Non pre-baked reflections
 * GTAO
 * Subsurface scattering
 * Volumetric clouds
 * Automatic texture transition barriers
-* Texture viewer
 * Variance shadow maps
 * Particle system
+### Editor:
+* Texture viewer
+### Core:
 * Pipelining
 * Hot reloading code
-
-## To-do on the game side of things:
-* Particle system
+* Input system
+### Animation:
 * Animation system
 * Animation graph (ideally a UE like graph that's more of a general purpose visual scripting tool)
 * Animation joint attachments
-* Collision detection queries (maybe we can use Jolt)
+### Physics:
+* Collision detection queries (we can probably use a physics engine)
 * Physics engine integration (probably Jolt)
-* Simple input system
 
 ## Goals
+* Having a player running, jumping and mantling around (see Unreal Engine Advanced Locomotion System)
 * Sponza running at 155 FPS with all point lights casting shadows
 
 ## Gallery
