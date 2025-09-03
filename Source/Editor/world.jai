@@ -1,3 +1,23 @@
+#scope_file
+
+g_quick_load_scene_files : [..]string;
+g_quick_load_last_refreshed : Basic.Apollo_Time;
+g_quick_load_refresh_frequency := 5.0;
+
+#scope_export
+
+ListDirectories :: (path : string, recursive := false, follow_directory_symlinks := true) -> []string {
+    files : [..]string;
+
+    Visitor :: (info : *File_Visit_Info, user_data : *[..]string) {
+        ArrayPush(user_data, StringClone(info.full_name));
+    }
+
+    visit_files(path, recursive, *files, Visitor, visit_files=false, visit_directories=true, follow_directory_symlinks=follow_directory_symlinks);
+
+    return files;
+}
+
 WorldMenu :: (world : *World) {
     if ImGui.BeginMenu("World") {
         defer ImGui.EndMenu();
@@ -19,6 +39,45 @@ WorldMenu :: (world : *World) {
                 flags=.SelectDirectory | .DisallowNonExisting
             }, Callback, world);
         }
+
+        if ImGui.BeginMenu("Quick Load") {
+            defer ImGui.EndMenu();
+
+            if g_quick_load_last_refreshed == .{}
+            || Basic.to_float64_seconds(Basic.current_time_monotonic() - g_quick_load_last_refreshed) > g_quick_load_refresh_frequency {
+                for g_quick_load_scene_files {
+                    Free(it.data);
+                }
+                ArrayClear(*g_quick_load_scene_files);
+
+                files := ListDirectories(g_data_directory_absolute_path, recursive=true ,, Temp);
+                for files {
+                    if path_extension(it) == "scene" {
+                        ArrayPush(*g_quick_load_scene_files, StringClone(it));
+                    }
+                }
+
+                QuickSort(g_quick_load_scene_files, (a, b) => StringCompare(a, b));
+            }
+
+            for g_quick_load_scene_files {
+                label := it;
+                if StringStartsWith(label, g_data_directory_absolute_path) {
+                    StringAdvance(*label, g_data_directory_absolute_path.count);
+
+                    if label.count > 0 && label[0] == #char "/" {
+                        StringAdvance(*label, 1);
+                    }
+                }
+
+                if ImGui.MenuItem(CStringClone(label ,, Temp)) {
+                    LoadWorldFromDirectory(world, it);
+                }
+            }
+        } else {
+            g_quick_load_last_refreshed = .{};
+        }
+
         if ImGui.MenuItem("Save", enabled=world.loaded_from_directory != "") {
             SaveWorldToDirectory(world, world.loaded_from_directory);
         }
