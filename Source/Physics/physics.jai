@@ -1,51 +1,6 @@
 #load "intersection.jai";
 #load "collision_mesh.jai";
-
-SphereColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
-
-    radius : float = 1; @Serialize(2)
-
-    OnDebugDraw :: (world : *World, entity : *Entity, using,except(entity) sphere : *SphereColliderComponent) {
-        if EntityOrParentIsSelected(world, entity) {
-            center := TranslationVector(entity.world_transform);
-            DebugDrawSphereOutline(.{0,1,0,1}, center, radius);
-        }
-    }
-} @Component @Category(Colliders)
-
-CapsuleColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
-
-    height : float = 2; @Serialize(2)
-    radius : float = 0.5; @Serialize(3)
-
-    OnDebugDraw :: (world : *World, entity : *Entity, using,except(entity) capsule : *CapsuleColliderComponent) {
-        if EntityOrParentIsSelected(world, entity) {
-            center := TranslationVector(entity.world_transform);
-            up := UpVector(entity.world_transform);
-            DebugDrawCapsuleOutline(.{0,1,0,1}, center - up * height * 0.5, center + up * height * 0.5, radius);
-        }
-    }
-} @Component @Category(Colliders)
-
-BoxColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
-
-    half_extents : Vec3f = .{1,1,1}; @Serialize(2)
-
-    OnDebugDraw :: (world : *World, entity : *Entity, using,except(entity) box : *BoxColliderComponent) {
-        if EntityOrParentIsSelected(world, entity) {
-            DebugDrawBoxOutline(.{0,1,0,1}, .{0,0,0}, half_extents, entity.world_transform);
-        }
-    }
-} @Component @Category(Colliders)
-
-MeshColliderComponent :: struct {
-    #as using _ : Component; @Serialize(1) @InspectorNoTree
-
-    mesh : *Asset(StaticMesh); @Serialize(2)
-} @Component @Category(Colliders)
+#load "collider.jai";
 
 Sphere :: struct {
     center : Vec3f;

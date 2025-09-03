@@ -286,12 +286,12 @@ RayIntersectsBox :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, bo
     return intersects, point, dist, normal;
 }
 
-RayIntersectsBox :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, transform : Mat4f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f {
+RayIntersectsBox :: (ray_origin : Vec3f, ray_dir : Vec3f, ray_length : float, half_extents : Vec3f, transform : Mat4f) -> intersects : bool, point : Vec3f, dist : float, normal : Vec3f {
     inv_transform := Inverse(transform);
     model_space_ray_origin := TransformPoint(inv_transform, ray_origin);
     model_space_ray_dir := Normalized(TransformVector(inv_transform, ray_dir));
 
-    intersects, point, dist, normal := RayIntersectsBox(model_space_ray_origin, model_space_ray_dir, ray_length, .{0,0,0}, .{1,1,1});
+    intersects, point, dist, normal := RayIntersectsBox(model_space_ray_origin, model_space_ray_dir, ray_length, .{0,0,0}, half_extents);
     if !intersects {
         return false, .{}, 0, .{};
     }

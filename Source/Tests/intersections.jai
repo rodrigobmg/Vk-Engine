@@ -61,7 +61,7 @@ TestShapeEntity :: struct {
                 if it.shape == {
                 case .Box;
                     intersects, point, _, normal =
-                        RayIntersectsBox(position, direction, ray_length, it.world_transform);
+                        RayIntersectsBox(position, direction, ray_length, .{1,1,1}, it.world_transform);
 
                 case .Plane;
                 case .Ray;
