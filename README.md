@@ -18,6 +18,7 @@ Supports Linux and Windows.
 * Bloom
 * Omnidirectional shadow maps
 * Simple editor with gizmos
+* Simple CPU profiler
 * Simple GPU profiler
 * Skinned meshes
 * Clustered forward rendering
