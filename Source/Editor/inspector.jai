@@ -760,16 +760,17 @@ ShowInspector :: (label : *u8, using ctx : *InspectorContext, any : Any, notes :
                 item : Any;
                 item.type = it.type;
                 item.value_pointer = ptr + it.offset_in_bytes;
-                member_label := ifx it.name && it.name != "_" then CStringClone(it.name ,, Temp);
-                member_label = Capitalize(MakeString(member_label)).data;
 
-                // if member_no_tree {
-                //     if member_label {
-                //         ImGui.SeparatorText(member_label);
-                //     } else {
-                //         ImGui.Separator();
-                //     }
-                // }
+                member_label : *u8;
+                if it.type.type == .POINTER && IsInComponentTypesArray(cast(*Type, *cast(*Type_Info_Pointer, it.type).pointer_to).*) {
+                    component_type := cast(*Type, *cast(*Type_Info_Pointer, it.type).pointer_to).*;
+                    component_name := GetNiceComponentTypeName(GetComponentTypeId(component_type));
+                    member_label = ifx it.name && it.name != "_" then CTPrint("% (% component)", it.name, component_name);
+                } else {
+                    member_label = ifx it.name && it.name != "_" then CStringClone(it.name ,, Temp);
+                }
+
+                member_label = Capitalize(MakeString(member_label)).data;
 
                 absolute_offset = old_ctx.absolute_offset + it.offset_in_bytes;
 
