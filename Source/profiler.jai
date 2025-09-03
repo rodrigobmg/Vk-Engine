@@ -2,6 +2,7 @@
 
 Log_Profiling :: Log_Section.{name="Profiler"};
 
+Max_Profiling_Event_Depth :: 100;
 Max_Profiling_Events_Per_Frame :: 10000;
 
 ProfilingEvent :: struct {
@@ -12,6 +13,7 @@ ProfilingEvent :: struct {
     line_number : u32;
     thread_index : u32;
     depth : u32;
+    parent_index_relative_to_thread : s32 = -1;
 }
 
 ProfiledThread :: struct {
@@ -54,7 +56,9 @@ g_cpu_profiler : Profiler;
 ProfilingThreadContext :: struct {
     thread_name : string;
     thread_index : u32;
+    thread_sequencial_event_index : u32;
     current_depth : u32;
+    event_stack : [Max_Profiling_Event_Depth]u32;
 }
 
 #add_context profiling : ProfilingThreadContext;
@@ -184,6 +188,8 @@ ProfilerEndFrame :: (prof : *Profiler, frame_event : *ProfilingEvent) {
 
     added_new_thread := false;
     for prof.thread_contexts {
+        it.thread_sequencial_event_index = 0;
+
         exists := false;
         for profiled_thread : prof.profiled_threads {
             if it.thread_index == profiled_thread.thread_index {
@@ -201,14 +207,23 @@ ProfilerEndFrame :: (prof : *Profiler, frame_event : *ProfilingEvent) {
     }
 
     if added_new_thread {
-        QuickSort(prof.profiled_threads, (a, b) => cast(int) a.thread_index - cast(int) b.thread_index);
+        QuickSort(prof.profiled_threads, (a, b) => cast(int, a.thread_index) - cast(int, b.thread_index));
     }
 
     // Save this before the quick sort
     current_frame_event := frame_event.*;
 
+    CompareEventThreadIndex :: (a : ProfilingEvent, b : ProfilingEvent) -> int {
+        thread_comp := cast(int, a.thread_index) - cast(int, b.thread_index);
+        if thread_comp != 0 {
+            return thread_comp;
+        }
+
+        return Basic.compare_apollo_times(a.start_time, b.start_time);
+    }
+
     all_events_this_frame := ([]ProfilingEvent).{prof.num_events_this_frame, prof.events_this_frame.data};
-    QuickSort(all_events_this_frame, (a, b) => cast(int) a.thread_index - cast(int) b.thread_index);
+    QuickSort(all_events_this_frame, CompareEventThreadIndex);
 
     event_index := prof.all_events.count;
     ArrayPushMultiple(*prof.all_events, all_events_this_frame);
@@ -258,8 +273,17 @@ ProfilerBeginEvent :: (prof : *Profiler, name := "", location := #caller_locatio
     event.line_number = xx location.line_number;
     event.thread_index = context.thread_index;
 
+    if context.profiling.current_depth > 0 {
+        event.parent_index_relative_to_thread = xx context.profiling.event_stack[context.profiling.current_depth - 1];
+    } else {
+        event.parent_index_relative_to_thread = -1;
+    }
+
+    context.profiling.event_stack[context.profiling.current_depth] = context.profiling.thread_sequencial_event_index;
     context.profiling.current_depth += 1;
     event.depth = context.profiling.current_depth;
+
+    context.profiling.thread_sequencial_event_index += 1;
 
     event.start_time = Basic.current_time_monotonic();
 

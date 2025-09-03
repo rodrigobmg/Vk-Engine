@@ -31,14 +31,16 @@ ShowCPUProfiler :: () {
     }
 
     table_flags := ImGui.TableFlags.Resizable | .RowBg | .PadOuterX | .ScrollY;
-    if ImGui.BeginTable("Events", 2, table_flags) {
+    if ImGui.BeginTable("Events", 3, table_flags) {
         defer ImGui.EndTable();
 
         ImGui.TableSetupColumn("Name");
         ImGui.TableSetupColumn("Self Time");
+        ImGui.TableSetupColumn("Parent");
         ImGui.TableSetupScrollFreeze(0, 1); // Keep headers visible when scrolling
         ImGui.TableHeadersRow();
 
+        first_event_index := 0;
         if !g_cpu_profiler.paused {
             if g_cpu_profiler.profiled_threads.count <= 0 {
                 return;
@@ -50,6 +52,7 @@ ShowCPUProfiler :: () {
             }
 
             last_frame := main_thread.frames[main_thread.frames.count - 1];
+            first_event_index = last_frame.first_event_index;
 
             ArrayClear(*g_shown_events);
             for i : last_frame.first_event_index..last_frame.last_event_index {
@@ -68,6 +71,12 @@ ShowCPUProfiler :: () {
             ImGui.TableSetColumnIndex(1);
             self_time := Basic.to_float64_seconds(event.end_time - event.start_time);
             ImGui.Text("% ms", self_time * 1000);
+
+            if !g_cpu_profiler.paused && event.parent_index_relative_to_thread >= 0 {
+                ImGui.TableSetColumnIndex(2);
+                parent := g_cpu_profiler.all_events[first_event_index + event.parent_index_relative_to_thread];
+                ImGui.Text("% (%)", parent.name, event.parent_index_relative_to_thread);
+            }
         }
     }
 
