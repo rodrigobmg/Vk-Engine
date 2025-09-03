@@ -6,6 +6,7 @@
 // https://graphicscompendium.com/gamedev/15-pbr
 // https://graphicscompendium.com/references/cook-torrance
 // https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf
+// http://imadr.me/pbr/
 
 // https://pharr.org/matt/blog/2022/05/06/trowbridge-reitz
 float DistributionThrowbridgeReitz(float3 N, float3 H, float roughness) {
@@ -14,7 +15,7 @@ float DistributionThrowbridgeReitz(float3 N, float3 H, float roughness) {
     float NdotH = max(dot(N, H), 0.0);
 
     float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
-    denom = Pi * denom * denom;
+    denom = max(Pi * denom * denom, 0.0000001);
 
     return a2 / denom;
 }
@@ -46,6 +47,7 @@ float GeometrySchlickForIncomingAndOutgoing(float3 N, float3 V, float3 L, float 
 }
 
 // The fresnel equation describes the ratio of light that is reflected over the light that is refracted
+// This is an approximation
 float3 FresnelSchlick(float HdotV, float3 F0) {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - HdotV, 0.0, 1.0), 5.0);
 }
@@ -86,7 +88,7 @@ float3 CalculateBRDF(
 float3 CalculateAmbientBRDF(
     float3 albedo, float metallic, float roughness,
     float3 N, float3 V,
-    float3 irradiance, float3 environment_color,
+    float3 irradiance, float3 environment,
     sampler2D brdf_lut
 ) {
     float NdotV = max(dot(N, V), 0.0);
@@ -107,7 +109,7 @@ float3 CalculateAmbientBRDF(
     #endif
 
     float2 environment_brdf = texture(brdf_lut, environment_brdf_coords).rg; // Should be green for smooth surfaces
-    float3 specular = environment_color * (F * environment_brdf.x + environment_brdf.y);
+    float3 specular = environment * (F * environment_brdf.x + environment_brdf.y);
 
     float3 kS = F;
     float3 kD = float3(1) - kS;
