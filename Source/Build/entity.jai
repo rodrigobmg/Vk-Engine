@@ -36,7 +36,7 @@ HandleDeclarationForEntity :: (decl : *Code_Declaration) {
 
     struct_type : *Type_Info_Struct;
     if decl.expression && decl.expression.kind == .STRUCT {
-        struct_type = (cast(*Code_Struct) decl.expression).defined_type;
+        struct_type = cast(*Code_Struct, decl.expression).defined_type;
     }
 
     if decl.name == "Entity" && decl.enclosing_load.fully_pathed_filename == StringJoin(GetRootDirectory(), "Source/entity.jai") {
